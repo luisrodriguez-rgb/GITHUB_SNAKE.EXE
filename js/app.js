@@ -1,6 +1,7 @@
 /**
  * Main Application Orchestrator & Loop Controller (Pro Edition)
  * Integra Audio Sintético, Control Manual (WASD), Editor de Matriz, Exportador y Ranking.
+ * Calibración de velocidad suave y cómoda a la vista (1 a 9 t/s).
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -50,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let grid = [];
   let isRunning = true;
-  let ticksPerSecond = parseInt(speedSlider.value, 10) || 6;
+  let ticksPerSecond = parseFloat(speedSlider.value) || 5;
   let lastTickTime = performance.now();
   let animationFrameId = null;
 
@@ -60,6 +61,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isPaintMode = false;
   let isMouseDown = false;
   let currentUsername = 'torvalds';
+
+  function formatSpeedLabel(speed) {
+    if (speed <= 3) return `${speed} t/s (Relajado)`;
+    if (speed <= 6) return `${speed} t/s (Optimo)`;
+    return `${speed} t/s (Rapido)`;
+  }
 
   // --- Fondo de Lluvia Digital Matrix ---
   const matrixCtx = matrixCanvas.getContext('2d');
@@ -163,9 +170,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  /**
-   * Callback al devorar un commit
-   */
   function onCommitEaten(cell) {
     sound.playEat(cell.originalLevel);
     if (cell.originalLevel >= 3) {
@@ -175,9 +179,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateHud();
   }
 
-  /**
-   * Ejecuta un paso de lógica discreta
-   */
   function doLogicalTick() {
     if (!grid || grid.length === 0) return;
 
@@ -244,19 +245,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     animationFrameId = requestAnimationFrame(gameLoop);
   }
 
-  // --- Controles de Teclado (Bloquea scroll y permite control total WASD / Flechas) ---
+  // --- Controles de Teclado ---
   window.addEventListener('keydown', (e) => {
     const activeEl = document.activeElement;
     if (activeEl === usernameInput || (activeEl && activeEl.tagName === 'TEXTAREA')) {
       return;
     }
 
-    // Prevenir que las teclas de flecha y barra espaciadora desplacen la página
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
       e.preventDefault();
     }
 
-    // Barra espaciadora: Pausar / Reanudar
     if (e.key === ' ') {
       playPauseBtn.click();
       return;
@@ -281,7 +280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // --- Interacción con Canvas (Editor / Pintar Matriz) ---
+  // --- Interacción con Canvas (Pintar Matriz) ---
   function paintCellAt(clientX, clientY) {
     const cellCoords = renderer.getCellFromCoords(clientX, clientY);
     if (cellCoords && grid[cellCoords.x] && grid[cellCoords.x][cellCoords.y]) {
@@ -319,7 +318,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // --- Event Listeners Toolbar y Presets ---
-
   fetchBtn.addEventListener('click', () => {
     const user = usernameInput.value.trim();
     if (user) {
@@ -462,9 +460,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     statState.textContent = 'Protocolo reiniciado';
   });
 
+  // Calibración de rango de velocidad
   speedSlider.addEventListener('input', (e) => {
-    ticksPerSecond = parseInt(e.target.value, 10);
-    speedValue.textContent = `${ticksPerSecond} t/s`;
+    ticksPerSecond = parseFloat(e.target.value);
+    speedValue.textContent = formatSpeedLabel(ticksPerSecond);
   });
 
   themeSelect.addEventListener('change', (e) => {
@@ -477,7 +476,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderer.snakeStyle = e.target.value;
   });
 
-  // Inicializar ranking y carga de usuario inicial
+  // Inicializar ranking y velocidad
+  speedValue.textContent = formatSpeedLabel(ticksPerSecond);
   renderLeaderboard();
   await loadUserGrid('torvalds');
   animationFrameId = requestAnimationFrame(gameLoop);
