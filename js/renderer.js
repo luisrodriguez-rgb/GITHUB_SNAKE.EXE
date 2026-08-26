@@ -1,6 +1,7 @@
 /**
- * Canvas 2D Zero-Flicker 60 FPS Matrix Renderer
- * Renderizado toroidal sin cortes con Ghost Segments en bordes, sub-píxel LERP, shockwaves, editor y modo duelo (doble serpiente).
+ * Canvas 2D Zero-Flicker 60 FPS Matrix Renderer (High-Contrast Cyber Edition)
+ * Renderizado toroidal sin cortes con Ghost Segments, contornos de alto contraste para máxima visibilidad en modo oscuro,
+ * sub-píxel LERP, shockwaves, editor y modo duelo (doble serpiente).
  */
 
 class SnakeRenderer {
@@ -95,7 +96,7 @@ class SnakeRenderer {
       l4: style.getPropertyValue('--cell-l4').trim() || '#00ff66',
       snakeHead: style.getPropertyValue('--snake-head').trim() || '#ffffff',
       snakeBody: style.getPropertyValue('--snake-body').trim() || '#00ff66',
-      snakeGlow: style.getPropertyValue('--snake-glow').trim() || 'rgba(0, 255, 102, 0.85)',
+      snakeGlow: style.getPropertyValue('--snake-glow').trim() || 'rgba(0, 255, 102, 0.95)',
       matrixGreen: style.getPropertyValue('--matrix-green').trim() || '#00ff66'
     };
   }
@@ -122,7 +123,7 @@ class SnakeRenderer {
       this.drawParticles(secondSnake.particles, { matrixGreen: '#00f2fe' });
     }
 
-    // Dibujar primera serpiente (IA / Verde)
+    // Dibujar primera serpiente (IA / Verde) con alto contraste
     if (snake.body && snake.body.length > 0) {
       this.drawSnake(snake, progress, colors);
     }
@@ -133,7 +134,7 @@ class SnakeRenderer {
         ...colors,
         snakeHead: '#ffffff',
         snakeBody: '#00f2fe',
-        snakeGlow: 'rgba(0, 242, 254, 0.85)',
+        snakeGlow: 'rgba(0, 242, 254, 0.95)',
         matrixGreen: '#00f2fe'
       };
       this.drawSnake(secondSnake, progress, duelColors);
@@ -160,7 +161,7 @@ class SnakeRenderer {
         this.drawRoundedRect(px, py, this.cellSize, this.cellSize, this.cellRadius);
 
         if (cell.level === 0) {
-          this.ctx.strokeStyle = 'rgba(0, 255, 102, 0.05)';
+          this.ctx.strokeStyle = 'rgba(0, 255, 102, 0.06)';
           this.ctx.lineWidth = 1;
           this.drawRoundedRect(px, py, this.cellSize, this.cellSize, this.cellRadius, true);
         }
@@ -168,8 +169,8 @@ class SnakeRenderer {
         if (cell.level >= 2) {
           this.ctx.save();
           this.ctx.shadowColor = colors.matrixGreen;
-          this.ctx.shadowBlur = cell.level === 4 ? 10 : 5;
-          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+          this.ctx.shadowBlur = cell.level === 4 ? 8 : 4;
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
           this.drawRoundedRect(px + 1.5, py + 1.5, this.cellSize - 3, 2, 1);
           this.ctx.restore();
         }
@@ -298,25 +299,37 @@ class SnakeRenderer {
     for (let i = segments.length - 1; i >= 0; i--) {
       const seg = segments[i];
       const isHead = seg.isHead;
-      const ratio = 1 - (i / seg.total) * 0.35;
+      const ratio = 1 - (i / seg.total) * 0.32;
       const size = this.cellSize * ratio;
       const offset = (this.cellSize - size) / 2;
-      const pulse = Math.sin(this.time * 4 - i * 0.5) * 0.15 + 0.85;
-
-      this.ctx.shadowColor = colors.snakeGlow;
-      this.ctx.shadowBlur = isHead ? 16 : 8 * pulse;
-      this.ctx.fillStyle = isHead ? colors.snakeHead : colors.snakeBody;
+      const pulse = Math.sin(this.time * 5 - i * 0.45) * 0.15 + 0.85;
 
       this.renderSegment(seg, (x, y) => {
+        // 1. Silueta de Alto Contraste (Borde oscuro para separar de las celdas verdes de fondo)
+        this.ctx.save();
+        this.ctx.fillStyle = '#020905';
+        this.ctx.shadowColor = '#000000';
+        this.ctx.shadowBlur = 6;
+        this.drawRoundedRect(x + offset - 1.5, y + offset - 1.5, size + 3, size + 3, size * 0.38);
+        this.ctx.restore();
+
+        // 2. Núcleo Vibrante con Halo Luminiscente
+        this.ctx.save();
+        this.ctx.shadowColor = colors.snakeGlow;
+        this.ctx.shadowBlur = isHead ? 20 : 12 * pulse;
+        this.ctx.fillStyle = isHead ? '#ffffff' : colors.snakeBody;
         this.drawRoundedRect(x + offset, y + offset, size, size, size * 0.35);
 
+        // 3. Columna Vertebral Láser Ultra Brillante (Línea central blanca de alto impacto)
         if (!isHead) {
-          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-          const innerSize = size * 0.4;
+          this.ctx.fillStyle = '#ffffff';
+          this.ctx.shadowColor = '#ffffff';
+          this.ctx.shadowBlur = 4;
+          const innerSize = size * 0.38;
           const innerOffset = (this.cellSize - innerSize) / 2;
-          this.drawRoundedRect(x + innerOffset, y + innerOffset, innerSize, innerSize, 2);
-          this.ctx.fillStyle = colors.snakeBody;
+          this.drawRoundedRect(x + innerOffset, y + innerOffset, innerSize, innerSize, 1.5);
         }
+        this.ctx.restore();
       });
     }
     this.ctx.restore();
@@ -328,7 +341,7 @@ class SnakeRenderer {
   }
 
   drawMatrixEyes(headPos, direction, colors) {
-    const eyeRadius = 2.2;
+    const eyeRadius = 2.4;
     const eyeOffset = 3.2;
     const centerX = headPos.x + this.cellSize / 2;
     const centerY = headPos.y + this.cellSize / 2;
@@ -350,18 +363,25 @@ class SnakeRenderer {
     }
 
     this.ctx.save();
-    this.ctx.fillStyle = '#030805';
+    // Borde oscuro del ojo
+    this.ctx.fillStyle = '#020905';
+    this.ctx.beginPath();
+    this.ctx.arc(e1x, e1y, eyeRadius + 0.8, 0, Math.PI * 2);
+    this.ctx.arc(e2x, e2y, eyeRadius + 0.8, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Fondo blanco del ojo
+    this.ctx.fillStyle = '#ffffff';
     this.ctx.beginPath();
     this.ctx.arc(e1x, e1y, eyeRadius, 0, Math.PI * 2);
     this.ctx.arc(e2x, e2y, eyeRadius, 0, Math.PI * 2);
     this.ctx.fill();
 
-    this.ctx.fillStyle = colors.matrixGreen;
-    this.ctx.shadowColor = colors.matrixGreen;
-    this.ctx.shadowBlur = 8;
+    // Pupila cibernética brillante
+    this.ctx.fillStyle = '#020905';
     this.ctx.beginPath();
-    this.ctx.arc(e1x + (direction.x * 0.6), e1y + (direction.y * 0.6), eyeRadius * 0.55, 0, Math.PI * 2);
-    this.ctx.arc(e2x + (direction.x * 0.6), e2y + (direction.y * 0.6), eyeRadius * 0.55, 0, Math.PI * 2);
+    this.ctx.arc(e1x + (direction.x * 0.7), e1y + (direction.y * 0.7), eyeRadius * 0.6, 0, Math.PI * 2);
+    this.ctx.arc(e2x + (direction.x * 0.7), e2y + (direction.y * 0.7), eyeRadius * 0.6, 0, Math.PI * 2);
     this.ctx.fill();
     this.ctx.restore();
   }
@@ -369,20 +389,35 @@ class SnakeRenderer {
   drawCapsuleSnake(segments, direction, colors) {
     const head = segments[0];
     this.ctx.save();
-    this.ctx.shadowColor = colors.snakeGlow;
-    this.ctx.shadowBlur = 12;
 
     for (let i = segments.length - 1; i >= 0; i--) {
       const seg = segments[i];
       const isHead = seg.isHead;
-      const radiusRatio = Math.max(0.6, 1 - (i / seg.total) * 0.4);
+      const radiusRatio = Math.max(0.65, 1 - (i / seg.total) * 0.35);
       const size = this.cellSize * radiusRatio;
       const offset = (this.cellSize - size) / 2;
 
-      this.ctx.fillStyle = isHead ? colors.snakeHead : colors.snakeBody;
-
       this.renderSegment(seg, (x, y) => {
+        // Silueta oscura
+        this.ctx.save();
+        this.ctx.fillStyle = '#020905';
+        this.drawRoundedRect(x + offset - 1.5, y + offset - 1.5, size + 3, size + 3, size * 0.42);
+        this.ctx.restore();
+
+        // Cuerpo con brillo
+        this.ctx.save();
+        this.ctx.shadowColor = colors.snakeGlow;
+        this.ctx.shadowBlur = 14;
+        this.ctx.fillStyle = isHead ? '#ffffff' : colors.snakeBody;
         this.drawRoundedRect(x + offset, y + offset, size, size, size * 0.4);
+
+        if (!isHead) {
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          const innerSize = size * 0.35;
+          const innerOffset = (this.cellSize - innerSize) / 2;
+          this.drawRoundedRect(x + innerOffset, y + innerOffset, innerSize, innerSize, 1.5);
+        }
+        this.ctx.restore();
       });
     }
     this.ctx.restore();
@@ -399,19 +434,18 @@ class SnakeRenderer {
     this.ctx.save();
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
-    this.ctx.lineWidth = this.cellSize * 0.85;
-    this.ctx.strokeStyle = colors.snakeBody;
-    this.ctx.shadowColor = colors.snakeGlow;
-    this.ctx.shadowBlur = 14;
 
     const half = this.cellSize / 2;
+
+    // 1. Trazo Oscuro Base (Separación del fondo)
+    this.ctx.lineWidth = this.cellSize * 0.95;
+    this.ctx.strokeStyle = '#020905';
     this.ctx.beginPath();
     this.ctx.moveTo(segments[0].main.x + half, segments[0].main.y + half);
 
     for (let i = 1; i < segments.length; i++) {
       const prev = segments[i - 1].main;
       const curr = segments[i].main;
-
       if (Math.abs(curr.gridX - prev.gridX) > 1.5 || Math.abs(curr.gridY - prev.gridY) > 1.5) {
         this.ctx.moveTo(curr.x + half, curr.y + half);
       } else {
@@ -420,8 +454,54 @@ class SnakeRenderer {
     }
     this.ctx.stroke();
 
+    // 2. Trazo Láser Principal con Neón
+    this.ctx.lineWidth = this.cellSize * 0.75;
+    this.ctx.strokeStyle = colors.snakeBody;
+    this.ctx.shadowColor = colors.snakeGlow;
+    this.ctx.shadowBlur = 16;
+    this.ctx.beginPath();
+    this.ctx.moveTo(segments[0].main.x + half, segments[0].main.y + half);
+
+    for (let i = 1; i < segments.length; i++) {
+      const prev = segments[i - 1].main;
+      const curr = segments[i].main;
+      if (Math.abs(curr.gridX - prev.gridX) > 1.5 || Math.abs(curr.gridY - prev.gridY) > 1.5) {
+        this.ctx.moveTo(curr.x + half, curr.y + half);
+      } else {
+        this.ctx.lineTo(curr.x + half, curr.y + half);
+      }
+    }
+    this.ctx.stroke();
+
+    // 3. Columna Vertebral Blanca Central
+    this.ctx.lineWidth = 2.5;
+    this.ctx.strokeStyle = '#ffffff';
+    this.ctx.shadowColor = '#ffffff';
+    this.ctx.shadowBlur = 6;
+    this.ctx.beginPath();
+    this.ctx.moveTo(segments[0].main.x + half, segments[0].main.y + half);
+
+    for (let i = 1; i < segments.length; i++) {
+      const prev = segments[i - 1].main;
+      const curr = segments[i].main;
+      if (Math.abs(curr.gridX - prev.gridX) > 1.5 || Math.abs(curr.gridY - prev.gridY) > 1.5) {
+        this.ctx.moveTo(curr.x + half, curr.y + half);
+      } else {
+        this.ctx.lineTo(curr.x + half, curr.y + half);
+      }
+    }
+    this.ctx.stroke();
+
+    // Cabeza
     const head = segments[0];
-    this.ctx.fillStyle = colors.snakeHead;
+    this.ctx.fillStyle = '#020905';
+    this.ctx.beginPath();
+    this.ctx.arc(head.main.x + half, head.main.y + half, this.cellSize * 0.58, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.shadowColor = colors.snakeGlow;
+    this.ctx.shadowBlur = 18;
     this.ctx.beginPath();
     this.ctx.arc(head.main.x + half, head.main.y + half, this.cellSize * 0.5, 0, Math.PI * 2);
     this.ctx.fill();
@@ -442,11 +522,19 @@ class SnakeRenderer {
   drawRetroSnake(segments, colors) {
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
-      this.ctx.fillStyle = seg.isHead ? colors.snakeHead : colors.snakeBody;
       this.renderSegment(seg, (x, y) => {
+        // Silueta
+        this.ctx.fillStyle = '#020905';
+        this.ctx.fillRect(x - 1, y - 1, this.cellSize + 2, this.cellSize + 2);
+
+        // Bloque
+        this.ctx.fillStyle = seg.isHead ? '#ffffff' : colors.snakeBody;
         this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
-        this.ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-        this.ctx.strokeRect(x, y, this.cellSize, this.cellSize);
+
+        if (!seg.isHead) {
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+          this.ctx.fillRect(x + 3, y + 3, this.cellSize - 6, this.cellSize - 6);
+        }
       });
     }
   }
