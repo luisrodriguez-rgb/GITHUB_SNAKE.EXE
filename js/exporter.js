@@ -1,6 +1,6 @@
 /**
- * Exporter Engine Pro: Generador de SVG Animado Personalizado y Workflows de GitHub Actions
- * Resuelve el fallo de salto toroidal en CSS, permite personalizar velocidad, tema, morfología y tiempo de reinicio.
+ * Exporter Engine Pro: Generador de SVG Animado Ultra Optimizado y Workflows
+ * Máxima compresión de keyframes, eliminación de redundancias, sin saltos en bordes y peso reducido al mínimo.
  */
 
 class ExporterEngine {
@@ -75,7 +75,7 @@ class ExporterEngine {
   }
 
   /**
-   * Genera y descarga un SVG animado con opciones personalizadas
+   * Genera y descarga un SVG animado ultra optimizado
    */
   exportAnimatedSvg(grid, username = 'developer', options = {}) {
     if (!grid || grid.length === 0) return;
@@ -121,12 +121,12 @@ class ExporterEngine {
       return false;
     };
 
-    // 2. Simulación completa de recorrido
+    // 2. Simulación optimizada de trayectoria
     const simSnake = new Snake(4, { x: 0, y: 0 });
     const simPathfinder = new SnakePathfinder(cols, rows);
     const history = [];
     const cellEatenStep = {};
-    const maxSteps = 350;
+    const maxSteps = 300;
 
     let step = 0;
     while (hasRemainingCommits() && step < maxSteps) {
@@ -147,34 +147,27 @@ class ExporterEngine {
       step++;
     }
 
-    // Agregar solo 2 pasos de cierre limpios
-    for (let extra = 0; extra < 2; extra++) {
-      const segments = simSnake.body.map(seg => ({ x: seg.x, y: seg.y }));
-      history.push(segments);
-      const next = simPathfinder.findNextStep(simSnake, simGrid) || {
-        x: (simSnake.head.x + 1) % cols,
-        y: simSnake.head.y
-      };
-      simSnake.moveTo(next, simGrid);
-      step++;
-    }
+    // 1 paso rápido de cierre
+    const segments = simSnake.body.map(seg => ({ x: seg.x, y: seg.y }));
+    history.push(segments);
+    step++;
 
     const totalSteps = history.length;
 
     // Duración según velocidad seleccionada
-    let stepDuration = 0.12;
-    if (speedMode === 'fast') stepDuration = 0.08;
-    else if (speedMode === 'relaxed') stepDuration = 0.18;
+    let stepDuration = 0.11;
+    if (speedMode === 'fast') stepDuration = 0.07;
+    else if (speedMode === 'relaxed') stepDuration = 0.16;
 
     const playDuration = totalSteps * stepDuration;
-    let pauseDuration = 0.6;
-    if (pauseMode === 'medium') pauseDuration = 1.5;
+    let pauseDuration = 0.5;
+    if (pauseMode === 'medium') pauseDuration = 1.2;
     else if (pauseMode === 'none') pauseDuration = 0.0;
 
     const totalDuration = (playDuration + pauseDuration).toFixed(2);
-    const activePercent = ((playDuration / totalDuration) * 100).toFixed(2);
+    const activePercent = ((playDuration / totalDuration) * 100).toFixed(1);
 
-    // 3. Generar celdas con keyframes
+    // 3. Generación ultra compacta de celdas SVG
     let gridSvg = '';
     let cellKeyframes = '';
     const colorVars = [palette.empty, palette.l1, palette.l2, palette.l3, palette.l4];
@@ -182,79 +175,60 @@ class ExporterEngine {
     for (let x = 0; x < cols; x++) {
       for (let y = 0; y < rows; y++) {
         const cell = simGrid[x][y];
-        const px = padding + x * stepSize;
-        const py = padding + y * stepSize;
+        const px = Math.round(padding + x * stepSize);
+        const py = Math.round(padding + y * stepSize);
         const key = `${x}_${y}`;
         const origLevel = cell.originalLevel || 0;
 
         if (origLevel > 0 && cellEatenStep[key] !== undefined) {
-          const eatenPercent = ((cellEatenStep[key] / totalSteps) * activePercent).toFixed(2);
-          const animName = `eat_${x}_${y}`;
+          const eatenPercent = ((cellEatenStep[key] / totalSteps) * activePercent).toFixed(1);
+          const animClass = `c${x}_${y}`;
 
-          gridSvg += `<rect class="cell ${animName}" x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${colorVars[origLevel]}" />\n`;
+          gridSvg += `<rect class="${animClass}" x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${colorVars[origLevel]}"/>`;
 
-          cellKeyframes += `
-            .${animName} {
-              animation: ${animName} ${totalDuration}s infinite steps(1);
-            }
-            @keyframes ${animName} {
-              0%, ${Math.max(0, (eatenPercent - 0.2)).toFixed(2)}% { fill: ${colorVars[origLevel]}; }
-              ${eatenPercent}%, ${activePercent}% { fill: ${palette.empty}; }
-              ${(parseFloat(activePercent) + 0.1).toFixed(2)}%, 100% { fill: ${colorVars[origLevel]}; }
-            }
-          `;
+          cellKeyframes += `.${animClass}{animation:${animClass} ${totalDuration}s infinite steps(1)}@keyframes ${animClass}{0%,${Math.max(0, eatenPercent - 0.2).toFixed(1)}%{fill:${colorVars[origLevel]}}${eatenPercent}%,${activePercent}%{fill:${palette.empty}}${(parseFloat(activePercent) + 0.1).toFixed(1)}%,100%{fill:${colorVars[origLevel]}}}`;
         } else {
-          const fill = colorVars[origLevel] || colorVars[0];
-          gridSvg += `<rect class="cell" x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${fill}" />\n`;
+          gridSvg += `<rect x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${colorVars[origLevel] || colorVars[0]}"/>`;
         }
       }
     }
 
-    // 4. Generar keyframes de la serpiente SIN fallo de vuelo horizontal en bordes
+    // 4. Generación compacta de keyframes de la serpiente (sin saltos cruzados)
     let snakeKeyframes = '';
-    const snakeLen = Math.min(5, history[0].length);
+    const snakeLen = Math.min(4, history[0].length);
 
     for (let segIdx = 0; segIdx < snakeLen; segIdx++) {
-      const animName = `snakeSeg_${segIdx}`;
+      const animName = `s${segIdx}`;
       let kfContent = '';
 
       for (let s = 0; s < totalSteps; s++) {
-        const pct = ((s / totalSteps) * activePercent).toFixed(2);
+        const pct = ((s / totalSteps) * activePercent).toFixed(1);
         const curr = history[s][segIdx] || history[s][history[s].length - 1];
-        const px = padding + curr.x * stepSize;
-        const py = padding + curr.y * stepSize;
+        const px = Math.round(padding + curr.x * stepSize);
+        const py = Math.round(padding + curr.y * stepSize);
 
-        // Comprobación de salto toroidal con respecto al paso anterior
         if (s > 0) {
           const prev = history[s - 1][segIdx] || history[s - 1][history[s - 1].length - 1];
           if (Math.abs(curr.x - prev.x) > 1 || Math.abs(curr.y - prev.y) > 1) {
-            // Salto instantáneo en el borde para evitar que la serpiente cruce toda la pantalla
-            const prePct = (((s - 0.01) / totalSteps) * activePercent).toFixed(2);
-            const prevPx = padding + prev.x * stepSize;
-            const prevPy = padding + prev.y * stepSize;
-            kfContent += `${prePct}% { transform: translate(${prevPx}px, ${prevPy}px); opacity: 0; }\n`;
-            kfContent += `${pct}% { transform: translate(${px}px, ${py}px); opacity: 1; }\n`;
+            const prePct = (((s - 0.02) / totalSteps) * activePercent).toFixed(1);
+            const prevPx = Math.round(padding + prev.x * stepSize);
+            const prevPy = Math.round(padding + prev.y * stepSize);
+            kfContent += `${prePct}%{transform:translate(${prevPx}px,${prevPy}px);opacity:0}`;
+            kfContent += `${pct}%{transform:translate(${px}px,${py}px);opacity:1}`;
             continue;
           }
         }
 
-        kfContent += `${pct}% { transform: translate(${px}px, ${py}px); opacity: 1; }\n`;
+        kfContent += `${pct}%{transform:translate(${px}px,${py}px);opacity:1}`;
       }
 
-      // Mantener posición durante la breve pausa final y reiniciar limpio
-      kfContent += `${activePercent}%, 100% { transform: translate(${padding + history[0][segIdx].x * stepSize}px, ${padding + history[0][segIdx].y * stepSize}px); opacity: 1; }\n`;
+      const firstSeg = history[0][segIdx];
+      kfContent += `${activePercent}%,100%{transform:translate(${Math.round(padding + firstSeg.x * stepSize)}px,${Math.round(padding + firstSeg.y * stepSize)}px);opacity:1}`;
 
-      snakeKeyframes += `
-        .seg-${segIdx} {
-          animation: ${animName} ${totalDuration}s infinite linear;
-        }
-        @keyframes ${animName} {
-          ${kfContent}
-        }
-      `;
+      snakeKeyframes += `.snk-${segIdx}{animation:${animName} ${totalDuration}s infinite linear}@keyframes ${animName}{${kfContent}}`;
     }
 
-    // 5. Elementos de la serpiente según morfología seleccionada
+    // 5. Elementos de la serpiente
     let snakeElements = '';
     for (let segIdx = 0; segIdx < snakeLen; segIdx++) {
       const isHead = (segIdx === 0);
@@ -263,57 +237,11 @@ class ExporterEngine {
       const offset = isHead ? 0 : (cellSize - size) / 2;
       const rx = morphMode === 'retro' ? 0 : (morphMode === 'capsule' ? size * 0.45 : 3);
 
-      snakeElements += `
-        <g class="seg-${segIdx}">
-          <!-- Silueta de alto contraste -->
-          <rect x="${offset - 1}" y="${offset - 1}" width="${size + 2}" height="${size + 2}" rx="${rx}" fill="#000000" />
-          <!-- Cuerpo neón -->
-          <rect x="${offset}" y="${offset}" width="${size}" height="${size}" rx="${rx}" fill="${fill}" />
-          ${!isHead && morphMode === 'matrix_viper' ? `<rect x="${offset + (size - size * 0.4) / 2}" y="${offset + (size - size * 0.4) / 2}" width="${size * 0.4}" height="${size * 0.4}" rx="1" fill="${palette.spine}" />` : ''}
-        </g>
-      `;
+      snakeElements += `<g class="snk-${segIdx}"><rect x="${offset - 1}" y="${offset - 1}" width="${size + 2}" height="${size + 2}" rx="${rx}" fill="#000"/><rect x="${offset}" y="${offset}" width="${size}" height="${size}" rx="${rx}" fill="${fill}"/>${!isHead && morphMode === 'matrix_viper' ? `<rect x="${offset + (size - size * 0.4) / 2}" y="${offset + (size - size * 0.4) / 2}" width="${size * 0.4}" height="${size * 0.4}" rx="1" fill="${palette.spine}"/>` : ''}</g>`;
     }
 
-    // 6. Ensamblado del SVG final
-    const svgFinal = `<?xml version="1.0" encoding="utf-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
-  <defs>
-    <filter id="laserGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-  <style>
-    :root {
-      --bg: ${palette.bg};
-      --border: ${palette.border};
-    }
-    .container-bg {
-      fill: var(--bg);
-      stroke: var(--border);
-      stroke-width: 1px;
-      rx: 12px;
-    }
-    ${cellKeyframes}
-    ${snakeKeyframes}
-  </style>
-
-  <!-- Fondo -->
-  <rect width="100%" height="100%" class="container-bg" />
-
-  <!-- Cuadricula -->
-  <g class="grid-layer">
-    ${gridSvg}
-  </g>
-
-  <!-- Serpiente -->
-  <g class="snake-layer" filter="url(#laserGlow)">
-    ${snakeElements}
-  </g>
-</svg>`;
+    // 6. SVG Minificado Final
+    const svgFinal = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"><defs><filter id="g" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><style>svg{background:${palette.bg};border-radius:12px;border:1px solid ${palette.border}}${cellKeyframes}${snakeKeyframes}</style><g>${gridSvg}</g><g filter="url(#g)">${snakeElements}</g></svg>`;
 
     // Descarga directa
     const blob = new Blob([svgFinal], { type: 'image/svg+xml;charset=utf-8' });
