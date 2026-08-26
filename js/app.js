@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator & Loop Controller (Pro Edition)
- * Sistema de Puntuación, Progreso Individual de Jugadores, Duelo y Pantalla de Fin de Partida/Victoria.
+ * Sistema de Puntuación, Progreso Individual de Jugadores, Duelo, Creador de Palabras Custom y Fin de Partida.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const dualProgressTrack = document.getElementById('dualProgressTrack');
   const p1ProgressFill = document.getElementById('p1ProgressFill');
   const p2ProgressFill = document.getElementById('p2ProgressFill');
-  const progressLabelText = document.getElementById('progressLabelText');
 
   // Herramientas Pro
   const audioBtn = document.getElementById('audioBtn');
@@ -60,6 +59,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const modalTemplates = document.getElementById('modalTemplates');
   const closeTemplatesModalBtn = document.getElementById('closeTemplatesModalBtn');
+  const customWordInput = document.getElementById('customWordInput');
+  const applyCustomWordBtn = document.getElementById('applyCustomWordBtn');
+  const scriptCustomWordBtn = document.getElementById('scriptCustomWordBtn');
 
   const modalAchievements = document.getElementById('modalAchievements');
   const closeAchModalBtn = document.getElementById('closeAchModalBtn');
@@ -69,7 +71,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeGameOverBtn = document.getElementById('closeGameOverBtn');
   const winnerBadge = document.getElementById('winnerBadge');
   const winnerSummary = document.getElementById('winnerSummary');
-  const victoryTitle = document.getElementById('victoryTitle');
   const resP1Score = document.getElementById('resP1Score');
   const resP1Eaten = document.getElementById('resP1Eaten');
   const resP1Percent = document.getElementById('resP1Percent');
@@ -91,7 +92,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statP2Score = document.getElementById('statP2Score');
   const labelP1 = document.getElementById('labelP1');
   const labelP2 = document.getElementById('labelP2');
-  const cardP2 = document.getElementById('cardP2');
   const statState = document.getElementById('statState');
 
   // Motores
@@ -301,7 +301,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     sound.playEat(cell.originalLevel);
     achievements.unlock('first_bite', showAchievementToast);
 
-    // Otorgar puntos según nivel de commit
     const pts = [0, 10, 25, 50, 100][cell.originalLevel] || 10;
     eatingSnake.score += pts;
 
@@ -316,9 +315,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateHud();
   }
 
-  /**
-   * Finaliza la partida y muestra la pantalla de victoria
-   */
   function triggerGameOver() {
     if (gameCompleted) return;
     gameCompleted = true;
@@ -375,7 +371,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   function doLogicalTick() {
     if (!grid || grid.length === 0 || gameCompleted) return;
 
-    // 1. Mover primera serpiente
     let nextStep = null;
     if (isManualMode && !isDuelMode) {
       const head = snake.head;
@@ -390,7 +385,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       snake.moveTo(nextStep, grid, (cell) => onCommitEaten(cell, snake));
     }
 
-    // 2. Mover segunda serpiente si está activo el Modo Duelo
     if (isDuelMode && snake2) {
       const head2 = snake2.head;
       const targetX2 = (head2.x + player2NextDir.x + 53) % 53;
@@ -485,7 +479,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --- Controles de Teclado ---
   window.addEventListener('keydown', (e) => {
     const activeEl = document.activeElement;
-    if (activeEl === usernameInput || (activeEl && activeEl.tagName === 'TEXTAREA')) {
+    if (activeEl === usernameInput || activeEl === customWordInput || (activeEl && activeEl.tagName === 'TEXTAREA')) {
       return;
     }
 
@@ -664,6 +658,49 @@ document.addEventListener('DOMContentLoaded', async () => {
   closeTemplatesModalBtn.addEventListener('click', () => {
     sound.playClick();
     modalTemplates.classList.remove('visible');
+  });
+
+  // Creador de Texto Personalizado
+  applyCustomWordBtn.addEventListener('click', () => {
+    const text = customWordInput.value.trim();
+    if (text) {
+      sound.playClick();
+      gameCompleted = false;
+      grid = artEngine.generateGridFromText(text);
+      totalCommitsInitial = countRemainingCommits();
+      totalPointsInitial = countTotalCommitPoints();
+      snake.reset();
+      if (isDuelMode && snake2) snake2.reset();
+      lastTickTime = performance.now();
+      modalTemplates.classList.remove('visible');
+      activeDevName.textContent = `Texto: "${text.toUpperCase()}"`;
+      activeDevUsername.textContent = `@commit_art`;
+      activeDevBio.textContent = `Arte en matriz personalizado`;
+      achievements.unlock('artist', showAchievementToast);
+      updateHud();
+      statState.textContent = `Palabra '${text}' renderizada en el mapa`;
+    }
+  });
+
+  customWordInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      applyCustomWordBtn.click();
+    }
+  });
+
+  scriptCustomWordBtn.addEventListener('click', () => {
+    const text = customWordInput.value.trim() || 'DEV';
+    sound.playClick();
+    const script = artEngine.generateBashScript(text);
+    const blob = new Blob([script], { type: 'text/x-sh;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `generate-git-art-${text.toLowerCase().replace(/\s+/g, '-')}.sh`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   });
 
   document.querySelectorAll('.load-tpl-btn').forEach(btn => {

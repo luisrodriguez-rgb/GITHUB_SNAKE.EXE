@@ -318,45 +318,56 @@
     </div>
   </div>
 
-  <!-- Modal Plantillas Commit Art con Explicación Detallada -->
+  <!-- Modal Plantillas Commit Art y Generador de Texto -->
   <div id="modalTemplates" class="modal-backdrop">
-    <div class="modal-card">
+    <div class="modal-card" style="max-width: 720px;">
       <div class="modal-header">
-        <h3>Galeria de Plantillas Commit Art</h3>
+        <h3>Galeria y Creador de Commit Art</h3>
         <button id="closeTemplatesModalBtn" class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="info-alert-box">
-          <strong>¿Que es Commit Art?</strong>
-          <p>
-            En GitHub, tu perfil dibuja cuadros verdes segun los dias en que haces commits. 
-            El <em>Commit Art</em> es una tecnica para "dibujar" textos y figuras pixeladas en tu perfil real de GitHub.
+        
+        <!-- Creador de Texto Personalizado -->
+        <div class="custom-word-card">
+          <h4>Escribe tu Propio Texto o Palabra</h4>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+            Escribe cualquier palabra o frase (ej: tu nombre, tu lenguaje favorito o mensaje) y se convertira en pixeles de GitHub:
           </p>
-          <ul style="margin: 0.4rem 0 0 1.2rem; font-size: 0.8rem; line-height: 1.5;">
-            <li><strong>Boton Cargar</strong>: Carga el dibujo en este juego para que la serpiente se lo coma.</li>
-            <li><strong>Boton Script Git (.sh)</strong>: Descarga un script automatico para ejecutar en tu terminal y crear ese dibujo en un repositorio de tu cuenta de GitHub real.</li>
-          </ul>
+          <div class="custom-input-row">
+            <input type="text" id="customWordInput" placeholder="Escribe aqui (ej: LUIS, DEV, REACT, HIRE ME, JS)..." value="DEV" maxlength="14" spellcheck="false" autocomplete="off">
+            <button id="applyCustomWordBtn" class="btn btn-cyber-primary" style="padding: 0.65rem 1.1rem;">Pintar en Juego</button>
+            <button id="scriptCustomWordBtn" class="btn btn-cyber-secondary" style="padding: 0.65rem 1.1rem;">Script Git (.sh)</button>
+          </div>
         </div>
 
-        <div class="templates-list" style="margin-top: 1rem;">
+        <div class="info-alert-box" style="margin-top: 1rem;">
+          <strong>¿Para que sirve el Script Git (.sh)?</strong>
+          <p>
+            Al descargar el script <code>.sh</code>, puedes ejecutarlo en una carpeta vacia de tu computadora para crear esos commits con fechas reales y subirlos a tu cuenta de GitHub, dejando esa palabra pintada en tu perfil real.
+          </p>
+        </div>
+
+        <!-- Plantillas Rápidas Predefinidas -->
+        <h4 style="margin-top: 1.25rem; margin-bottom: 0.75rem; font-size: 0.95rem; font-family: var(--font-mono);">Plantillas Rapidas de Iconos y Simbolos:</h4>
+        <div class="templates-list">
           <div class="template-item">
             <div>
               <h4>HIRE ME</h4>
-              <p>Texto gigante para destacar ante reclutadores de tecnologia</p>
+              <p>Texto grande para captar atencion de reclutadores</p>
             </div>
             <div style="display:flex; gap: 0.5rem;">
-              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="hire_me">Cargar en Juego</button>
-              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="hire_me">Script Git (.sh)</button>
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="hire_me">Cargar</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="hire_me">Script Git</button>
             </div>
           </div>
           <div class="template-item">
             <div>
               <h4>&lt;CODE /&gt;</h4>
-              <p>Icono de etiquetas de programacion en bloque</p>
+              <p>Etiqueta clasica de codigo de programacion</p>
             </div>
             <div style="display:flex; gap: 0.5rem;">
-              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="code">Cargar en Juego</button>
-              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="code">Script Git (.sh)</button>
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="code">Cargar</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="code">Script Git</button>
             </div>
           </div>
           <div class="template-item">
@@ -365,18 +376,18 @@
               <p>Icono clasico alienigena retro de 8 bits</p>
             </div>
             <div style="display:flex; gap: 0.5rem;">
-              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="invader">Cargar en Juego</button>
-              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="invader">Script Git (.sh)</button>
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="invader">Cargar</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="invader">Script Git</button>
             </div>
           </div>
           <div class="template-item">
             <div>
               <h4>Open Source Heart</h4>
-              <p>Corazones en cadena para perfiles colaborativos</p>
+              <p>Corazones en cadena pixelada de codigo abierto</p>
             </div>
             <div style="display:flex; gap: 0.5rem;">
-              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="heart">Cargar en Juego</button>
-              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="heart">Script Git (.sh)</button>
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="heart">Cargar</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="heart">Script Git</button>
             </div>
           </div>
         </div>
