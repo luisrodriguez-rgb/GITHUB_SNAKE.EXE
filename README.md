@@ -5,12 +5,25 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/FPS-60_Zero--Flicker-00ff66?style=for-the-badge&logo=github&logoColor=black" alt="60 FPS Zero-Flicker" />
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/">
+    <img src="https://img.shields.io/badge/DEMO_EN_VIVO-PROBAR_EN_EL_NAVEGADOR-00ff66?style=for-the-badge&logo=github&logoColor=black" alt="Demo en Vivo" />
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/FPS-60_Zero--Flicker-00ff66?style=for-the-badge" alt="60 FPS Zero-Flicker" />
   <img src="https://img.shields.io/badge/Pathfinding-BFS_%2B_Lookahead-00f2fe?style=for-the-badge" alt="BFS Pathfinding" />
   <img src="https://img.shields.io/badge/Mode-Duel_%26_Manual-ff007f?style=for-the-badge" alt="Duel & Manual Mode" />
   <img src="https://img.shields.io/badge/Audio-Web_Audio_Procedural-fcee0a?style=for-the-badge" alt="Web Audio API" />
   <img src="https://img.shields.io/badge/License-MIT-white?style=for-the-badge" alt="MIT License" />
 </p>
+
+---
+
+> [!TIP]
+> **Acceso Directo a la Aplicacion Desplegada**:  
+> Puedes jugar, simular perfiles y generar tus scripts de Commit Art directamente desde la web en:  
+> **https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/**
 
 ---
 
@@ -156,7 +169,7 @@ Escribe cualquier palabra (ej: tu nombre, tu lenguaje favorito o mensaje) y el m
    ```
 
 3. **Abrir en el navegador**:
-   Visita `http://localhost:3000` en tu navegador favorito.
+   Visita `http://localhost:3000` en tu navegador.
 
 ---
 
