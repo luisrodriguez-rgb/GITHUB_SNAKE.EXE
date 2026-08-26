@@ -1,69 +1,211 @@
 /**
- * Exporter Engine: Generador de SVG Animado y Workflows de GitHub Actions
+ * Exporter Engine: Generador de SVG Animado Real y Workflows de GitHub Actions
+ * Simula el recorrido de la serpiente sobre la matriz real y genera animaciones CSS nativas en el SVG.
  */
 
 class ExporterEngine {
   /**
-   * Genera y descarga un archivo SVG independiente con animación CSS de la cuadrícula actual
-   * @param {Array<Array<Object>>} grid - Matriz de contribuciones
+   * Genera un SVG animado standalone con el recorrido real de la IA devorando commits
+   * @param {Array<Array<Object>>} grid - Matriz de contribuciones actual
    * @param {string} username - Nombre de usuario
    */
   exportAnimatedSvg(grid, username = 'developer') {
-    const cellSize = 12;
+    if (!grid || grid.length === 0) return;
+
+    const cols = 53;
+    const rows = 7;
+    const cellSize = 11;
     const cellGap = 3.5;
-    const padding = 20;
-    const cols = grid.length || 53;
-    const rows = (grid[0] && grid[0].length) || 7;
+    const padding = 16;
+    const stepSize = cellSize + cellGap;
 
-    const width = (cols * (cellSize + cellGap)) + (padding * 2);
-    const height = (rows * (cellSize + cellGap)) + (padding * 2);
+    const width = (cols * stepSize) + (padding * 2) - cellGap;
+    const height = (rows * stepSize) + (padding * 2) - cellGap;
 
-    let cellsSvg = '';
-    const colorMap = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'];
-
+    // 1. Clonar la cuadrícula para simulación
+    const simGrid = [];
     for (let x = 0; x < cols; x++) {
+      const col = [];
       for (let y = 0; y < rows; y++) {
-        const cell = grid[x][y];
-        const px = padding + x * (cellSize + cellGap);
-        const py = padding + y * (cellSize + cellGap);
-        const color = colorMap[cell.level] || colorMap[0];
-        cellsSvg += `<rect x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${color}" />\n`;
+        const c = grid[x] && grid[x][y];
+        col.push({
+          x: x,
+          y: y,
+          level: c ? c.level : 0,
+          originalLevel: c ? c.originalLevel : 0
+        });
+      }
+      simGrid.push(col);
+    }
+
+    // 2. Ejecutar simulación con la IA para obtener la trayectoria exacta
+    const simSnake = new Snake(4, { x: 0, y: 0 });
+    const simPathfinder = new SnakePathfinder(cols, rows);
+    const totalSteps = 64; // Número de pasos en bucle cerrado
+    const history = [];
+    const cellEatenStep = {}; // Registra el paso en que cada celda fue devorada
+
+    for (let step = 0; step < totalSteps; step++) {
+      // Guardar posiciones de los segmentos en este paso
+      const segments = simSnake.body.map(seg => ({ x: seg.x, y: seg.y }));
+      history.push(segments);
+
+      const next = simPathfinder.findNextStep(simSnake, simGrid);
+      if (next) {
+        const key = `${next.x}_${next.y}`;
+        if (simGrid[next.x] && simGrid[next.x][next.y].level > 0) {
+          if (cellEatenStep[key] === undefined) {
+            cellEatenStep[key] = step;
+          }
+        }
+        simSnake.moveTo(next, simGrid);
       }
     }
 
-    const svgContent = `<?xml version="1.0" encoding="utf-8"?>
+    // 3. Generar celdas SVG con sus colores y animaciones de desaparición
+    let gridSvg = '';
+    let cellKeyframes = '';
+    const colorVars = ['var(--c-empty)', 'var(--c-l1)', 'var(--c-l2)', 'var(--c-l3)', 'var(--c-l4)'];
+
+    for (let x = 0; x < cols; x++) {
+      for (let y = 0; y < rows; y++) {
+        const cell = simGrid[x][y];
+        const px = padding + x * stepSize;
+        const py = padding + y * stepSize;
+        const key = `${x}_${y}`;
+        const origLevel = cell.originalLevel || 0;
+
+        if (origLevel > 0 && cellEatenStep[key] !== undefined) {
+          const eatenPercent = Math.round((cellEatenStep[key] / totalSteps) * 100);
+          const animName = `eat_${x}_${y}`;
+
+          gridSvg += `<rect class="cell cell-eatable ${animName}" x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${colorVars[origLevel]}" />\n`;
+
+          cellKeyframes += `
+            .${animName} {
+              animation: ${animName} 12s infinite steps(1);
+            }
+            @keyframes ${animName} {
+              0%, ${Math.max(0, eatenPercent - 1)}% { fill: ${colorVars[origLevel]}; }
+              ${eatenPercent}%, 100% { fill: var(--c-empty); }
+            }
+          `;
+        } else {
+          const fill = colorVars[origLevel] || colorVars[0];
+          gridSvg += `<rect class="cell" x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${fill}" />\n`;
+        }
+      }
+    }
+
+    // 4. Generar keyframes CSS de la serpiente
+    let snakeKeyframes = '';
+    const snakeLen = Math.min(6, history[0].length);
+
+    for (let segIdx = 0; segIdx < snakeLen; segIdx++) {
+      const animName = `snakeSeg_${segIdx}`;
+      let kfContent = '';
+
+      for (let step = 0; step < totalSteps; step++) {
+        const pct = ((step / totalSteps) * 100).toFixed(2);
+        const seg = history[step][segIdx] || history[step][history[step].length - 1];
+        const px = padding + seg.x * stepSize;
+        const py = padding + seg.y * stepSize;
+        kfContent += `${pct}% { transform: translate(${px}px, ${py}px); }\n`;
+      }
+
+      // Cerrar el 100%
+      const firstSeg = history[0][segIdx] || history[0][history[0].length - 1];
+      kfContent += `100% { transform: translate(${padding + firstSeg.x * stepSize}px, ${padding + firstSeg.y * stepSize}px); }\n`;
+
+      snakeKeyframes += `
+        .seg-${segIdx} {
+          animation: ${animName} 12s infinite linear;
+        }
+        @keyframes ${animName} {
+          ${kfContent}
+        }
+      `;
+    }
+
+    // 5. Elementos visuales de la serpiente
+    let snakeElements = '';
+    for (let segIdx = 0; segIdx < snakeLen; segIdx++) {
+      const isHead = (segIdx === 0);
+      const fill = isHead ? 'var(--s-head)' : 'var(--s-body)';
+      const size = isHead ? cellSize : cellSize * 0.9;
+      const offset = isHead ? 0 : (cellSize - size) / 2;
+      const glowFilter = isHead ? 'filter="url(#glow)"' : '';
+
+      snakeElements += `<rect class="seg-${segIdx}" x="${offset}" y="${offset}" width="${size}" height="${size}" rx="3" fill="${fill}" ${glowFilter} />\n`;
+    }
+
+    // 6. Ensamblado del SVG final completo con soporte Dark/Light mode nativo
+    const svgFinal = `<?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
   <style>
-    .bg { fill: #040806; }
-    .grid-cell { rx: 2.5px; }
-    @keyframes snakeMove {
-      0% { transform: translate(0px, 0px); }
-      25% { transform: translate(120px, 0px); }
-      50% { transform: translate(120px, 45px); }
-      75% { transform: translate(0px, 45px); }
-      100% { transform: translate(0px, 0px); }
+    :root {
+      --bg: #040806;
+      --border: rgba(0, 255, 102, 0.15);
+      --c-empty: #0a140e;
+      --c-l1: #07381b;
+      --c-l2: #096831;
+      --c-l3: #00b34d;
+      --c-l4: #00ff66;
+      --s-head: #ffffff;
+      --s-body: #00ff66;
     }
-    .snake-body {
-      animation: snakeMove 8s infinite linear;
-      filter: drop-shadow(0 0 6px #00ff66);
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #ffffff;
+        --border: rgba(31, 35, 40, 0.15);
+        --c-empty: #ebedf0;
+        --c-l1: #9be9a8;
+        --c-l2: #40c463;
+        --c-l3: #30a14e;
+        --c-l4: #216e39;
+        --s-head: #0969da;
+        --s-body: #1a7f37;
+      }
     }
+    .container-bg {
+      fill: var(--bg);
+      stroke: var(--border);
+      stroke-width: 1px;
+      rx: 12px;
+    }
+    ${cellKeyframes}
+    ${snakeKeyframes}
   </style>
-  <rect width="100%" height="100%" class="bg" rx="12"/>
-  <g class="grid">
-    ${cellsSvg}
+
+  <!-- Fondo con esquinas redondeadas -->
+  <rect width="100%" height="100%" class="container-bg" />
+
+  <!-- Cuadricula de Contribuciones -->
+  <g class="grid-layer">
+    ${gridSvg}
   </g>
-  <g class="snake-body">
-    <rect x="${padding}" y="${padding}" width="${cellSize}" height="${cellSize}" rx="3" fill="#ffffff" />
-    <rect x="${padding - 15}" y="${padding}" width="${cellSize}" height="${cellSize}" rx="3" fill="#00ff66" />
-    <rect x="${padding - 30}" y="${padding}" width="${cellSize}" height="${cellSize}" rx="3" fill="#00b34d" />
+
+  <!-- Serpiente Dinamica -->
+  <g class="snake-layer">
+    ${snakeElements}
   </g>
 </svg>`;
 
-    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    // Descarga del archivo
+    const blob = new Blob([svgFinal], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `github-snake-${username}.svg`;
+    a.download = `github-contribution-grid-snake-${username}.svg`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -72,8 +214,6 @@ class ExporterEngine {
 
   /**
    * Genera el YAML del workflow de GitHub Actions personalizado
-   * @param {string} username - Nombre del perfil
-   * @returns {string} Código YAML listo para usar
    */
   generateWorkflowYaml(username = 'USUARIO') {
     return `name: Generate Snake Animation
