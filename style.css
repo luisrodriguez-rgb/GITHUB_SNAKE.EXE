@@ -185,14 +185,18 @@ body[data-theme="light"] .cyber-select {
 }
 
 body[data-theme="light"] .doc-card,
-body[data-theme="light"] .leaderboard-card {
+body[data-theme="light"] .leaderboard-card,
+body[data-theme="light"] .template-item,
+body[data-theme="light"] .ach-card {
   background: #ffffff;
   border-color: rgba(31, 35, 40, 0.15);
   box-shadow: 0 2px 8px rgba(140, 149, 159, 0.12);
 }
 
 body[data-theme="light"] .doc-card h3,
-body[data-theme="light"] .leaderboard-card h4 {
+body[data-theme="light"] .leaderboard-card h4,
+body[data-theme="light"] .template-item h4,
+body[data-theme="light"] .ach-card h4 {
   color: #1f2328;
 }
 
@@ -1106,6 +1110,118 @@ body[data-theme="light"] .dev-metrics {
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-code);
+}
+
+/* Templates & Achievements Modal Lists */
+.templates-list,
+.achievements-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.template-item,
+.ach-card {
+  background: rgba(4, 10, 7, 0.75);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  transition: var(--transition-smooth);
+}
+
+.template-item h4,
+.ach-card h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-main);
+}
+
+.template-item p,
+.ach-card p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.ach-card.unlocked {
+  border-color: var(--matrix-green);
+  background: rgba(0, 255, 102, 0.08);
+}
+
+.ach-status-badge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.ach-status-badge.unlocked {
+  background: rgba(0, 255, 102, 0.2);
+  color: var(--matrix-green);
+  border: 1px solid var(--matrix-green);
+}
+
+.ach-status-badge.locked {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+/* Toast Notifications */
+.achievement-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--matrix-green);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px var(--matrix-glow);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  z-index: 1000;
+  transform: translateY(150%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.achievement-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.toast-icon {
+  color: var(--matrix-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--matrix-green);
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+}
+
+.toast-content h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.toast-content p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 /* Documentation Cards */

@@ -25,17 +25,17 @@
         <div class="title-area">
           <h1>
             GITHUB_SNAKE.EXE
-            <span class="glitch-tag">v2.0 MATRIX</span>
+            <span class="glitch-tag">v2.0 PRO</span>
           </h1>
-          <p>Zero-Flicker 60 FPS Sub-pixel Contribution Engine</p>
+          <p>Zero-Flicker 60 FPS Sub-pixel Contribution Engine & Game</p>
         </div>
       </div>
       
       <div class="header-status">
-        <div class="terminal-status-pill">
+        <button id="achievementsBtn" class="terminal-status-pill tool-btn" style="cursor: pointer; border: 1px solid var(--border-color);">
           <span class="status-dot"></span>
-          <span>SYSTEM: ONLINE</span>
-        </div>
+          <span id="achievementsLabel">Logros: 0/7</span>
+        </button>
         <div class="theme-selector">
           <select id="themeSelect" class="cyber-select">
             <option value="dark" selected>Matrix Phosphor (Oscuro)</option>
@@ -142,8 +142,14 @@
         <button id="modeBtn" class="btn btn-cyber-secondary tool-btn">
           Control: IA Autonoma
         </button>
+        <button id="duelBtn" class="btn btn-cyber-secondary tool-btn">
+          Modo Duelo (IA vs Jugador)
+        </button>
         <button id="paintBtn" class="btn btn-cyber-secondary tool-btn">
           Pintar: Inactivo
+        </button>
+        <button id="templateBtn" class="btn btn-cyber-secondary tool-btn">
+          Plantillas Art
         </button>
         <button id="audioBtn" class="btn btn-cyber-secondary tool-btn">
           Audio: OFF
@@ -151,6 +157,10 @@
       </div>
 
       <div class="tools-group">
+        <button id="recordBtn" class="btn btn-cyber-secondary tool-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
+          <span id="recordBtnText">Grabar Clip WebM</span>
+        </button>
         <button id="exportSvgBtn" class="btn btn-cyber-secondary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Exportar SVG
@@ -173,12 +183,12 @@
         <div class="stat-value" id="statEaten">0</div>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Longitud de Serpiente</span>
-        <div class="stat-value" id="statLength">4 <span class="stat-unit">segmentos</span></div>
+        <span class="stat-label">Marcador Duelo</span>
+        <div class="stat-value" style="font-size: 1.1rem;" id="statDuel">IA: 0 | P2: 0</div>
       </div>
       <div class="stat-card">
         <span class="stat-label">Estado de Telemetria</span>
-        <div class="stat-value" style="font-size: 0.95rem;" id="statState">Escaneando red...</div>
+        <div class="stat-value" style="font-size: 0.92rem;" id="statState">Escaneando red...</div>
       </div>
     </section>
 
@@ -254,6 +264,88 @@
     </footer>
   </div>
 
+  <!-- Toast de Logros Desbloqueados -->
+  <div id="achievementToast" class="achievement-toast">
+    <div class="toast-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+    </div>
+    <div class="toast-content">
+      <span class="toast-tag">LOGRO DESBLOQUEADO</span>
+      <h4 id="toastTitle">Primer Bocado</h4>
+      <p id="toastDesc">Devora tu primer commit de la matriz.</p>
+    </div>
+  </div>
+
+  <!-- Modal Plantillas Commit Art -->
+  <div id="modalTemplates" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Plantillas de Commit Art</h3>
+        <button id="closeTemplatesModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Selecciona una plantilla para cargarla en el canvas o generar un script Git de commits reales:</p>
+        <div class="templates-list">
+          <div class="template-item">
+            <div>
+              <h4>HIRE ME</h4>
+              <p>Texto en pixel art para reclutadores</p>
+            </div>
+            <div style="display:flex; gap: 0.5rem;">
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="hire_me">Cargar</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="hire_me">Script Git</button>
+            </div>
+          </div>
+          <div class="template-item">
+            <div>
+              <h4>&lt;CODE /&gt;</h4>
+              <p>Simbolo de programacion en bloque</p>
+            </div>
+            <div style="display:flex; gap: 0.5rem;">
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="code">Cargar</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="code">Script Git</button>
+            </div>
+          </div>
+          <div class="template-item">
+            <div>
+              <h4>Space Invader</h4>
+              <p>Alienigena retro de 8 bits</p>
+            </div>
+            <div style="display:flex; gap: 0.5rem;">
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="invader">Cargar</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="invader">Script Git</button>
+            </div>
+          </div>
+          <div class="template-item">
+            <div>
+              <h4>Open Source Heart</h4>
+              <p>Corazones en cadena pixelada</p>
+            </div>
+            <div style="display:flex; gap: 0.5rem;">
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="heart">Cargar</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="heart">Script Git</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Logros / Medallas -->
+  <div id="modalAchievements" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Panel de Logros y Medallas</h3>
+        <button id="closeAchModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="achievementsListContainer" class="achievements-modal-list">
+          <!-- Renderizado dinámicamente -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal GitHub Actions Workflow -->
   <div id="modalWorkflow" class="modal-backdrop">
     <div class="modal-card">
@@ -275,6 +367,9 @@
 
   <!-- Scripts -->
   <script src="js/audio.js"></script>
+  <script src="js/recorder.js"></script>
+  <script src="js/templates.js"></script>
+  <script src="js/achievements.js"></script>
   <script src="js/exporter.js"></script>
   <script src="js/github.js"></script>
   <script src="js/pathfinding.js"></script>

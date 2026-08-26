@@ -1,6 +1,6 @@
 /**
  * Canvas 2D Zero-Flicker 60 FPS Matrix Renderer
- * Renderizado toroidal sin cortes con Ghost Segments en bordes, sub-píxel LERP, shockwaves y editor.
+ * Renderizado toroidal sin cortes con Ghost Segments en bordes, sub-píxel LERP, shockwaves, editor y modo duelo (doble serpiente).
  */
 
 class SnakeRenderer {
@@ -100,7 +100,7 @@ class SnakeRenderer {
     };
   }
 
-  render(grid, snake, progress = 1.0) {
+  render(grid, snake, progress = 1.0, secondSnake = null) {
     this.time += 0.05;
     const colors = this.getThemeColors();
     const width = this.canvas.width / (window.devicePixelRatio || 1);
@@ -118,8 +118,25 @@ class SnakeRenderer {
     this.drawShockwaves(colors);
     this.drawParticles(snake.particles, colors);
 
+    if (secondSnake && secondSnake.particles) {
+      this.drawParticles(secondSnake.particles, { matrixGreen: '#00f2fe' });
+    }
+
+    // Dibujar primera serpiente (IA / Verde)
     if (snake.body && snake.body.length > 0) {
       this.drawSnake(snake, progress, colors);
+    }
+
+    // Dibujar segunda serpiente (Jugador Duelo / Cian)
+    if (secondSnake && secondSnake.body && secondSnake.body.length > 0) {
+      const duelColors = {
+        ...colors,
+        snakeHead: '#ffffff',
+        snakeBody: '#00f2fe',
+        snakeGlow: 'rgba(0, 242, 254, 0.85)',
+        matrixGreen: '#00f2fe'
+      };
+      this.drawSnake(secondSnake, progress, duelColors);
     }
   }
 
@@ -203,9 +220,6 @@ class SnakeRenderer {
     this.ctx.fillRect(sx - 30, this.paddingY - 5, 60, height - (this.paddingY * 2) + 10);
   }
 
-  /**
-   * Calcula las coordenadas de cada segmento usando interpolación toroidal continua
-   */
   getInterpolatedSegments(snake, progress) {
     const { body, prevBody } = snake;
     const stepSize = this.cellSize + this.cellGap;
@@ -218,14 +232,12 @@ class SnakeRenderer {
       let vx = prev.x + (curr.x - prev.x) * progress;
       let vy = prev.y + (curr.y - prev.y) * progress;
 
-      // Corrección de salto horizontal (0 <-> 52)
       if (curr.x === 0 && prev.x === 52) {
         vx = 52 + progress;
       } else if (curr.x === 52 && prev.x === 0) {
         vx = -progress;
       }
 
-      // Corrección de salto vertical (0 <-> 6)
       if (curr.y === 0 && prev.y === 6) {
         vy = 6 + progress;
       } else if (curr.y === 6 && prev.y === 0) {
@@ -239,7 +251,6 @@ class SnakeRenderer {
           gridX: vx,
           gridY: vy
         },
-        // Segmentos fantasma para renderizar entrada y salida simultánea en bordes
         ghost: (vx >= 52 || vx < 0 || vy >= 6 || vy < 0) ? {
           x: this.paddingX + ((vx + 53) % 53) * stepSize,
           y: this.paddingY + ((vy + 7) % 7) * stepSize
@@ -253,9 +264,6 @@ class SnakeRenderer {
     return segments;
   }
 
-  /**
-   * Dibuja la serpiente según la morfología seleccionada
-   */
   drawSnake(snake, progress, colors) {
     const segments = this.getInterpolatedSegments(snake, progress);
     const direction = snake.direction;
@@ -276,9 +284,6 @@ class SnakeRenderer {
     }
   }
 
-  /**
-   * Dibuja un segmento individual con soporte para su clon fantasma en el borde
-   */
   renderSegment(segData, drawFn) {
     drawFn(segData.main.x, segData.main.y, segData);
     if (segData.ghost) {
@@ -407,7 +412,6 @@ class SnakeRenderer {
       const prev = segments[i - 1].main;
       const curr = segments[i].main;
 
-      // Si hay un salto en las coordenadas de la cuadrícula, iniciar un nuevo sub-trazo
       if (Math.abs(curr.gridX - prev.gridX) > 1.5 || Math.abs(curr.gridY - prev.gridY) > 1.5) {
         this.ctx.moveTo(curr.x + half, curr.y + half);
       } else {

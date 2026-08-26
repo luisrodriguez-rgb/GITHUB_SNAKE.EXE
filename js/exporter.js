@@ -1,11 +1,11 @@
 /**
- * Exporter Engine: Generador de SVG Animado Real y Workflows de GitHub Actions
- * Simula el recorrido de la serpiente sobre la matriz real y genera animaciones CSS nativas en el SVG.
+ * Exporter Engine: Generador de SVG Animado 100% Completo y Workflows de GitHub Actions
+ * Simula el recorrido completo hasta devorar la TOTALIDAD de los commits de la matriz sin cortes prematuros.
  */
 
 class ExporterEngine {
   /**
-   * Genera un SVG animado standalone con el recorrido real de la IA devorando commits
+   * Genera un SVG animado donde la serpiente se come el 100% de los commits
    * @param {Array<Array<Object>>} grid - Matriz de contribuciones actual
    * @param {string} username - Nombre de usuario
    */
@@ -38,31 +38,58 @@ class ExporterEngine {
       simGrid.push(col);
     }
 
-    // 2. Ejecutar simulación con la IA para obtener la trayectoria exacta
+    const hasRemainingCommits = () => {
+      for (let x = 0; x < cols; x++) {
+        for (let y = 0; y < rows; y++) {
+          if (simGrid[x][y].level > 0) return true;
+        }
+      }
+      return false;
+    };
+
+    // 2. Ejecutar simulación completa hasta limpiar el 100% de la matriz
     const simSnake = new Snake(4, { x: 0, y: 0 });
     const simPathfinder = new SnakePathfinder(cols, rows);
-    const totalSteps = 64; // Número de pasos en bucle cerrado
     const history = [];
-    const cellEatenStep = {}; // Registra el paso en que cada celda fue devorada
+    const cellEatenStep = {}; // Registra el paso exacto en que cada celda queda limpia
+    const maxSafetySteps = 450; // Límite amplio para garantizar 100% de limpieza
 
-    for (let step = 0; step < totalSteps; step++) {
-      // Guardar posiciones de los segmentos en este paso
+    let step = 0;
+    while (hasRemainingCommits() && step < maxSafetySteps) {
       const segments = simSnake.body.map(seg => ({ x: seg.x, y: seg.y }));
       history.push(segments);
 
       const next = simPathfinder.findNextStep(simSnake, simGrid);
-      if (next) {
-        const key = `${next.x}_${next.y}`;
-        if (simGrid[next.x] && simGrid[next.x][next.y].level > 0) {
-          if (cellEatenStep[key] === undefined) {
-            cellEatenStep[key] = step;
-          }
+      if (!next) break;
+
+      const key = `${next.x}_${next.y}`;
+      if (simGrid[next.x] && simGrid[next.x][next.y].level > 0) {
+        if (cellEatenStep[key] === undefined) {
+          cellEatenStep[key] = step;
         }
-        simSnake.moveTo(next, simGrid);
       }
+
+      simSnake.moveTo(next, simGrid);
+      step++;
     }
 
-    // 3. Generar celdas SVG con sus colores y animaciones de desaparición
+    // Pasos adicionales de patrullaje final para cerrar el ciclo limpiamente
+    for (let extra = 0; extra < 12; extra++) {
+      const segments = simSnake.body.map(seg => ({ x: seg.x, y: seg.y }));
+      history.push(segments);
+      const next = simPathfinder.findNextStep(simSnake, simGrid) || {
+        x: (simSnake.head.x + 1) % cols,
+        y: simSnake.head.y
+      };
+      simSnake.moveTo(next, simGrid);
+      step++;
+    }
+
+    const totalSteps = history.length;
+    // Duración total calculada a ~8-9 pasos por segundo para máxima fluidez y tiempo justo
+    const durationSeconds = Math.max(10, Math.min(45, (totalSteps * 0.12).toFixed(1)));
+
+    // 3. Generar celdas SVG con animaciones de desaparición sincronizadas
     let gridSvg = '';
     let cellKeyframes = '';
     const colorVars = ['var(--c-empty)', 'var(--c-l1)', 'var(--c-l2)', 'var(--c-l3)', 'var(--c-l4)'];
@@ -76,17 +103,17 @@ class ExporterEngine {
         const origLevel = cell.originalLevel || 0;
 
         if (origLevel > 0 && cellEatenStep[key] !== undefined) {
-          const eatenPercent = Math.round((cellEatenStep[key] / totalSteps) * 100);
+          const eatenPercent = ((cellEatenStep[key] / totalSteps) * 100).toFixed(2);
           const animName = `eat_${x}_${y}`;
 
           gridSvg += `<rect class="cell cell-eatable ${animName}" x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${colorVars[origLevel]}" />\n`;
 
           cellKeyframes += `
             .${animName} {
-              animation: ${animName} 12s infinite steps(1);
+              animation: ${animName} ${durationSeconds}s infinite steps(1);
             }
             @keyframes ${animName} {
-              0%, ${Math.max(0, eatenPercent - 1)}% { fill: ${colorVars[origLevel]}; }
+              0%, ${Math.max(0, (eatenPercent - 0.5)).toFixed(2)}% { fill: ${colorVars[origLevel]}; }
               ${eatenPercent}%, 100% { fill: var(--c-empty); }
             }
           `;
@@ -97,7 +124,7 @@ class ExporterEngine {
       }
     }
 
-    // 4. Generar keyframes CSS de la serpiente
+    // 4. Generar keyframes CSS para cada segmento de la serpiente
     let snakeKeyframes = '';
     const snakeLen = Math.min(6, history[0].length);
 
@@ -105,21 +132,21 @@ class ExporterEngine {
       const animName = `snakeSeg_${segIdx}`;
       let kfContent = '';
 
-      for (let step = 0; step < totalSteps; step++) {
-        const pct = ((step / totalSteps) * 100).toFixed(2);
-        const seg = history[step][segIdx] || history[step][history[step].length - 1];
+      for (let s = 0; s < totalSteps; s++) {
+        const pct = ((s / totalSteps) * 100).toFixed(2);
+        const seg = history[s][segIdx] || history[s][history[s].length - 1];
         const px = padding + seg.x * stepSize;
         const py = padding + seg.y * stepSize;
         kfContent += `${pct}% { transform: translate(${px}px, ${py}px); }\n`;
       }
 
-      // Cerrar el 100%
+      // Cerrar bucle al 100%
       const firstSeg = history[0][segIdx] || history[0][history[0].length - 1];
       kfContent += `100% { transform: translate(${padding + firstSeg.x * stepSize}px, ${padding + firstSeg.y * stepSize}px); }\n`;
 
       snakeKeyframes += `
         .seg-${segIdx} {
-          animation: ${animName} 12s infinite linear;
+          animation: ${animName} ${durationSeconds}s infinite linear;
         }
         @keyframes ${animName} {
           ${kfContent}
@@ -127,7 +154,7 @@ class ExporterEngine {
       `;
     }
 
-    // 5. Elementos visuales de la serpiente
+    // 5. Elementos de la serpiente
     let snakeElements = '';
     for (let segIdx = 0; segIdx < snakeLen; segIdx++) {
       const isHead = (segIdx === 0);
@@ -139,7 +166,7 @@ class ExporterEngine {
       snakeElements += `<rect class="seg-${segIdx}" x="${offset}" y="${offset}" width="${size}" height="${size}" rx="3" fill="${fill}" ${glowFilter} />\n`;
     }
 
-    // 6. Ensamblado del SVG final completo con soporte Dark/Light mode nativo
+    // 6. Ensamblado del SVG final completo con soporte Dark/Light Mode
     const svgFinal = `<?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
   <defs>

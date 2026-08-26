@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator & Loop Controller (Pro Edition)
- * Integra Audio Sintético, Control Manual (WASD), Editor de Matriz, Exportador, Ranking y Perfiles con Avatar.
+ * Integra Grabador de Video HD, Plantillas Commit Art, Modo Duelo, Logros, Perfiles y Exportador 100%.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const snakeStyleSelect = document.getElementById('snakeStyleSelect');
   const leaderboardGrid = document.getElementById('leaderboardGrid');
 
-  // Elementos de Tarjeta de Perfil Activo
+  // Tarjeta de Perfil Activo
   const activeAvatar = document.getElementById('activeAvatar');
   const activeDevName = document.getElementById('activeDevName');
   const activeDevUsername = document.getElementById('activeDevUsername');
@@ -32,12 +32,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const progressBarFill = document.getElementById('progressBarFill');
   const progressPercentText = document.getElementById('progressPercentText');
 
-  // Herramientas Pro
+  // Nuevas Herramientas Pro
   const audioBtn = document.getElementById('audioBtn');
   const modeBtn = document.getElementById('modeBtn');
+  const duelBtn = document.getElementById('duelBtn');
   const paintBtn = document.getElementById('paintBtn');
+  const templateBtn = document.getElementById('templateBtn');
+  const recordBtn = document.getElementById('recordBtn');
+  const recordBtnText = document.getElementById('recordBtnText');
   const exportSvgBtn = document.getElementById('exportSvgBtn');
   const exportYamlBtn = document.getElementById('exportYamlBtn');
+  const achievementsBtn = document.getElementById('achievementsBtn');
+  const achievementsLabel = document.getElementById('achievementsLabel');
+
+  // Modales
   const modalWorkflow = document.getElementById('modalWorkflow');
   const closeModalBtn = document.getElementById('closeModalBtn');
   const copyYamlBtn = document.getElementById('copyYamlBtn');
@@ -45,10 +53,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   const yamlOutput = document.getElementById('yamlOutput');
   const readmeOutput = document.getElementById('readmeOutput');
 
+  const modalTemplates = document.getElementById('modalTemplates');
+  const closeTemplatesModalBtn = document.getElementById('closeTemplatesModalBtn');
+
+  const modalAchievements = document.getElementById('modalAchievements');
+  const closeAchModalBtn = document.getElementById('closeAchModalBtn');
+  const achievementsListContainer = document.getElementById('achievementsListContainer');
+
+  // Toast
+  const achievementToast = document.getElementById('achievementToast');
+  const toastTitle = document.getElementById('toastTitle');
+  const toastDesc = document.getElementById('toastDesc');
+
   // Elementos HUD
   const statRemaining = document.getElementById('statRemaining');
   const statEaten = document.getElementById('statEaten');
-  const statLength = document.getElementById('statLength');
+  const statDuel = document.getElementById('statDuel');
   const statState = document.getElementById('statState');
 
   // Instanciar motores
@@ -58,7 +78,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const snake = new Snake(4, { x: 0, y: 0 });
   const sound = new SoundEngine();
   const exporter = new ExporterEngine();
+  const recorder = new VideoRecorderEngine(canvas);
+  const artEngine = new CommitArtEngine();
+  const achievements = new AchievementsEngine();
 
+  // Variables de Estado
   let grid = [];
   let totalCommitsInitial = 0;
   let isRunning = true;
@@ -66,9 +90,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   let lastTickTime = performance.now();
   let animationFrameId = null;
 
-  // Estados de control
+  // Modos de Juego
   let isManualMode = false;
+  let isDuelMode = false;
+  let snake2 = null; // Segunda serpiente para el jugador en Modo Duelo
   let manualNextDir = { x: 1, y: 0 };
+  let player2NextDir = { x: -1, y: 0 };
   let isPaintMode = false;
   let isMouseDown = false;
   let currentUsername = 'torvalds';
@@ -79,7 +106,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `${speed} t/s (Rapido)`;
   }
 
-  // --- Fondo de Lluvia Digital Matrix ---
+  function showAchievementToast(ach) {
+    sound.playShockwave();
+    toastTitle.textContent = ach.title;
+    toastDesc.textContent = ach.desc;
+    achievementToast.classList.add('show');
+    updateAchievementsBadge();
+    setTimeout(() => {
+      achievementToast.classList.remove('show');
+    }, 4500);
+  }
+
+  function updateAchievementsBadge() {
+    const unlocked = achievements.getUnlockedCount();
+    const total = achievements.getTotalCount();
+    achievementsLabel.textContent = `Logros: ${unlocked}/${total}`;
+  }
+
+  // --- Fondo Matrix Digital Rain ---
   const matrixCtx = matrixCanvas.getContext('2d');
   let matrixColumns = 0;
   let drops = [];
@@ -166,6 +210,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /**
+   * Renderiza el Modal de Logros
+   */
+  function renderAchievementsModal() {
+    if (!achievementsListContainer) return;
+    achievementsListContainer.innerHTML = '';
+
+    Object.values(achievements.achievements).forEach(ach => {
+      const card = document.createElement('div');
+      card.className = `ach-card ${ach.unlocked ? 'unlocked' : ''}`;
+      card.innerHTML = `
+        <div>
+          <h4>${ach.title}</h4>
+          <p>${ach.desc}</p>
+        </div>
+        <span class="ach-status-badge ${ach.unlocked ? 'unlocked' : 'locked'}">
+          ${ach.unlocked ? 'DESBLOQUEADO' : 'BLOQUEADO'}
+        </span>
+      `;
+      achievementsListContainer.appendChild(card);
+    });
+  }
+
+  /**
    * Carga el perfil de usuario, avatar y mapa de contribuciones
    */
   async function loadUserGrid(rawInput) {
@@ -173,7 +240,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentUsername = username;
     statState.textContent = 'Decodificando perfil...';
 
-    // Obtener datos del perfil con foto
+    achievements.profilesLoaded.add(username);
+    if (achievements.profilesLoaded.size >= 3) {
+      achievements.unlock('profile_hacker', showAchievementToast);
+    }
+
     fetcher.getUserProfile(username).then(profile => {
       activeAvatar.src = profile.avatar;
       activeDevName.textContent = profile.name;
@@ -188,9 +259,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       grid = await fetcher.getContributions(username);
       totalCommitsInitial = countTotalCommitPoints();
       snake.reset();
+      if (isDuelMode && snake2) snake2.reset();
+
       lastTickTime = performance.now();
       updateHud();
-      statState.textContent = isManualMode ? 'Modo Manual (WASD / Flechas)' : 'Cazando commits (IA)';
+      statState.textContent = isDuelMode ? 'Duelo Activo: IA vs Jugador' : (isManualMode ? 'Modo Manual (WASD / Flechas)' : 'Cazando commits (IA)');
     } catch (err) {
       console.error(err);
       statState.textContent = 'Error al decodificar';
@@ -209,6 +282,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function onCommitEaten(cell) {
     sound.playEat(cell.originalLevel);
+    achievements.unlock('first_bite', showAchievementToast);
+
+    if (snake.eatenCommits >= 50) {
+      achievements.unlock('hunter_50', showAchievementToast);
+    }
+
     if (cell.originalLevel >= 3) {
       renderer.addShockwave(cell.x, cell.y, cell.originalLevel);
       sound.playShockwave();
@@ -219,9 +298,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   function doLogicalTick() {
     if (!grid || grid.length === 0) return;
 
+    // 1. Mover primera serpiente
     let nextStep = null;
-
-    if (isManualMode) {
+    if (isManualMode && !isDuelMode) {
       const head = snake.head;
       const targetX = (head.x + manualNextDir.x + 53) % 53;
       const targetY = (head.y + manualNextDir.y + 7) % 7;
@@ -234,10 +313,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       snake.moveTo(nextStep, grid, onCommitEaten);
     }
 
+    // 2. Mover segunda serpiente si está activo el Modo Duelo
+    if (isDuelMode && snake2) {
+      const head2 = snake2.head;
+      const targetX2 = (head2.x + player2NextDir.x + 53) % 53;
+      const targetY2 = (head2.y + player2NextDir.y + 7) % 7;
+      snake2.moveTo({ x: targetX2, y: targetY2 }, grid, onCommitEaten);
+    }
+
     const remaining = countRemainingCommits();
     if (remaining === 0) {
       statState.textContent = 'Grid completado al 100%';
-    } else if (!isManualMode) {
+      achievements.unlock('clean_sweep', showAchievementToast);
+    } else if (!isManualMode && !isDuelMode) {
       statState.textContent = `Cazando (${remaining} restantes)`;
     }
   }
@@ -256,9 +344,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const remaining = countRemainingCommits();
     statRemaining.textContent = remaining;
     statEaten.textContent = snake.eatenCommits;
-    statLength.innerHTML = `${snake.length} <span class="stat-unit">segmentos</span>`;
 
-    // Actualizar barra de progreso de devoración en tiempo real
+    if (isDuelMode && snake2) {
+      statDuel.textContent = `IA: ${snake.eatenCommits} | P2: ${snake2.eatenCommits}`;
+    } else {
+      statDuel.textContent = `Longitud: ${snake.length} seg`;
+    }
+
     if (totalCommitsInitial > 0) {
       const currentPoints = countTotalCommitPoints();
       const eatenPoints = Math.max(0, totalCommitsInitial - currentPoints);
@@ -285,8 +377,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const progress = isRunning ? Math.min(1.0, currentElapsed / tickInterval) : 1.0;
 
     snake.updateParticles();
+    if (isDuelMode && snake2) snake2.updateParticles();
+
     renderer.updateShockwaves();
-    renderer.render(grid, snake, progress);
+    renderer.render(grid, snake, progress, isDuelMode ? snake2 : null);
 
     animationFrameId = requestAnimationFrame(gameLoop);
   }
@@ -314,13 +408,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') dir = { x: 1, y: 0 };
 
     if (dir) {
-      if (snake.direction.x !== -dir.x || snake.direction.y !== -dir.y) {
-        manualNextDir = dir;
-        if (!isManualMode) {
-          isManualMode = true;
-          modeBtn.textContent = 'Control: Manual (WASD)';
-          modeBtn.classList.add('active-tool');
-          statState.textContent = 'Modo Manual (WASD / Flechas)';
+      if (isDuelMode && snake2) {
+        if (snake2.direction.x !== -dir.x || snake2.direction.y !== -dir.y) {
+          player2NextDir = dir;
+          achievements.unlock('manual_pilot', showAchievementToast);
+        }
+      } else {
+        if (snake.direction.x !== -dir.x || snake.direction.y !== -dir.y) {
+          manualNextDir = dir;
+          if (!isManualMode) {
+            isManualMode = true;
+            modeBtn.textContent = 'Control: Manual (WASD)';
+            modeBtn.classList.add('active-tool');
+            statState.textContent = 'Modo Manual (WASD / Flechas)';
+            achievements.unlock('manual_pilot', showAchievementToast);
+          }
         }
       }
     }
@@ -335,6 +437,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       cell.originalLevel = cell.level;
       cell.count = cell.level * 4;
       sound.playClick();
+      achievements.unlock('artist', showAchievementToast);
       updateHud();
     }
   }
@@ -363,7 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     isMouseDown = false;
   });
 
-  // --- Event Listeners Toolbar y Presets ---
+  // --- Toolbar, Presets & Modos ---
   fetchBtn.addEventListener('click', () => {
     const user = usernameInput.value.trim();
     if (user) {
@@ -384,6 +487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     grid = fetcher.generateRandomGrid();
     totalCommitsInitial = countTotalCommitPoints();
     snake.reset();
+    if (isDuelMode && snake2) snake2.reset();
     lastTickTime = performance.now();
     presetPills.forEach(p => p.classList.remove('active'));
     activeDevName.textContent = 'Matriz Aleatoria';
@@ -411,11 +515,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       modeBtn.textContent = 'Control: Manual (WASD)';
       modeBtn.classList.add('active-tool');
       statState.textContent = 'Modo Manual (WASD / Flechas)';
+      achievements.unlock('manual_pilot', showAchievementToast);
     } else {
       modeBtn.textContent = 'Control: IA Autonoma';
       modeBtn.classList.remove('active-tool');
       statState.textContent = 'Cazando commits (IA)';
     }
+  });
+
+  duelBtn.addEventListener('click', () => {
+    sound.playClick();
+    isDuelMode = !isDuelMode;
+    if (isDuelMode) {
+      snake2 = new Snake(4, { x: 50, y: 6 });
+      player2NextDir = { x: -1, y: 0 };
+      duelBtn.textContent = 'Duelo: Activo (IA vs P2)';
+      duelBtn.classList.add('active-tool');
+      statState.textContent = 'Duelo en curso: Controla P2 con WASD/Flechas';
+    } else {
+      snake2 = null;
+      duelBtn.textContent = 'Modo Duelo (IA vs Jugador)';
+      duelBtn.classList.remove('active-tool');
+      statState.textContent = 'Modo Duelo desactivado';
+    }
+    updateHud();
   });
 
   paintBtn.addEventListener('click', () => {
@@ -430,6 +553,80 @@ document.addEventListener('DOMContentLoaded', async () => {
       paintBtn.classList.remove('active-tool');
       canvas.style.cursor = 'default';
     }
+  });
+
+  templateBtn.addEventListener('click', () => {
+    sound.playClick();
+    modalTemplates.classList.add('visible');
+  });
+
+  closeTemplatesModalBtn.addEventListener('click', () => {
+    sound.playClick();
+    modalTemplates.classList.remove('visible');
+  });
+
+  document.querySelectorAll('.load-tpl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      sound.playClick();
+      const tplKey = btn.getAttribute('data-tpl');
+      grid = artEngine.applyTemplate(tplKey);
+      totalCommitsInitial = countTotalCommitPoints();
+      snake.reset();
+      if (isDuelMode && snake2) snake2.reset();
+      lastTickTime = performance.now();
+      modalTemplates.classList.remove('visible');
+      achievements.unlock('artist', showAchievementToast);
+      updateHud();
+      statState.textContent = `Plantilla '${tplKey}' cargada`;
+    });
+  });
+
+  document.querySelectorAll('.script-tpl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      sound.playClick();
+      const tplKey = btn.getAttribute('data-tpl');
+      const script = artEngine.generateBashScript(tplKey);
+      const blob = new Blob([script], { type: 'text/x-sh;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `generate-git-art-${tplKey}.sh`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  });
+
+  recordBtn.addEventListener('click', () => {
+    sound.playClick();
+    if (recorder.isRecording) return;
+
+    recordBtn.classList.add('active-tool');
+    recorder.startRecording(
+      8,
+      (sec) => {
+        recordBtnText.textContent = `Grabando (${sec}s)...`;
+      },
+      (err) => {
+        recordBtn.classList.remove('active-tool');
+        recordBtnText.textContent = 'Grabar Clip WebM';
+        if (!err) {
+          achievements.unlock('cinematographer', showAchievementToast);
+        }
+      }
+    );
+  });
+
+  achievementsBtn.addEventListener('click', () => {
+    sound.playClick();
+    renderAchievementsModal();
+    modalAchievements.classList.add('visible');
+  });
+
+  closeAchModalBtn.addEventListener('click', () => {
+    sound.playClick();
+    modalAchievements.classList.remove('visible');
   });
 
   audioBtn.addEventListener('click', () => {
@@ -497,14 +694,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!isRunning) {
       doLogicalTick();
       snake.updateParticles();
+      if (isDuelMode && snake2) snake2.updateParticles();
       renderer.updateShockwaves();
-      renderer.render(grid, snake, 1.0);
+      renderer.render(grid, snake, 1.0, isDuelMode ? snake2 : null);
     }
   });
 
   resetBtn.addEventListener('click', () => {
     sound.playClick();
     snake.reset();
+    if (isDuelMode && snake2) snake2.reset();
     lastTickTime = performance.now();
     updateHud();
     statState.textContent = 'Protocolo reiniciado';
@@ -525,7 +724,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderer.snakeStyle = e.target.value;
   });
 
-  // Inicializar ranking y velocidad
+  // Inicialización
+  updateAchievementsBadge();
   speedValue.textContent = formatSpeedLabel(ticksPerSecond);
   renderLeaderboard();
   await loadUserGrid('torvalds');
