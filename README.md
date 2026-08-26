@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="GITHUB_SNAKE.EXE Logo" width="120" height="120" style="border-radius: 24px; box-shadow: 0 0 35px rgba(0,255,102,0.5);" />
+</p>
+
 # GITHUB_SNAKE.EXE // PRO EDITION v2.0
 
 <p align="center">
@@ -128,8 +132,10 @@ Escribe cualquier palabra (ej: tu nombre, tu lenguaje favorito o mensaje) y el m
 .
 |-- index.html            # Estructura semantica, HUD, tooltips, modales y canvas
 |-- style.css             # Design tokens, paletas de color, efectos glassmorphism
+|-- favicon.svg           # Favicon y logo vectorial SVG oficial de alta resolucion
 |-- embed.js              # Web Component autonomo <github-snake> para portafolios
 |-- assets/               # Capturas de pantalla, previews y recursos visuales
+|   |-- logo.svg          # Logo vectorial oficial del proyecto
 |   |-- hero_preview.png  # Captura de interfaz principal
 |   |-- duel_mode.png     # Captura del modo duelo IA vs Jugador
 |   |-- commit_art.png    # Captura del creador de Commit Art
