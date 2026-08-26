@@ -1,6 +1,7 @@
 /**
  * Main Application Orchestrator & Loop Controller (Pro Edition)
- * Sistema de Puntuación, Progreso Individual de Jugadores, Duelo, Creador de Palabras Custom, Fin de Partida y Tooltip de Contribuciones.
+ * Sistema de Puntuación, Progreso Individual de Jugadores, Duelo, Creador de Palabras Custom, Fin de Partida,
+ * Tooltip de Contribuciones y Exportador SVG Avanzado con Opciones Personalizadas.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -54,6 +55,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const exportYamlBtn = document.getElementById('exportYamlBtn');
   const achievementsBtn = document.getElementById('achievementsBtn');
   const achievementsLabel = document.getElementById('achievementsLabel');
+
+  // Modal Exportar SVG
+  const modalExportSvg = document.getElementById('modalExportSvg');
+  const closeExportSvgModalBtn = document.getElementById('closeExportSvgModalBtn');
+  const exportSpeedSelect = document.getElementById('exportSpeedSelect');
+  const exportThemeSelect = document.getElementById('exportThemeSelect');
+  const exportMorphSelect = document.getElementById('exportMorphSelect');
+  const exportPauseSelect = document.getElementById('exportPauseSelect');
+  const confirmExportSvgBtn = document.getElementById('confirmExportSvgBtn');
 
   // Modales
   const modalWorkflow = document.getElementById('modalWorkflow');
@@ -561,7 +571,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       tooltipDate.textContent = formatSpanishDate(c.date);
       tooltipLevel.textContent = `Nivel de actividad: ${c.level}/4`;
 
-      // Posicionar tooltip
       const tooltipX = e.clientX + 14;
       const tooltipY = e.clientY - 48;
       matrixTooltip.style.left = `${tooltipX}px`;
@@ -817,7 +826,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   victoryExportSvgBtn.addEventListener('click', () => {
     sound.playClick();
-    exporter.exportAnimatedSvg(grid, currentUsername);
+    exportSvgBtn.click();
   });
 
   audioBtn.addEventListener('click', () => {
@@ -832,9 +841,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Modal de Exportación SVG con Opciones
   exportSvgBtn.addEventListener('click', () => {
     sound.playClick();
-    exporter.exportAnimatedSvg(grid, currentUsername);
+    // Sincronizar con el tema actual
+    const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+    exportThemeSelect.value = currentTheme;
+    modalExportSvg.classList.add('visible');
+  });
+
+  closeExportSvgModalBtn.addEventListener('click', () => {
+    sound.playClick();
+    modalExportSvg.classList.remove('visible');
+  });
+
+  confirmExportSvgBtn.addEventListener('click', () => {
+    sound.playClick();
+    const options = {
+      speed: exportSpeedSelect.value,
+      theme: exportThemeSelect.value,
+      morph: exportMorphSelect.value,
+      pause: exportPauseSelect.value
+    };
+    exporter.exportAnimatedSvg(grid, currentUsername, options);
+    modalExportSvg.classList.remove('visible');
   });
 
   exportYamlBtn.addEventListener('click', () => {

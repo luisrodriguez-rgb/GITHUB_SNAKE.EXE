@@ -24,8 +24,8 @@
     <!-- Cyber Terminal Header -->
     <header>
       <div class="logo-group">
-        <div class="logo-badge" style="padding: 4px; display: flex; align-items: center; justify-content: center;">
-          <img src="assets/logo.svg" alt="GitHub Snake Matrix Logo" width="38" height="38" style="display: block; border-radius: 8px;">
+        <div class="logo-badge" style="padding: 2px; display: flex; align-items: center; justify-content: center;">
+          <img src="assets/logo.svg" alt="GitHub Snake Matrix Logo" width="48" height="48" style="display: block; border-radius: 10px;">
         </div>
         <div class="title-area">
           <h1>
@@ -174,7 +174,7 @@
         </button>
         <button id="exportSvgBtn" class="btn btn-cyber-secondary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Exportar SVG
+          Exportar SVG Pro
         </button>
         <button id="exportYamlBtn" class="btn btn-cyber-primary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
@@ -273,6 +273,69 @@
     <footer>
       <p>&copy; GITHUB_SNAKE_MATRIX // CONSTRUIDO CON CANVAS 2D, LERP SUB-PIXEL & VANILLA JS</p>
     </footer>
+  </div>
+
+  <!-- Modal Exportar SVG Personalizado -->
+  <div id="modalExportSvg" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3>Configuracion de Exportacion SVG Animado</h3>
+        <button id="closeExportSvgModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <label style="font-size: 0.82rem; font-family: var(--font-mono); color: var(--text-muted); font-weight: 700; margin-bottom: 0.35rem; display: block;">
+              Velocidad de Animacion (Pasos por segundo):
+            </label>
+            <select id="exportSpeedSelect" class="cyber-select" style="width: 100%;">
+              <option value="fast">Rapida (8 t/s - Animacion agil)</option>
+              <option value="normal" selected>Normal (5 t/s - Velocidad recomendada)</option>
+              <option value="relaxed">Relajada (3 t/s - Recorrido pausado)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.82rem; font-family: var(--font-mono); color: var(--text-muted); font-weight: 700; margin-bottom: 0.35rem; display: block;">
+              Tema / Paleta de Colores:
+            </label>
+            <select id="exportThemeSelect" class="cyber-select" style="width: 100%;">
+              <option value="dark" selected>Matrix Phosphor (Oscuro / Verde)</option>
+              <option value="light">Modo Claro (GitHub Light)</option>
+              <option value="cyberpunk">Cyberpunk Neon (Fucsia / Neón)</option>
+              <option value="neon_cyan">Cyber Cyan (Azul Eléctrico)</option>
+              <option value="amber_terminal">Amber CRT (Ámbar Retro)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.82rem; font-family: var(--font-mono); color: var(--text-muted); font-weight: 700; margin-bottom: 0.35rem; display: block;">
+              Morfologia de la Serpiente:
+            </label>
+            <select id="exportMorphSelect" class="cyber-select" style="width: 100%;">
+              <option value="matrix_viper" selected>Cyber Matrix Viper (Alto contraste con núcleo láser)</option>
+              <option value="capsule">Neon Capsule</option>
+              <option value="retro">Pixel Block (Retro 8-bit)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.82rem; font-family: var(--font-mono); color: var(--text-muted); font-weight: 700; margin-bottom: 0.35rem; display: block;">
+              Pausa de Reinicio (Loop):
+            </label>
+            <select id="exportPauseSelect" class="cyber-select" style="width: 100%;">
+              <option value="fast" selected>Instantaneo (0.6s de pausa)</option>
+              <option value="medium">Normal (1.5s de pausa)</option>
+              <option value="none">Sin pausa (Bucle continuo directo)</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="confirmExportSvgBtn" class="btn btn-cyber-primary" style="width: 100%; margin-top: 1.5rem; padding: 0.85rem;">
+          Descargar Archivo SVG
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal Fin de Partida / Victoria -->
