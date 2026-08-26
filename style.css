@@ -187,7 +187,8 @@ body[data-theme="light"] .cyber-select {
 body[data-theme="light"] .doc-card,
 body[data-theme="light"] .leaderboard-card,
 body[data-theme="light"] .template-item,
-body[data-theme="light"] .ach-card {
+body[data-theme="light"] .ach-card,
+body[data-theme="light"] .result-player-box {
   background: #ffffff;
   border-color: rgba(31, 35, 40, 0.15);
   box-shadow: 0 2px 8px rgba(140, 149, 159, 0.12);
@@ -669,9 +670,9 @@ body[data-theme="light"] .consumption-progress-container {
 
 .progress-track {
   width: 100%;
-  height: 6px;
+  height: 7px;
   background: rgba(0, 0, 0, 0.4);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
   border: 1px solid var(--border-color);
 }
@@ -685,6 +686,43 @@ body[data-theme="light"] .progress-track {
   width: 0%;
   background: linear-gradient(90deg, #0969da 0%, var(--matrix-green) 100%);
   box-shadow: 0 0 10px var(--matrix-green);
+  transition: width 0.3s ease;
+}
+
+/* Dual Progress Track for Duel Mode */
+.dual-progress-track {
+  width: 100%;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid var(--border-color);
+}
+
+.p1-progress-fill {
+  height: 100%;
+  background: var(--matrix-green);
+  color: #030805;
+  font-size: 0.68rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  transition: width 0.3s ease;
+}
+
+.p2-progress-fill {
+  height: 100%;
+  background: #00f2fe;
+  color: #030805;
+  font-size: 0.68rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
   transition: width 0.3s ease;
 }
 
@@ -902,12 +940,6 @@ body[data-theme="light"] .tool-btn.active-tool {
   text-shadow: 0 0 14px var(--matrix-glow);
 }
 
-.stat-unit {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
 /* Control Bar */
 .control-bar {
   display: flex;
@@ -1112,6 +1144,22 @@ body[data-theme="light"] .dev-metrics {
   color: var(--text-code);
 }
 
+/* Info Alert Box */
+.info-alert-box {
+  background: rgba(0, 255, 102, 0.06);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1rem;
+  color: var(--text-main);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+body[data-theme="light"] .info-alert-box {
+  background: rgba(9, 105, 218, 0.06);
+  border-color: rgba(9, 105, 218, 0.2);
+}
+
 /* Templates & Achievements Modal Lists */
 .templates-list,
 .achievements-modal-list {
@@ -1170,6 +1218,86 @@ body[data-theme="light"] .dev-metrics {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
   border: 1px solid var(--border-color);
+}
+
+/* Victory / Game Over Modal Styles */
+.victory-card {
+  max-width: 620px;
+}
+
+.winner-announcement {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.winner-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--matrix-green);
+  background: rgba(0, 255, 102, 0.15);
+  border: 2px solid var(--matrix-green);
+  padding: 0.5rem 1.4rem;
+  border-radius: 8px;
+  box-shadow: 0 0 20px var(--matrix-glow);
+  margin-bottom: 0.5rem;
+}
+
+.duel-results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 580px) {
+  .duel-results-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.result-player-box {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.result-player-box.p1-box {
+  border-left: 3px solid var(--matrix-green);
+}
+
+.result-player-box.p2-box {
+  border-left: 3px solid #00f2fe;
+}
+
+.player-tag {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--matrix-green);
+}
+
+.result-score {
+  font-size: 1.6rem;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  color: var(--matrix-green);
+}
+
+.result-stat {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.result-stat span {
+  font-weight: 700;
+  color: var(--text-main);
 }
 
 /* Toast Notifications */

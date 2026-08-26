@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator & Loop Controller (Pro Edition)
- * Integra Grabador de Video HD, Plantillas Commit Art, Modo Duelo, Logros, Perfiles y Exportador 100%.
+ * Sistema de Puntuación, Progreso Individual de Jugadores, Duelo y Pantalla de Fin de Partida/Victoria.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -31,8 +31,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const activeDevRepos = document.getElementById('activeDevRepos');
   const progressBarFill = document.getElementById('progressBarFill');
   const progressPercentText = document.getElementById('progressPercentText');
+  const singleProgressTrack = document.getElementById('singleProgressTrack');
+  const dualProgressTrack = document.getElementById('dualProgressTrack');
+  const p1ProgressFill = document.getElementById('p1ProgressFill');
+  const p2ProgressFill = document.getElementById('p2ProgressFill');
+  const progressLabelText = document.getElementById('progressLabelText');
 
-  // Nuevas Herramientas Pro
+  // Herramientas Pro
   const audioBtn = document.getElementById('audioBtn');
   const modeBtn = document.getElementById('modeBtn');
   const duelBtn = document.getElementById('duelBtn');
@@ -60,18 +65,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeAchModalBtn = document.getElementById('closeAchModalBtn');
   const achievementsListContainer = document.getElementById('achievementsListContainer');
 
+  const modalGameOver = document.getElementById('modalGameOver');
+  const closeGameOverBtn = document.getElementById('closeGameOverBtn');
+  const winnerBadge = document.getElementById('winnerBadge');
+  const winnerSummary = document.getElementById('winnerSummary');
+  const victoryTitle = document.getElementById('victoryTitle');
+  const resP1Score = document.getElementById('resP1Score');
+  const resP1Eaten = document.getElementById('resP1Eaten');
+  const resP1Percent = document.getElementById('resP1Percent');
+  const resP2Box = document.getElementById('resP2Box');
+  const resP2Score = document.getElementById('resP2Score');
+  const resP2Eaten = document.getElementById('resP2Eaten');
+  const resP2Percent = document.getElementById('resP2Percent');
+  const rematchBtn = document.getElementById('rematchBtn');
+  const victoryExportSvgBtn = document.getElementById('victoryExportSvgBtn');
+
   // Toast
   const achievementToast = document.getElementById('achievementToast');
   const toastTitle = document.getElementById('toastTitle');
   const toastDesc = document.getElementById('toastDesc');
 
-  // Elementos HUD
+  // HUD
   const statRemaining = document.getElementById('statRemaining');
-  const statEaten = document.getElementById('statEaten');
-  const statDuel = document.getElementById('statDuel');
+  const statP1Score = document.getElementById('statP1Score');
+  const statP2Score = document.getElementById('statP2Score');
+  const labelP1 = document.getElementById('labelP1');
+  const labelP2 = document.getElementById('labelP2');
+  const cardP2 = document.getElementById('cardP2');
   const statState = document.getElementById('statState');
 
-  // Instanciar motores
+  // Motores
   const fetcher = new GitHubFetcher();
   const pathfinder = new SnakePathfinder();
   const renderer = new SnakeRenderer(canvas);
@@ -82,18 +105,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   const artEngine = new CommitArtEngine();
   const achievements = new AchievementsEngine();
 
-  // Variables de Estado
+  // Estados
   let grid = [];
   let totalCommitsInitial = 0;
+  let totalPointsInitial = 0;
   let isRunning = true;
+  let gameCompleted = false;
   let ticksPerSecond = parseFloat(speedSlider.value) || 5;
   let lastTickTime = performance.now();
   let animationFrameId = null;
 
-  // Modos de Juego
   let isManualMode = false;
   let isDuelMode = false;
-  let snake2 = null; // Segunda serpiente para el jugador en Modo Duelo
+  let snake2 = null; // Jugador 2 (Cian)
   let manualNextDir = { x: 1, y: 0 };
   let player2NextDir = { x: -1, y: 0 };
   let isPaintMode = false;
@@ -123,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     achievementsLabel.textContent = `Logros: ${unlocked}/${total}`;
   }
 
-  // --- Fondo Matrix Digital Rain ---
+  // --- Lluvia Matrix ---
   const matrixCtx = matrixCanvas.getContext('2d');
   let matrixColumns = 0;
   let drops = [];
@@ -162,9 +186,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('resize', initMatrixRain);
   initMatrixRain();
 
-  /**
-   * Renderiza el Ranking de Desarrolladores Destacados con Fotos
-   */
   function renderLeaderboard() {
     if (!leaderboardGrid) return;
     leaderboardGrid.innerHTML = '';
@@ -209,9 +230,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  /**
-   * Renderiza el Modal de Logros
-   */
   function renderAchievementsModal() {
     if (!achievementsListContainer) return;
     achievementsListContainer.innerHTML = '';
@@ -232,12 +250,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  /**
-   * Carga el perfil de usuario, avatar y mapa de contribuciones
-   */
   async function loadUserGrid(rawInput) {
     const username = fetcher.sanitizeUsername(rawInput);
     currentUsername = username;
+    gameCompleted = false;
     statState.textContent = 'Decodificando perfil...';
 
     achievements.profilesLoaded.add(username);
@@ -257,7 +273,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       grid = await fetcher.getContributions(username);
-      totalCommitsInitial = countTotalCommitPoints();
+      totalCommitsInitial = countRemainingCommits();
+      totalPointsInitial = countTotalCommitPoints();
       snake.reset();
       if (isDuelMode && snake2) snake2.reset();
 
@@ -274,17 +291,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     let total = 0;
     for (let x = 0; x < grid.length; x++) {
       for (let y = 0; y < grid[x].length; y++) {
-        total += grid[x][y].level || 0;
+        total += (grid[x][y].level || 0) * 10;
       }
     }
     return Math.max(1, total);
   }
 
-  function onCommitEaten(cell) {
+  function onCommitEaten(cell, eatingSnake) {
     sound.playEat(cell.originalLevel);
     achievements.unlock('first_bite', showAchievementToast);
 
-    if (snake.eatenCommits >= 50) {
+    // Otorgar puntos según nivel de commit
+    const pts = [0, 10, 25, 50, 100][cell.originalLevel] || 10;
+    eatingSnake.score += pts;
+
+    if (snake.eatenCommits >= 50 || (snake2 && snake2.eatenCommits >= 50)) {
       achievements.unlock('hunter_50', showAchievementToast);
     }
 
@@ -295,8 +316,64 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateHud();
   }
 
+  /**
+   * Finaliza la partida y muestra la pantalla de victoria
+   */
+  function triggerGameOver() {
+    if (gameCompleted) return;
+    gameCompleted = true;
+    sound.playShockwave();
+
+    const p1Score = snake.score;
+    const p1Eaten = snake.eatenCommits;
+    const p2Score = snake2 ? snake2.score : 0;
+    const p2Eaten = snake2 ? snake2.eatenCommits : 0;
+    const totalEaten = Math.max(1, p1Eaten + p2Eaten);
+
+    const p1Pct = Math.round((p1Eaten / totalEaten) * 100);
+    const p2Pct = 100 - p1Pct;
+
+    resP1Score.textContent = `${p1Score} pts`;
+    resP1Eaten.textContent = `${p1Eaten} commits`;
+    resP1Percent.textContent = `${p1Pct}%`;
+
+    if (isDuelMode && snake2) {
+      resP2Box.style.display = 'flex';
+      resP2Score.textContent = `${p2Score} pts`;
+      resP2Eaten.textContent = `${p2Eaten} commits`;
+      resP2Percent.textContent = `${p2Pct}%`;
+
+      if (p2Score > p1Score) {
+        winnerBadge.textContent = '¡VICTORIA DEL JUGADOR 2!';
+        winnerBadge.style.color = '#00f2fe';
+        winnerBadge.style.borderColor = '#00f2fe';
+        winnerSummary.textContent = `¡Has superado a la IA con ${p2Score} puntos (${p2Eaten} commits devorados)!`;
+      } else if (p1Score > p2Score) {
+        winnerBadge.textContent = '¡VICTORIA DE LA IA VERDE!';
+        winnerBadge.style.color = 'var(--matrix-green)';
+        winnerBadge.style.borderColor = 'var(--matrix-green)';
+        winnerSummary.textContent = `La IA ha ganado el duelo con ${p1Score} puntos (${p1Eaten} commits devorados).`;
+      } else {
+        winnerBadge.textContent = '¡EMPATE TÉCNICO!';
+        winnerBadge.style.color = '#fcee0a';
+        winnerBadge.style.borderColor = '#fcee0a';
+        winnerSummary.textContent = `Ambos obtuvieron ${p1Score} puntos.`;
+      }
+    } else {
+      resP2Box.style.display = 'none';
+      winnerBadge.textContent = '¡MATRIZ 100% PURIFICADA!';
+      winnerBadge.style.color = 'var(--matrix-green)';
+      winnerBadge.style.borderColor = 'var(--matrix-green)';
+      winnerSummary.textContent = `Has devorado la totalidad de los commits de @${currentUsername} con un puntaje final de ${p1Score} pts.`;
+    }
+
+    achievements.unlock('clean_sweep', showAchievementToast);
+    modalGameOver.classList.add('visible');
+    statState.textContent = 'Partida Completada al 100%';
+  }
+
   function doLogicalTick() {
-    if (!grid || grid.length === 0) return;
+    if (!grid || grid.length === 0 || gameCompleted) return;
 
     // 1. Mover primera serpiente
     let nextStep = null;
@@ -310,7 +387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (nextStep) {
-      snake.moveTo(nextStep, grid, onCommitEaten);
+      snake.moveTo(nextStep, grid, (cell) => onCommitEaten(cell, snake));
     }
 
     // 2. Mover segunda serpiente si está activo el Modo Duelo
@@ -318,13 +395,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       const head2 = snake2.head;
       const targetX2 = (head2.x + player2NextDir.x + 53) % 53;
       const targetY2 = (head2.y + player2NextDir.y + 7) % 7;
-      snake2.moveTo({ x: targetX2, y: targetY2 }, grid, onCommitEaten);
+      snake2.moveTo({ x: targetX2, y: targetY2 }, grid, (cell) => onCommitEaten(cell, snake2));
     }
 
     const remaining = countRemainingCommits();
-    if (remaining === 0) {
-      statState.textContent = 'Grid completado al 100%';
-      achievements.unlock('clean_sweep', showAchievementToast);
+    if (remaining === 0 && !gameCompleted) {
+      triggerGameOver();
     } else if (!isManualMode && !isDuelMode) {
       statState.textContent = `Cazando (${remaining} restantes)`;
     }
@@ -343,20 +419,41 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateHud() {
     const remaining = countRemainingCommits();
     statRemaining.textContent = remaining;
-    statEaten.textContent = snake.eatenCommits;
 
     if (isDuelMode && snake2) {
-      statDuel.textContent = `IA: ${snake.eatenCommits} | P2: ${snake2.eatenCommits}`;
-    } else {
-      statDuel.textContent = `Longitud: ${snake.length} seg`;
-    }
+      labelP1.textContent = 'P1 (IA Verde)';
+      statP1Score.textContent = `${snake.score} pts`;
+      labelP2.textContent = 'P2 (Jugador Cian)';
+      statP2Score.textContent = `${snake2.score} pts`;
 
-    if (totalCommitsInitial > 0) {
-      const currentPoints = countTotalCommitPoints();
-      const eatenPoints = Math.max(0, totalCommitsInitial - currentPoints);
-      const percent = Math.min(100, Math.round((eatenPoints / totalCommitsInitial) * 100));
-      progressBarFill.style.width = `${percent}%`;
-      progressPercentText.textContent = `${percent}%`;
+      singleProgressTrack.style.display = 'none';
+      dualProgressTrack.style.display = 'flex';
+
+      const totalEaten = Math.max(1, snake.eatenCommits + snake2.eatenCommits);
+      const p1Pct = Math.round((snake.eatenCommits / totalEaten) * 100);
+      const p2Pct = 100 - p1Pct;
+
+      p1ProgressFill.style.width = `${p1Pct}%`;
+      p1ProgressFill.textContent = `IA: ${p1Pct}% (${snake.eatenCommits})`;
+      p2ProgressFill.style.width = `${p2Pct}%`;
+      p2ProgressFill.textContent = `P2: ${p2Pct}% (${snake2.eatenCommits})`;
+      progressPercentText.textContent = `${p1Pct}% / ${p2Pct}%`;
+    } else {
+      labelP1.textContent = isManualMode ? 'Tu Puntaje (Manual)' : 'Puntaje de Caza (IA)';
+      statP1Score.textContent = `${snake.score} pts`;
+      labelP2.textContent = 'Longitud de Serpiente';
+      statP2Score.textContent = `${snake.length} seg`;
+
+      singleProgressTrack.style.display = 'block';
+      dualProgressTrack.style.display = 'none';
+
+      if (totalPointsInitial > 0) {
+        const currentPoints = countTotalCommitPoints();
+        const eatenPoints = Math.max(0, totalPointsInitial - currentPoints);
+        const percent = Math.min(100, Math.round((eatenPoints / totalPointsInitial) * 100));
+        progressBarFill.style.width = `${percent}%`;
+        progressPercentText.textContent = `${percent}%`;
+      }
     }
   }
 
@@ -366,7 +463,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tickInterval = 1000 / ticksPerSecond;
     const elapsed = now - lastTickTime;
 
-    if (isRunning) {
+    if (isRunning && !gameCompleted) {
       if (elapsed >= tickInterval) {
         doLogicalTick();
         lastTickTime = now - (elapsed % tickInterval);
@@ -374,7 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const currentElapsed = now - lastTickTime;
-    const progress = isRunning ? Math.min(1.0, currentElapsed / tickInterval) : 1.0;
+    const progress = (isRunning && !gameCompleted) ? Math.min(1.0, currentElapsed / tickInterval) : 1.0;
 
     snake.updateParticles();
     if (isDuelMode && snake2) snake2.updateParticles();
@@ -428,7 +525,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // --- Interacción con Canvas (Pintar Matriz) ---
+  // --- Interacción Canvas (Pintar) ---
   function paintCellAt(clientX, clientY) {
     const cellCoords = renderer.getCellFromCoords(clientX, clientY);
     if (cellCoords && grid[cellCoords.x] && grid[cellCoords.x][cellCoords.y]) {
@@ -466,7 +563,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     isMouseDown = false;
   });
 
-  // --- Toolbar, Presets & Modos ---
+  // --- Toolbar & Modos ---
   fetchBtn.addEventListener('click', () => {
     const user = usernameInput.value.trim();
     if (user) {
@@ -484,8 +581,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   randomGridBtn.addEventListener('click', () => {
     sound.playClick();
+    gameCompleted = false;
     grid = fetcher.generateRandomGrid();
-    totalCommitsInitial = countTotalCommitPoints();
+    totalCommitsInitial = countRemainingCommits();
+    totalPointsInitial = countTotalCommitPoints();
     snake.reset();
     if (isDuelMode && snake2) snake2.reset();
     lastTickTime = performance.now();
@@ -521,11 +620,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       modeBtn.classList.remove('active-tool');
       statState.textContent = 'Cazando commits (IA)';
     }
+    updateHud();
   });
 
   duelBtn.addEventListener('click', () => {
     sound.playClick();
     isDuelMode = !isDuelMode;
+    gameCompleted = false;
     if (isDuelMode) {
       snake2 = new Snake(4, { x: 50, y: 6 });
       player2NextDir = { x: -1, y: 0 };
@@ -568,9 +669,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.load-tpl-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       sound.playClick();
+      gameCompleted = false;
       const tplKey = btn.getAttribute('data-tpl');
       grid = artEngine.applyTemplate(tplKey);
-      totalCommitsInitial = countTotalCommitPoints();
+      totalCommitsInitial = countRemainingCommits();
+      totalPointsInitial = countTotalCommitPoints();
       snake.reset();
       if (isDuelMode && snake2) snake2.reset();
       lastTickTime = performance.now();
@@ -627,6 +730,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   closeAchModalBtn.addEventListener('click', () => {
     sound.playClick();
     modalAchievements.classList.remove('visible');
+  });
+
+  closeGameOverBtn.addEventListener('click', () => {
+    sound.playClick();
+    modalGameOver.classList.remove('visible');
+  });
+
+  rematchBtn.addEventListener('click', () => {
+    sound.playClick();
+    modalGameOver.classList.remove('visible');
+    loadUserGrid(currentUsername);
+  });
+
+  victoryExportSvgBtn.addEventListener('click', () => {
+    sound.playClick();
+    exporter.exportAnimatedSvg(grid, currentUsername);
   });
 
   audioBtn.addEventListener('click', () => {
@@ -702,6 +821,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   resetBtn.addEventListener('click', () => {
     sound.playClick();
+    gameCompleted = false;
     snake.reset();
     if (isDuelMode && snake2) snake2.reset();
     lastTickTime = performance.now();

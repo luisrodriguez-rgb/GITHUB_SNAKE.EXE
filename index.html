@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitHub Matrix Snake Engine | 60FPS Simulator</title>
+  <title>GitHub Matrix Snake Engine | 60FPS Simulator & Game</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2300ff66%22 stroke-width=%222%22><path d=%22M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5%22/></svg>">
 </head>
@@ -120,11 +120,17 @@
       <!-- Live Consumption Progress Bar -->
       <div class="consumption-progress-container">
         <div class="progress-info-row">
-          <span>Progreso de Devoracion:</span>
+          <span id="progressLabelText">Progreso de Devoracion del Mapa:</span>
           <span id="progressPercentText">0%</span>
         </div>
-        <div class="progress-track">
+        <div class="progress-track" id="singleProgressTrack">
           <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+
+        <!-- Barra Dual de Progreso para Modo Duelo -->
+        <div class="dual-progress-track" id="dualProgressTrack" style="display: none;">
+          <div id="p1ProgressFill" class="p1-progress-fill" style="width: 50%;">IA: 0%</div>
+          <div id="p2ProgressFill" class="p2-progress-fill" style="width: 50%;">P2: 0%</div>
         </div>
       </div>
     </section>
@@ -178,17 +184,17 @@
         <span class="stat-label">Commits Restantes</span>
         <div class="stat-value highlight" id="statRemaining">0</div>
       </div>
-      <div class="stat-card">
-        <span class="stat-label">Commits Devorados</span>
-        <div class="stat-value" id="statEaten">0</div>
+      <div class="stat-card" id="cardP1">
+        <span class="stat-label" id="labelP1">P1 (IA Verde) Puntos</span>
+        <div class="stat-value" id="statP1Score">0 pts</div>
+      </div>
+      <div class="stat-card" id="cardP2">
+        <span class="stat-label" id="labelP2">P2 (Jugador Cian) Puntos</span>
+        <div class="stat-value" style="color: #00f2fe;" id="statP2Score">0 pts</div>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Marcador Duelo</span>
-        <div class="stat-value" style="font-size: 1.1rem;" id="statDuel">IA: 0 | P2: 0</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-label">Estado de Telemetria</span>
-        <div class="stat-value" style="font-size: 0.92rem;" id="statState">Escaneando red...</div>
+        <span class="stat-label">Estado de la Partida</span>
+        <div class="stat-value" style="font-size: 0.90rem;" id="statState">Escaneando red...</div>
       </div>
     </section>
 
@@ -264,6 +270,42 @@
     </footer>
   </div>
 
+  <!-- Modal Fin de Partida / Victoria -->
+  <div id="modalGameOver" class="modal-backdrop">
+    <div class="modal-card victory-card">
+      <div class="modal-header">
+        <h3 id="victoryTitle">PARTIDA FINALIZADA // MATRIZ 100% PURIFICADA</h3>
+        <button id="closeGameOverBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="winner-announcement" id="winnerAnnouncement">
+          <div class="winner-badge" id="winnerBadge">VICTORIA DEL JUGADOR</div>
+          <p id="winnerSummary">Se han devorado todos los commits del perfil.</p>
+        </div>
+
+        <div class="duel-results-grid">
+          <div class="result-player-box p1-box">
+            <div class="player-tag">SERPIENTE 1 (IA VERDE)</div>
+            <div class="result-score" id="resP1Score">0 pts</div>
+            <div class="result-stat">Commits devorados: <span id="resP1Eaten">0</span></div>
+            <div class="result-stat">Porcentaje del mapa: <span id="resP1Percent">0%</span></div>
+          </div>
+          <div class="result-player-box p2-box" id="resP2Box">
+            <div class="player-tag" style="color: #00f2fe;">SERPIENTE 2 (JUGADOR CIAN)</div>
+            <div class="result-score" style="color: #00f2fe;" id="resP2Score">0 pts</div>
+            <div class="result-stat">Commits devorados: <span id="resP2Eaten">0</span></div>
+            <div class="result-stat">Porcentaje del mapa: <span id="resP2Percent">0%</span></div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+          <button id="rematchBtn" class="btn btn-cyber-primary" style="flex: 1;">Nueva Partida / Revancha</button>
+          <button id="victoryExportSvgBtn" class="btn btn-cyber-secondary" style="flex: 1;">Exportar SVG Completo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast de Logros Desbloqueados -->
   <div id="achievementToast" class="achievement-toast">
     <div class="toast-icon">
@@ -276,54 +318,65 @@
     </div>
   </div>
 
-  <!-- Modal Plantillas Commit Art -->
+  <!-- Modal Plantillas Commit Art con Explicación Detallada -->
   <div id="modalTemplates" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>Plantillas de Commit Art</h3>
+        <h3>Galeria de Plantillas Commit Art</h3>
         <button id="closeTemplatesModalBtn" class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Selecciona una plantilla para cargarla en el canvas o generar un script Git de commits reales:</p>
-        <div class="templates-list">
+        <div class="info-alert-box">
+          <strong>¿Que es Commit Art?</strong>
+          <p>
+            En GitHub, tu perfil dibuja cuadros verdes segun los dias en que haces commits. 
+            El <em>Commit Art</em> es una tecnica para "dibujar" textos y figuras pixeladas en tu perfil real de GitHub.
+          </p>
+          <ul style="margin: 0.4rem 0 0 1.2rem; font-size: 0.8rem; line-height: 1.5;">
+            <li><strong>Boton Cargar</strong>: Carga el dibujo en este juego para que la serpiente se lo coma.</li>
+            <li><strong>Boton Script Git (.sh)</strong>: Descarga un script automatico para ejecutar en tu terminal y crear ese dibujo en un repositorio de tu cuenta de GitHub real.</li>
+          </ul>
+        </div>
+
+        <div class="templates-list" style="margin-top: 1rem;">
           <div class="template-item">
             <div>
               <h4>HIRE ME</h4>
-              <p>Texto en pixel art para reclutadores</p>
+              <p>Texto gigante para destacar ante reclutadores de tecnologia</p>
             </div>
             <div style="display:flex; gap: 0.5rem;">
-              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="hire_me">Cargar</button>
-              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="hire_me">Script Git</button>
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="hire_me">Cargar en Juego</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="hire_me">Script Git (.sh)</button>
             </div>
           </div>
           <div class="template-item">
             <div>
               <h4>&lt;CODE /&gt;</h4>
-              <p>Simbolo de programacion en bloque</p>
+              <p>Icono de etiquetas de programacion en bloque</p>
             </div>
             <div style="display:flex; gap: 0.5rem;">
-              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="code">Cargar</button>
-              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="code">Script Git</button>
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="code">Cargar en Juego</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="code">Script Git (.sh)</button>
             </div>
           </div>
           <div class="template-item">
             <div>
               <h4>Space Invader</h4>
-              <p>Alienigena retro de 8 bits</p>
+              <p>Icono clasico alienigena retro de 8 bits</p>
             </div>
             <div style="display:flex; gap: 0.5rem;">
-              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="invader">Cargar</button>
-              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="invader">Script Git</button>
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="invader">Cargar en Juego</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="invader">Script Git (.sh)</button>
             </div>
           </div>
           <div class="template-item">
             <div>
               <h4>Open Source Heart</h4>
-              <p>Corazones en cadena pixelada</p>
+              <p>Corazones en cadena para perfiles colaborativos</p>
             </div>
             <div style="display:flex; gap: 0.5rem;">
-              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="heart">Cargar</button>
-              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="heart">Script Git</button>
+              <button class="btn btn-cyber-secondary tool-btn load-tpl-btn" data-tpl="heart">Cargar en Juego</button>
+              <button class="btn btn-cyber-primary tool-btn script-tpl-btn" data-tpl="heart">Script Git (.sh)</button>
             </div>
           </div>
         </div>
