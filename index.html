@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Matrix Snake Engine | 60FPS Simulator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2300ff66%22 stroke-width=%222%22><path d=%22M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5%22/></svg>">
+</head>
+<body data-theme="dark">
+
+  <!-- Ambient Matrix Digital Rain Canvas -->
+  <canvas id="matrixCanvas"></canvas>
+
+  <div class="app-container">
+    <!-- Cyber Terminal Header -->
+    <header>
+      <div class="logo-group">
+        <div class="logo-badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+        </div>
+        <div class="title-area">
+          <h1>
+            GITHUB_SNAKE.EXE
+            <span class="glitch-tag">v2.0 MATRIX</span>
+          </h1>
+          <p>Zero-Flicker 60 FPS Sub-pixel Contribution Engine</p>
+        </div>
+      </div>
+      
+      <div class="header-status">
+        <div class="terminal-status-pill">
+          <span class="status-dot"></span>
+          <span>SYSTEM: ONLINE</span>
+        </div>
+        <div class="theme-selector">
+          <select id="themeSelect" class="cyber-select">
+            <option value="dark" selected>Matrix Phosphor (Oscuro)</option>
+            <option value="light">Modo Claro (GitHub Light)</option>
+            <option value="cyberpunk">Cyberpunk Neon (Fucsia)</option>
+            <option value="neon_cyan">Cyber Cyan (Azul)</option>
+            <option value="amber_terminal">Amber CRT (Terminal)</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- Terminal Command Toolbar -->
+    <section class="glass-panel">
+      <div class="toolbar-grid">
+        <div class="cyber-input-wrapper">
+          <div class="terminal-prefix">
+            <span>root@github:~$</span>
+          </div>
+          <input type="text" id="usernameInput" placeholder="ingresa usuario (ej: torvalds, gaearon)..." autocomplete="off" value="torvalds" spellcheck="false">
+        </div>
+        
+        <button id="fetchBtn" class="btn btn-cyber-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+          Ejecutar Caza
+        </button>
+        
+        <button id="randomGridBtn" class="btn btn-cyber-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Matriz Aleatoria
+        </button>
+      </div>
+
+      <div class="presets-container">
+        <span class="presets-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Objetivos de prueba:
+        </span>
+        <button class="preset-pill active" data-user="torvalds">Linus Torvalds</button>
+        <button class="preset-pill" data-user="gaearon">Dan Abramov</button>
+        <button class="preset-pill" data-user="sindresorhus">Sindre Sorhus</button>
+        <button class="preset-pill" data-user="antfu">Anthony Fu</button>
+        <button class="preset-pill" data-user="dense_matrix">Matriz Densa</button>
+      </div>
+    </section>
+
+    <!-- Canvas Visualization Stage -->
+    <section class="glass-panel stage-container">
+      <div class="canvas-wrapper">
+        <canvas id="snakeCanvas" width="920" height="145"></canvas>
+      </div>
+    </section>
+
+    <!-- Real-time HUD Stats -->
+    <section class="hud-grid">
+      <div class="stat-card">
+        <span class="stat-label">Commits Restantes</span>
+        <div class="stat-value highlight" id="statRemaining">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Commits Devorados</span>
+        <div class="stat-value" id="statEaten">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Longitud de Serpiente</span>
+        <div class="stat-value" id="statLength">4 <span class="stat-unit">segmentos</span></div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Estado de Telemetría</span>
+        <div class="stat-value" style="font-size: 0.95rem;" id="statState">Escaneando red...</div>
+      </div>
+    </section>
+
+    <!-- Playback & Simulation Controls -->
+    <section class="control-bar">
+      <div class="playback-controls">
+        <button id="playPauseBtn" class="btn btn-cyber-primary" style="padding: 0.65rem 1.2rem;">
+          <span id="playIcon">Pausar</span>
+        </button>
+        <button id="stepBtn" class="btn btn-cyber-secondary" style="padding: 0.65rem 1rem;">
+          Paso
+        </button>
+        <button id="resetBtn" class="btn btn-cyber-secondary" style="padding: 0.65rem 1rem;">
+          Reiniciar
+        </button>
+      </div>
+
+      <div class="slider-group">
+        <span>Frecuencia:</span>
+        <input type="range" id="speedSlider" min="2" max="30" value="12" step="1">
+        <span id="speedValue" style="color: var(--matrix-green); font-weight: 700; width: 50px;">12 t/s</span>
+      </div>
+
+      <div class="slider-group">
+        <span>Morfología:</span>
+        <select id="snakeStyleSelect" class="cyber-select">
+          <option value="matrix_viper" selected>Cyber Matrix Viper</option>
+          <option value="capsule">Neon Capsule</option>
+          <option value="smooth">Laser Continuo</option>
+          <option value="retro">Pixel Block</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Technical Architecture / Documentation -->
+    <section class="docs-grid">
+      <div class="doc-card">
+        <h3>Renderizado Zero-Flicker a 60 FPS</h3>
+        <p>
+          Calcula la posición de sub-píxel mediante <span class="code-badge">interpolación lineal continua (LERP)</span> entre ticks discretos, eliminando cualquier vibración o salto abrupto en la pantalla.
+        </p>
+      </div>
+      <div class="doc-card">
+        <h3>Pathfinding BFS + Lookahead</h3>
+        <p>
+          Ejecuta un árbol de búsqueda en anchura que localiza los commits más ricos energéticamente mientras utiliza un algoritmo de <span class="code-badge">Flood Fill de seguridad</span> para jamás quedar atrapada.
+        </p>
+      </div>
+      <div class="doc-card">
+        <h3>Sincronizacion con GitHub API</h3>
+        <p>
+          Parsea la matriz de 53 semanas × 7 días en tiempo real y reacciona dinámicamente disipando la intensidad de cada commit devorado con partículas cuánticas.
+        </p>
+      </div>
+    </section>
+
+    <footer>
+      <p>&copy; GITHUB_SNAKE_MATRIX // CONSTRUIDO CON CANVAS 2D, LERP SUB-PIXEL & VANILLA JS</p>
+    </footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/github.js"></script>
+  <script src="js/pathfinding.js"></script>
+  <script src="js/snake.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
