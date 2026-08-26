@@ -1,7 +1,6 @@
 /**
  * Main Application Orchestrator & Loop Controller (Pro Edition)
- * Integra Audio Sintético, Control Manual (WASD), Editor de Matriz, Exportador y Ranking.
- * Calibración de velocidad suave y cómoda a la vista (1 a 9 t/s).
+ * Integra Audio Sintético, Control Manual (WASD), Editor de Matriz, Exportador, Ranking y Perfiles con Avatar.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -21,6 +20,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const themeSelect = document.getElementById('themeSelect');
   const snakeStyleSelect = document.getElementById('snakeStyleSelect');
   const leaderboardGrid = document.getElementById('leaderboardGrid');
+
+  // Elementos de Tarjeta de Perfil Activo
+  const activeAvatar = document.getElementById('activeAvatar');
+  const activeDevName = document.getElementById('activeDevName');
+  const activeDevUsername = document.getElementById('activeDevUsername');
+  const activeDevLink = document.getElementById('activeDevLink');
+  const activeDevBio = document.getElementById('activeDevBio');
+  const activeDevLocation = document.getElementById('activeDevLocation');
+  const activeDevRepos = document.getElementById('activeDevRepos');
+  const progressBarFill = document.getElementById('progressBarFill');
+  const progressPercentText = document.getElementById('progressPercentText');
 
   // Herramientas Pro
   const audioBtn = document.getElementById('audioBtn');
@@ -50,6 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const exporter = new ExporterEngine();
 
   let grid = [];
+  let totalCommitsInitial = 0;
   let isRunning = true;
   let ticksPerSecond = parseFloat(speedSlider.value) || 5;
   let lastTickTime = performance.now();
@@ -108,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initMatrixRain();
 
   /**
-   * Renderiza el Ranking de Desarrolladores Destacados
+   * Renderiza el Ranking de Desarrolladores Destacados con Fotos
    */
   function renderLeaderboard() {
     if (!leaderboardGrid) return;
@@ -122,10 +133,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="rank-badge">#${dev.rank}</div>
           <button class="btn btn-cyber-secondary tool-btn load-dev-btn" data-user="${dev.username}">Cargar Perfil</button>
         </div>
-        <div class="dev-main-info">
-          <h4>${dev.name}</h4>
-          <span>@${dev.username}</span>
-          <div class="dev-role">${dev.role}</div>
+        <div class="dev-header-flex">
+          <img src="${dev.avatar}" alt="${dev.name}" class="dev-avatar-img" onerror="this.src='https://github.com/github.png?size=100'">
+          <div class="dev-main-info">
+            <h4>${dev.name}</h4>
+            <span>@${dev.username}</span>
+            <div class="dev-role">${dev.role}</div>
+          </div>
         </div>
         <div class="dev-metrics">
           <div class="metric-item">
@@ -152,14 +166,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /**
-   * Carga el perfil de usuario o mapa
+   * Carga el perfil de usuario, avatar y mapa de contribuciones
    */
   async function loadUserGrid(rawInput) {
     const username = fetcher.sanitizeUsername(rawInput);
     currentUsername = username;
-    statState.textContent = 'Decodificando commits...';
+    statState.textContent = 'Decodificando perfil...';
+
+    // Obtener datos del perfil con foto
+    fetcher.getUserProfile(username).then(profile => {
+      activeAvatar.src = profile.avatar;
+      activeDevName.textContent = profile.name;
+      activeDevUsername.textContent = `@${profile.username}`;
+      activeDevLink.href = `https://github.com/${profile.username}`;
+      activeDevBio.textContent = profile.bio;
+      activeDevLocation.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${profile.location}`;
+      activeDevRepos.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Repos: ${profile.repos}`;
+    });
+
     try {
       grid = await fetcher.getContributions(username);
+      totalCommitsInitial = countTotalCommitPoints();
       snake.reset();
       lastTickTime = performance.now();
       updateHud();
@@ -168,6 +195,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error(err);
       statState.textContent = 'Error al decodificar';
     }
+  }
+
+  function countTotalCommitPoints() {
+    let total = 0;
+    for (let x = 0; x < grid.length; x++) {
+      for (let y = 0; y < grid[x].length; y++) {
+        total += grid[x][y].level || 0;
+      }
+    }
+    return Math.max(1, total);
   }
 
   function onCommitEaten(cell) {
@@ -220,6 +257,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     statRemaining.textContent = remaining;
     statEaten.textContent = snake.eatenCommits;
     statLength.innerHTML = `${snake.length} <span class="stat-unit">segmentos</span>`;
+
+    // Actualizar barra de progreso de devoración en tiempo real
+    if (totalCommitsInitial > 0) {
+      const currentPoints = countTotalCommitPoints();
+      const eatenPoints = Math.max(0, totalCommitsInitial - currentPoints);
+      const percent = Math.min(100, Math.round((eatenPoints / totalCommitsInitial) * 100));
+      progressBarFill.style.width = `${percent}%`;
+      progressPercentText.textContent = `${percent}%`;
+    }
   }
 
   function gameLoop(now) {
@@ -336,9 +382,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   randomGridBtn.addEventListener('click', () => {
     sound.playClick();
     grid = fetcher.generateRandomGrid();
+    totalCommitsInitial = countTotalCommitPoints();
     snake.reset();
     lastTickTime = performance.now();
     presetPills.forEach(p => p.classList.remove('active'));
+    activeDevName.textContent = 'Matriz Aleatoria';
+    activeDevUsername.textContent = '@random_matrix';
+    activeDevBio.textContent = 'Simulacion generativa procedural';
     updateHud();
     statState.textContent = 'Matriz aleatoria generada';
   });
@@ -460,7 +510,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     statState.textContent = 'Protocolo reiniciado';
   });
 
-  // Calibración de rango de velocidad
   speedSlider.addEventListener('input', (e) => {
     ticksPerSecond = parseFloat(e.target.value);
     speedValue.textContent = formatSpeedLabel(ticksPerSecond);

@@ -88,6 +88,47 @@
       </div>
     </section>
 
+    <!-- Active Profile Info Card -->
+    <section id="activeProfileCard" class="glass-panel profile-banner">
+      <div class="profile-banner-content">
+        <div class="profile-avatar-wrap">
+          <img id="activeAvatar" src="https://github.com/torvalds.png?size=100" alt="Avatar" class="active-avatar-img">
+          <span class="avatar-ring-pulse"></span>
+        </div>
+        <div class="profile-details">
+          <div class="profile-name-row">
+            <h3 id="activeDevName">Linus Torvalds</h3>
+            <a id="activeDevLink" href="https://github.com/torvalds" target="_blank" rel="noopener noreferrer" class="profile-gh-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+              <span id="activeDevUsername">@torvalds</span>
+            </a>
+          </div>
+          <p id="activeDevBio" class="profile-bio-text">Creador de Linux & Git</p>
+          <div class="profile-meta-tags">
+            <span id="activeDevLocation" class="meta-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Portland, EE.UU.
+            </span>
+            <span id="activeDevRepos" class="meta-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Repos: 42
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Consumption Progress Bar -->
+      <div class="consumption-progress-container">
+        <div class="progress-info-row">
+          <span>Progreso de Devoracion:</span>
+          <span id="progressPercentText">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- Canvas Visualization Stage -->
     <section class="glass-panel stage-container">
       <div class="canvas-wrapper">
@@ -182,7 +223,7 @@
       </div>
 
       <div id="leaderboardGrid" class="leaderboard-grid">
-        <!-- Renderizado dinamicamente desde JavaScript -->
+        <!-- Renderizado dinamicamente desde JavaScript con Avatares -->
       </div>
     </section>
 

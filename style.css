@@ -172,7 +172,8 @@ body[data-theme="light"] .stat-value.highlight {
 }
 
 body[data-theme="light"] .control-bar,
-body[data-theme="light"] .tools-bar {
+body[data-theme="light"] .tools-bar,
+body[data-theme="light"] .profile-banner {
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(140, 149, 159, 0.12);
 }
@@ -522,6 +523,167 @@ body[data-theme="light"] .terminal-prefix {
   font-size: 0.85rem;
 }
 
+/* Active Profile Banner */
+.profile-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 1.25rem 1.6rem;
+}
+
+.profile-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.active-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--matrix-green);
+  box-shadow: 0 0 16px var(--matrix-glow);
+}
+
+.avatar-ring-pulse {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 1px dashed var(--matrix-green);
+  animation: rotate-ring 12s infinite linear;
+}
+
+@keyframes rotate-ring {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 240px;
+}
+
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.profile-name-row h3 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.profile-gh-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 255, 102, 0.1);
+  border: 1px solid var(--border-color);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  color: var(--matrix-green);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+.profile-gh-tag:hover {
+  background: rgba(0, 255, 102, 0.2);
+  border-color: var(--matrix-green);
+}
+
+body[data-theme="light"] .profile-gh-tag {
+  background: rgba(9, 105, 218, 0.08);
+  color: #0969da;
+  border-color: rgba(9, 105, 218, 0.2);
+}
+
+.profile-bio-text {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.profile-meta-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Consumption Progress Bar */
+.consumption-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+body[data-theme="light"] .consumption-progress-container {
+  border-top-color: rgba(31, 35, 40, 0.1);
+}
+
+.progress-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+body[data-theme="light"] .progress-track {
+  background: #eaeef2;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #0969da 0%, var(--matrix-green) 100%);
+  box-shadow: 0 0 10px var(--matrix-green);
+  transition: width 0.3s ease;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -834,8 +996,8 @@ body[data-theme="light"] .slider-group input[type="range"] {
 
 .leaderboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.1rem;
 }
 
 .leaderboard-card {
@@ -871,6 +1033,26 @@ body[data-theme="light"] .slider-group input[type="range"] {
   border: 1px solid var(--border-color);
   padding: 0.2rem 0.55rem;
   border-radius: 6px;
+}
+
+.dev-header-flex {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.dev-avatar-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.leaderboard-card:hover .dev-avatar-img {
+  border-color: var(--matrix-green);
+  box-shadow: 0 0 10px var(--matrix-glow);
 }
 
 .dev-main-info h4 {
