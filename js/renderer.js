@@ -1,6 +1,6 @@
 /**
  * Canvas 2D Zero-Flicker 60 FPS Matrix Renderer
- * Renderizado de alta resolución Retina, sub-píxel LERP y estética Matrix Cyberpunk.
+ * Renderizado de alta resolución Retina, sub-píxel LERP, ondas expansivas (Shockwaves) y modo editor.
  */
 
 class SnakeRenderer {
@@ -17,6 +17,8 @@ class SnakeRenderer {
     this.snakeStyle = 'matrix_viper'; // 'matrix_viper', 'capsule', 'smooth', 'retro'
     this.scanlineX = 0;
     this.time = 0;
+    this.shockwaves = [];
+    this.hoverCell = null;
 
     this.setupHighDpi();
   }
@@ -32,6 +34,65 @@ class SnakeRenderer {
     this.canvas.style.height = `${baseHeight}px`;
 
     this.ctx.scale(dpr, dpr);
+  }
+
+  /**
+   * Obtiene la celda de la matriz a partir de las coordenadas del ratón en el canvas
+   */
+  getCellFromCoords(clientX, clientY) {
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = (this.canvas.width / (window.devicePixelRatio || 1)) / rect.width;
+    const scaleY = (this.canvas.height / (window.devicePixelRatio || 1)) / rect.height;
+
+    const px = (clientX - rect.left) * scaleX - this.paddingX;
+    const py = (clientY - rect.top) * scaleY - this.paddingY;
+
+    const step = this.cellSize + this.cellGap;
+    const col = Math.floor(px / step);
+    const row = Math.floor(py / step);
+
+    if (col >= 0 && col < 53 && row >= 0 && row < 7) {
+      // Verificar si el cursor está dentro de la celda y no en el espacio de separación
+      const cellPx = col * step;
+      const cellPy = row * step;
+      if (px >= cellPx && px <= cellPx + this.cellSize && py >= cellPy && py <= cellPy + this.cellSize) {
+        return { x: col, y: row };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Agrega una onda expansiva lumínica en la coordenada de la celda
+   */
+  addShockwave(gridX, gridY, intensity = 4) {
+    const step = this.cellSize + this.cellGap;
+    const px = this.paddingX + gridX * step + this.cellSize / 2;
+    const py = this.paddingY + gridY * step + this.cellSize / 2;
+
+    this.shockwaves.push({
+      x: px,
+      y: py,
+      radius: 4,
+      maxRadius: 28 + intensity * 8,
+      alpha: 1.0,
+      decay: 0.04,
+      intensity: intensity
+    });
+  }
+
+  /**
+   * Actualiza la animación de las ondas de choque
+   */
+  updateShockwaves() {
+    for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+      const sw = this.shockwaves[i];
+      sw.radius += (sw.maxRadius - sw.radius) * 0.15 + 0.8;
+      sw.alpha -= sw.decay;
+      if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
+        this.shockwaves.splice(i, 1);
+      }
+    }
   }
 
   /**
@@ -61,26 +122,33 @@ class SnakeRenderer {
     const width = this.canvas.width / (window.devicePixelRatio || 1);
     const height = this.canvas.height / (window.devicePixelRatio || 1);
 
-    // Limpiar canvas con fondo oscuro translúcido para leve persistencia
     this.ctx.clearRect(0, 0, width, height);
 
-    // 1. Dibujar cuadrícula de contribuciones Matrix
+    // 1. Dibujar cuadrícula de contribuciones
     this.drawGrid(grid, colors);
 
-    // 2. Haz de radar / scanline holográfico sutil
+    // 2. Dibujar celda en foco de edición si existe
+    if (this.hoverCell) {
+      this.drawHoverReticle(this.hoverCell, colors);
+    }
+
+    // 3. Haz de radar holográfico
     this.drawRadarScanline(width, height, colors);
 
-    // 3. Partículas cuánticas / binarias
+    // 4. Ondas de choque lumínicas (Shockwaves)
+    this.drawShockwaves(colors);
+
+    // 5. Partículas cuánticas y binarias
     this.drawParticles(snake.particles, colors);
 
-    // 4. Dibujar la serpiente
+    // 6. Dibujar la serpiente
     if (snake.body && snake.body.length > 0) {
       this.drawSnake(snake, progress, colors);
     }
   }
 
   /**
-   * Dibuja los bloques de contribución con estilo Matrix chip
+   * Dibuja los bloques de contribución
    */
   drawGrid(grid, colors) {
     const colorMap = [
@@ -98,18 +166,17 @@ class SnakeRenderer {
         const py = this.paddingY + y * (this.cellSize + this.cellGap);
         const color = colorMap[cell.level] || colors.empty;
 
-        // Base de la celda
         this.ctx.fillStyle = color;
         this.drawRoundedRect(px, py, this.cellSize, this.cellSize, this.cellRadius);
 
-        // Borde sutil de circuito en celdas vacías
+        // Borde fino en celdas vacías
         if (cell.level === 0) {
-          this.ctx.strokeStyle = 'rgba(0, 255, 102, 0.04)';
+          this.ctx.strokeStyle = 'rgba(0, 255, 102, 0.05)';
           this.ctx.lineWidth = 1;
           this.drawRoundedRect(px, py, this.cellSize, this.cellSize, this.cellRadius, true);
         }
 
-        // Resplandor neón en celdas con commits activos
+        // Resplandor en celdas activas
         if (cell.level >= 2) {
           this.ctx.save();
           this.ctx.shadowColor = colors.matrixGreen;
@@ -120,6 +187,42 @@ class SnakeRenderer {
         }
       }
     }
+  }
+
+  /**
+   * Dibuja un retículo en la celda sobre la que se encuentra el ratón
+   */
+  drawHoverReticle(cell, colors) {
+    const step = this.cellSize + this.cellGap;
+    const px = this.paddingX + cell.x * step;
+    const py = this.paddingY + cell.y * step;
+
+    this.ctx.save();
+    this.ctx.strokeStyle = colors.matrixGreen;
+    this.ctx.lineWidth = 1.5;
+    this.ctx.shadowColor = colors.matrixGreen;
+    this.ctx.shadowBlur = 8;
+    this.drawRoundedRect(px - 1.5, py - 1.5, this.cellSize + 3, this.cellSize + 3, this.cellRadius + 1, true);
+    this.ctx.restore();
+  }
+
+  /**
+   * Dibuja las ondas de choque radiales
+   */
+  drawShockwaves(colors) {
+    this.ctx.save();
+    for (const sw of this.shockwaves) {
+      this.ctx.globalAlpha = Math.max(0, sw.alpha);
+      this.ctx.strokeStyle = sw.intensity >= 4 ? '#ffffff' : colors.matrixGreen;
+      this.ctx.lineWidth = 2;
+      this.ctx.shadowColor = colors.matrixGreen;
+      this.ctx.shadowBlur = 12;
+
+      this.ctx.beginPath();
+      this.ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+      this.ctx.stroke();
+    }
+    this.ctx.restore();
   }
 
   /**
@@ -139,7 +242,7 @@ class SnakeRenderer {
   }
 
   /**
-   * Dibuja la serpiente de forma interpolada (sub-píxel LERP)
+   * Dibuja la serpiente de forma interpolada
    */
   drawSnake(snake, progress, colors) {
     const { body, prevBody, direction } = snake;
@@ -178,31 +281,26 @@ class SnakeRenderer {
   }
 
   /**
-   * Estilo 1: Matrix Cyber Viper (Núcleo brillante de energía y ojos HUD)
+   * Estilo Matrix Viper
    */
   drawMatrixViper(coords, direction, colors) {
     const head = coords[0];
 
     this.ctx.save();
-    // Segmentos del cuerpo con onda de pulso neón
     for (let i = coords.length - 1; i >= 0; i--) {
       const seg = coords[i];
       const isHead = (i === 0);
       const ratio = 1 - (i / coords.length) * 0.35;
       const size = this.cellSize * ratio;
       const offset = (this.cellSize - size) / 2;
-
       const pulse = Math.sin(this.time * 4 - i * 0.5) * 0.15 + 0.85;
 
-      // Glow exterior
       this.ctx.shadowColor = colors.snakeGlow;
       this.ctx.shadowBlur = isHead ? 16 : 8 * pulse;
 
-      // Color de segmento
       this.ctx.fillStyle = isHead ? colors.snakeHead : colors.snakeBody;
       this.drawRoundedRect(seg.x + offset, seg.y + offset, size, size, size * 0.35);
 
-      // Núcleo cibernético interior
       if (!isHead) {
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
         const innerSize = size * 0.4;
@@ -212,7 +310,6 @@ class SnakeRenderer {
     }
     this.ctx.restore();
 
-    // Ojos cibernéticos de alta precisión
     this.drawMatrixEyes(head, direction, colors);
   }
 
@@ -227,21 +324,20 @@ class SnakeRenderer {
 
     let e1x, e1y, e2x, e2y;
 
-    if (direction.x > 0) { // Derecha
+    if (direction.x > 0) {
       e1x = centerX + eyeOffset; e1y = centerY - 2.8;
       e2x = centerX + eyeOffset; e2y = centerY + 2.8;
-    } else if (direction.x < 0) { // Izquierda
+    } else if (direction.x < 0) {
       e1x = centerX - eyeOffset; e1y = centerY - 2.8;
       e2x = centerX - eyeOffset; e2y = centerY + 2.8;
-    } else if (direction.y > 0) { // Abajo
+    } else if (direction.y > 0) {
       e1x = centerX - 2.8; e1y = centerY + eyeOffset;
       e2x = centerX + 2.8; e2y = centerY + eyeOffset;
-    } else { // Arriba
+    } else {
       e1x = centerX - 2.8; e1y = centerY - eyeOffset;
       e2x = centerX + 2.8; e2y = centerY - eyeOffset;
     }
 
-    // Visor HUD brillante
     this.ctx.save();
     this.ctx.fillStyle = '#030805';
     this.ctx.beginPath();
@@ -260,7 +356,7 @@ class SnakeRenderer {
   }
 
   /**
-   * Estilo 2: Cápsulas Neón Glow
+   * Estilo Cápsula
    */
   drawCapsuleSnake(coords, direction, colors) {
     const head = coords[0];
@@ -283,7 +379,7 @@ class SnakeRenderer {
   }
 
   /**
-   * Estilo 3: Láser continuo
+   * Estilo Línea Láser
    */
   drawSmoothSnake(coords, colors) {
     if (coords.length < 2) return;
@@ -313,7 +409,7 @@ class SnakeRenderer {
   }
 
   /**
-   * Estilo 4: Pixel Retro Blocks
+   * Estilo Retro Pixel
    */
   drawRetroSnake(coords, colors) {
     for (let i = 0; i < coords.length; i++) {
@@ -326,7 +422,7 @@ class SnakeRenderer {
   }
 
   /**
-   * Partículas cuánticas / dígitos binarios (0 y 1) flotantes
+   * Partículas y dígitos binarios
    */
   drawParticles(particles, colors) {
     const stepSize = this.cellSize + this.cellGap;
@@ -354,7 +450,7 @@ class SnakeRenderer {
   }
 
   /**
-   * Helper para dibujar rectángulos con bordes redondeados
+   * Helper para dibujar rectángulos redondeados
    */
   drawRoundedRect(x, y, w, h, r, strokeOnly = false) {
     this.ctx.beginPath();

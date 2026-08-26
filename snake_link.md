@@ -1,88 +1,68 @@
-# Motor de Serpiente de Contribuciones de GitHub (Snake Contribution Engine)
+# Especificacion Tecnica: GITHUB_SNAKE.EXE
 
-Este proyecto implementa desde cero un simulador y motor de animación de la serpiente de contribuciones de GitHub con renderizado a 60 FPS, cero parpadeos (anti-flickering), algoritmo de búsqueda en anchura (BFS) y soporte para Modo Oscuro y Modo Claro.
-
----
-
-## Como probar la aplicacion
-
-Abre directamente el archivo [index.html](file:///Users/leonfeliperodriguez/Desktop/Trabajos/Snake%20Repostory/index.html) en tu navegador preferido o utilízalo con cualquier servidor local (como `python3 -m http.server 3000`).
+Documento de referencia tecnica sobre la arquitectura, la logica de algoritmos y el motor de renderizado de la serpiente de contribuciones.
 
 ---
 
-## Arquitectura del Sistema
+## 1. Modelo de Datos de la Matriz
 
-```
-                        +------------------------------+
-                        |       GitHub Fetcher         |
-                        |    (API / Simulacion 53x7)   |
-                        +--------------+---------------+
-                                       |
-                                       v
-+-------------------------+    +------------------------------+    +-------------------------+
-|     UI & Controles      |--->|   Pathfinding Engine (BFS)   |--->|    Snake State (Head,   |
-| (Speed, Themes, Inputs) |    |  (Evita colision + FloodFill)|    |   PrevBody, Particles)  |
-+-------------------------+    +------------------------------+    +------------+------------+
-                                                                                |
-                                                                                v
-                                                                   +-------------------------+
-                                                                   | 60 FPS Canvas Renderer  |
-                                                                   | (Sub-pixel LERP & Glow) |
-                                                                   +-------------------------+
-```
+El mapa de contribuciones de GitHub se modela como una matriz bidimensional:
+- Columnas: 53 semanas (eje X: 0 a 52).
+- Filas: 7 dias de la semana (eje Y: 0 a 6, donde 0 es Domingo y 6 es Sabado).
+- Cada celda contiene:
+  ```json
+  {
+    "x": 14,
+    "y": 3,
+    "level": 3,
+    "originalLevel": 3,
+    "count": 8,
+    "date": "2026-04-15"
+  }
+  ```
 
 ---
 
-## Solucion al Flickering (Anti-Parpadeo)
+## 2. Motores Logicos
 
-En las animaciones tradicionales de GitHub Snake (como en archivos GIF de baja tasa de cuadros):
-1. La serpiente salta bruscamente de una casilla a la siguiente cada 100 ms.
-2. El ojo humano percibe este cambio como un parpadeo constante.
+### A. Pathfinding Autonomo (BFS con Lookahead)
+Ubicado en `js/pathfinding.js`:
+1. **Recoleccion de Objetivos**: Filtra todas las celdas donde `level > 0`.
+2. **Priorizacion por Distancia**: Ordena los objetivos por distancia Manhattan ponderada:
+   `distancia = |x_cabeza - x_meta| + |y_cabeza - y_meta|`
+3. **Busqueda en Anchura (BFS)**:
+   - Se mantiene un conjunto de obstaculos con las posiciones actuales del cuerpo de la serpiente (excluyendo la punta de la cola que avanzara en el proximo turno).
+   - Se expanden los nodos vecinos en las cuatro direcciones cardinales respetando los limites de la matriz (53x7).
+4. **Verificacion de Seguridad (Flood Fill Lookahead)**:
+   - Se evalua el area conectada restante desde la casilla destino. Si es menor a la longitud de la serpiente + 2, la ruta se descarta.
+5. **Modo Patrullaje**: Si no quedan objetivos, realiza un barrido por las casillas con mayor espacio libre.
 
-### Interpolacion Lineal Continua (LERP)
-
-El motor desacopla la tasa logica de ticks de la tasa de refresco visual (60 FPS):
-
-Progreso temporal:
-t = min(1.0, tiempo_transcurrido / intervalo_tick)
-
-Para cada segmento i de la serpiente:
-x_interp = x_prev + (x_actual - x_prev) * t
-y_interp = y_prev + (y_actual - y_prev) * t
-
-Al dibujar en coordenadas de sub-pixel dentro de un canvas con requestAnimationFrame, el desplazamiento es fluido y sin saltos.
-
----
-
-## Algoritmo de Navegacion (Pathfinding)
-
-Ubicado en [js/pathfinding.js](file:///Users/leonfeliperodriguez/Desktop/Trabajos/Snake%20Repostory/js/pathfinding.js):
-
-1. **Deteccion de Objetivos:** Identifica celdas con nivel de contribucion mayor a 0.
-2. **Priorizacion Heuristica:** Ordena objetivos por proximidad Manhattan:
-   Distancia = |x_cabeza - x_commit| + |y_cabeza - y_commit|
-3. **Busqueda en Anchura (BFS):** Encuentra la ruta mas corta evitando el cuerpo de la serpiente.
-4. **Verificacion de Seguridad (Flood Fill Lookahead):** Comprueba que el proximo movimiento no encierre a la serpiente en un callejon sin salida.
-5. **Modo Patrullaje:** Si no quedan commits activos, realiza un recorrido seguro continuo.
+### B. Modo Jugable Manual
+Ubicado en `js/app.js`:
+- Escucha eventos de teclado (`WASD` y teclas de direccion).
+- Protege contra cambios de sentido inversos inmediatos (no permite girar 180 grados sobre el cuello).
+- Aplica teletransportacion toroidal en los bordes de la matriz (53x7).
 
 ---
 
-## Temas Disponibles
+## 3. Renderizado Sub-Pixel, Ondas y Efectos
 
-- **Matrix Phosphor (Oscuro):** Estilo terminal hacker con verde fosforo e iluminacion neon.
-- **Modo Claro (GitHub Light):** Fondo blanco limpio con la paleta de contribuciones oficial de GitHub y alto contraste.
-- **Cyberpunk Neon:** Tonos fucsia y cian de alto impacto.
-- **Cyber Cyan:** Estilo azul electrico sobre fondo tecnologico.
-- **Amber CRT:** Terminal retro color ambar.
+- **Interpolacion LERP Continua**:
+  ```javascript
+  const tickInterval = 1000 / ticksPerSecond;
+  const elapsed = performance.now() - lastTickTime;
+  const progress = Math.min(1.0, elapsed / tickInterval);
+
+  const renderX = prevCoord.x + (currCoord.x - prevCoord.x) * progress;
+  const renderY = prevCoord.y + (currCoord.y - prevCoord.y) * progress;
+  ```
+- **Ondas Expansivas (Shockwaves)**: Al devorar celdas de nivel 3 o 4, se anade un objeto a la cola de ondas que expande un anillo con desvanecimiento alfa.
+- **Particulas Cuanticas y Digitos Binarios**: Flotan en el eje Y negativo con decaimiento temporal individual.
 
 ---
 
-## Estructura de Archivos
+## 4. Sintesis de Audio y Exportacion
 
-- [index.html](file:///Users/leonfeliperodriguez/Desktop/Trabajos/Snake%20Repostory/index.html) - Estructura semantica, interfaz de usuario y canvas.
-- [style.css](file:///Users/leonfeliperodriguez/Desktop/Trabajos/Snake%20Repostory/style.css) - Tokens de diseno para Modo Claro y Modo Oscuro.
-- [js/github.js](file:///Users/leonfeliperodriguez/Desktop/Trabajos/Snake%20Repostory/js/github.js) - Extractor de contribuciones y perfiles muestra.
-- [js/pathfinding.js](file:///Users/leonfeliperodriguez/Desktop/Trabajos/Snake%20Repostory/js/pathfinding.js) - Algoritmo BFS y evaluacion de espacio libre.
-- [js/snake.js](file:///Users/leonfeliperodriguez/Desktop/Trabajos/Snake%20Repostory/js/snake.js) - Estado de la serpiente, cola de posiciones y particulas.
-- [js/renderer.js](file:///Users/leonfeliperodriguez/Desktop/Trabajos/Snake%20Repostory/js/renderer.js) - Motor de renderizado Canvas 2D a 60 FPS.
-- [js/app.js](file:///Users/leonfeliperodriguez/Desktop/Trabajos/Snake%20Repostory/js/app.js) - Coordinador del bucle temporal y eventos.
+- **Web Audio API (`js/audio.js`)**: Modulacion de frecuencia y envolventes de ganancia exponencial mediante osciladores nativos.
+- **Exportador SVG (`js/exporter.js`)**: Generacion de documentos XML/SVG vectoriales con estilos CSS embebidos y keyframes para su insercion en README.md.
+- **Generador de Workflows**: Plantillas YAML con acciones de GitHub para programar la ejecucion diaria automatica del scraper.

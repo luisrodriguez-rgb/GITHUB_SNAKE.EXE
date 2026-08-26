@@ -1,6 +1,6 @@
 /**
- * Main Application Orchestrator & Loop Controller
- * Coordina el reloj de ticks lógicos con la tasa a 60 FPS y la lluvia digital Matrix de fondo.
+ * Main Application Orchestrator & Loop Controller (Pro Edition)
+ * Integra Audio Sintético, Control Manual (WASD), Editor de Matriz y Exportador.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -20,6 +20,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   const themeSelect = document.getElementById('themeSelect');
   const snakeStyleSelect = document.getElementById('snakeStyleSelect');
 
+  // Nuevos Controles Pro
+  const audioBtn = document.getElementById('audioBtn');
+  const modeBtn = document.getElementById('modeBtn');
+  const paintBtn = document.getElementById('paintBtn');
+  const exportSvgBtn = document.getElementById('exportSvgBtn');
+  const exportYamlBtn = document.getElementById('exportYamlBtn');
+  const modalWorkflow = document.getElementById('modalWorkflow');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const copyYamlBtn = document.getElementById('copyYamlBtn');
+  const copyReadmeBtn = document.getElementById('copyReadmeBtn');
+  const yamlOutput = document.getElementById('yamlOutput');
+  const readmeOutput = document.getElementById('readmeOutput');
+
   // Elementos HUD
   const statRemaining = document.getElementById('statRemaining');
   const statEaten = document.getElementById('statEaten');
@@ -31,12 +44,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pathfinder = new SnakePathfinder();
   const renderer = new SnakeRenderer(canvas);
   const snake = new Snake(4, { x: 0, y: 0 });
+  const sound = new SoundEngine();
+  const exporter = new ExporterEngine();
 
   let grid = [];
   let isRunning = true;
   let ticksPerSecond = parseInt(speedSlider.value, 10) || 12;
   let lastTickTime = performance.now();
   let animationFrameId = null;
+
+  // Estados de control
+  let isManualMode = false;
+  let manualNextDir = { x: 1, y: 0 };
+  let isPaintMode = false;
+  let isMouseDown = false;
+  let currentUsername = 'torvalds';
 
   // --- Fondo de Lluvia Digital Matrix ---
   const matrixCtx = matrixCanvas.getContext('2d');
@@ -81,17 +103,30 @@ document.addEventListener('DOMContentLoaded', async () => {
    * Carga el perfil de usuario o mapa
    */
   async function loadUserGrid(username) {
+    currentUsername = username;
     statState.textContent = 'Decodificando commits...';
     try {
       grid = await fetcher.getContributions(username);
       snake.reset();
       lastTickTime = performance.now();
       updateHud();
-      statState.textContent = 'Cazando commits';
+      statState.textContent = isManualMode ? 'Modo Manual (WASD / Flechas)' : 'Cazando commits (IA)';
     } catch (err) {
       console.error(err);
       statState.textContent = 'Error al decodificar';
     }
+  }
+
+  /**
+   * Callback al devorar un commit
+   */
+  function onCommitEaten(cell) {
+    sound.playEat(cell.originalLevel);
+    if (cell.originalLevel >= 3) {
+      renderer.addShockwave(cell.x, cell.y, cell.originalLevel);
+      sound.playShockwave();
+    }
+    updateHud();
   }
 
   /**
@@ -100,17 +135,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   function doLogicalTick() {
     if (!grid || grid.length === 0) return;
 
-    const nextStep = pathfinder.findNextStep(snake, grid);
+    let nextStep = null;
+
+    if (isManualMode) {
+      // Modo Manual: Calcular siguiente paso con la dirección elegida por el usuario
+      const head = snake.head;
+      const targetX = (head.x + manualNextDir.x + 53) % 53;
+      const targetY = (head.y + manualNextDir.y + 7) % 7;
+      nextStep = { x: targetX, y: targetY };
+    } else {
+      // Modo IA: Búsqueda de rutas BFS
+      nextStep = pathfinder.findNextStep(snake, grid);
+    }
+
     if (nextStep) {
-      snake.moveTo(nextStep, grid, (cell) => {
-        updateHud();
-      });
+      snake.moveTo(nextStep, grid, onCommitEaten);
     }
 
     const remaining = countRemainingCommits();
     if (remaining === 0) {
       statState.textContent = 'Grid completado al 100%';
-    } else {
+    } else if (!isManualMode) {
       statState.textContent = `Cazando (${remaining} restantes)`;
     }
   }
@@ -142,10 +187,8 @@ document.addEventListener('DOMContentLoaded', async () => {
    * Bucle principal de renderizado continuo a 60 FPS
    */
   function gameLoop(now) {
-    // 1. Renderizar lluvia Matrix ambiental
     drawMatrixRain();
 
-    // 2. Lógica de ticks temporales
     const tickInterval = 1000 / ticksPerSecond;
     const elapsed = now - lastTickTime;
 
@@ -156,24 +199,84 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    // 3. Progreso de interpolación continua entre 0.0 y 1.0
     const currentElapsed = now - lastTickTime;
     const progress = isRunning ? Math.min(1.0, currentElapsed / tickInterval) : 1.0;
 
-    // 4. Actualizar partículas de commits
     snake.updateParticles();
-
-    // 5. Renderizar frame
+    renderer.updateShockwaves();
     renderer.render(grid, snake, progress);
 
     animationFrameId = requestAnimationFrame(gameLoop);
   }
 
-  // --- Event Listeners & Controles UI ---
+  // --- Controles de Teclado (WASD / Flechas para Modo Manual) ---
+  window.addEventListener('keydown', (e) => {
+    if (document.activeElement === usernameInput) return;
+
+    let dir = null;
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') dir = { x: 0, y: -1 };
+    else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') dir = { x: 0, y: 1 };
+    else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') dir = { x: -1, y: 0 };
+    else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') dir = { x: 1, y: 0 };
+
+    if (dir) {
+      // Evitar giro de 180 grados instantáneo sobre el propio cuello
+      if (snake.direction.x !== -dir.x || snake.direction.y !== -dir.y) {
+        manualNextDir = dir;
+        if (!isManualMode) {
+          isManualMode = true;
+          modeBtn.textContent = 'Control: Manual (WASD)';
+          modeBtn.classList.add('active-tool');
+          statState.textContent = 'Modo Manual (WASD / Flechas)';
+        }
+      }
+    }
+  });
+
+  // --- Interacción con Canvas (Editor / Pintar Matriz) ---
+  function paintCellAt(clientX, clientY) {
+    const cellCoords = renderer.getCellFromCoords(clientX, clientY);
+    if (cellCoords && grid[cellCoords.x] && grid[cellCoords.x][cellCoords.y]) {
+      const cell = grid[cellCoords.x][cellCoords.y];
+      // Ciclar nivel: 0 -> 1 -> 2 -> 3 -> 4 -> 0
+      cell.level = (cell.level + 1) % 5;
+      cell.originalLevel = cell.level;
+      cell.count = cell.level * 4;
+      sound.playClick();
+      updateHud();
+    }
+  }
+
+  canvas.addEventListener('mousemove', (e) => {
+    const cell = renderer.getCellFromCoords(e.clientX, e.clientY);
+    renderer.hoverCell = cell;
+    if (isPaintMode && isMouseDown && cell) {
+      paintCellAt(e.clientX, e.clientY);
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    renderer.hoverCell = null;
+    isMouseDown = false;
+  });
+
+  canvas.addEventListener('mousedown', (e) => {
+    isMouseDown = true;
+    if (isPaintMode) {
+      paintCellAt(e.clientX, e.clientY);
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    isMouseDown = false;
+  });
+
+  // --- Event Listeners Toolbar y Presets ---
 
   fetchBtn.addEventListener('click', () => {
     const user = usernameInput.value.trim();
     if (user) {
+      sound.playClick();
       presetPills.forEach(p => p.classList.remove('active'));
       loadUserGrid(user);
     }
@@ -186,6 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   randomGridBtn.addEventListener('click', () => {
+    sound.playClick();
     grid = fetcher.generateRandomGrid();
     snake.reset();
     lastTickTime = performance.now();
@@ -196,6 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   presetPills.forEach(pill => {
     pill.addEventListener('click', () => {
+      sound.playClick();
       presetPills.forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       const user = pill.getAttribute('data-user');
@@ -204,7 +309,87 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+  // Alternar Modo IA / Manual
+  modeBtn.addEventListener('click', () => {
+    sound.playClick();
+    isManualMode = !isManualMode;
+    if (isManualMode) {
+      modeBtn.textContent = 'Control: Manual (WASD)';
+      modeBtn.classList.add('active-tool');
+      statState.textContent = 'Modo Manual (WASD / Flechas)';
+    } else {
+      modeBtn.textContent = 'Control: IA Autonoma';
+      modeBtn.classList.remove('active-tool');
+      statState.textContent = 'Cazando commits (IA)';
+    }
+  });
+
+  // Alternar Modo Pintar
+  paintBtn.addEventListener('click', () => {
+    sound.playClick();
+    isPaintMode = !isPaintMode;
+    if (isPaintMode) {
+      paintBtn.textContent = 'Pintar: Activo';
+      paintBtn.classList.add('active-tool');
+      canvas.style.cursor = 'crosshair';
+    } else {
+      paintBtn.textContent = 'Pintar: Inactivo';
+      paintBtn.classList.remove('active-tool');
+      canvas.style.cursor = 'default';
+    }
+  });
+
+  // Audio Toggle
+  audioBtn.addEventListener('click', () => {
+    const isMuted = sound.toggleMute();
+    if (!isMuted) {
+      audioBtn.textContent = 'Audio: ON';
+      audioBtn.classList.add('active-tool');
+      sound.playClick();
+    } else {
+      audioBtn.textContent = 'Audio: OFF';
+      audioBtn.classList.remove('active-tool');
+    }
+  });
+
+  // Exportar SVG
+  exportSvgBtn.addEventListener('click', () => {
+    sound.playClick();
+    exporter.exportAnimatedSvg(grid, currentUsername);
+  });
+
+  // Exportar Workflow Modal
+  exportYamlBtn.addEventListener('click', () => {
+    sound.playClick();
+    const yaml = exporter.generateWorkflowYaml(currentUsername);
+    const readme = exporter.generateReadmeSnippet(currentUsername);
+    yamlOutput.value = yaml;
+    readmeOutput.value = readme;
+    modalWorkflow.classList.add('visible');
+  });
+
+  closeModalBtn.addEventListener('click', () => {
+    sound.playClick();
+    modalWorkflow.classList.remove('visible');
+  });
+
+  copyYamlBtn.addEventListener('click', () => {
+    sound.playClick();
+    navigator.clipboard.writeText(yamlOutput.value);
+    copyYamlBtn.textContent = 'Copiado';
+    setTimeout(() => { copyYamlBtn.textContent = 'Copiar YAML'; }, 2000);
+  });
+
+  copyReadmeBtn.addEventListener('click', () => {
+    sound.playClick();
+    navigator.clipboard.writeText(readmeOutput.value);
+    copyReadmeBtn.textContent = 'Copiado';
+    setTimeout(() => { copyReadmeBtn.textContent = 'Copiar Markdown'; }, 2000);
+  });
+
+  // Controles de Reproducción
   playPauseBtn.addEventListener('click', () => {
+    sound.playClick();
     isRunning = !isRunning;
     if (isRunning) {
       playIcon.textContent = 'Pausar';
@@ -219,14 +404,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   stepBtn.addEventListener('click', () => {
+    sound.playClick();
     if (!isRunning) {
       doLogicalTick();
       snake.updateParticles();
+      renderer.updateShockwaves();
       renderer.render(grid, snake, 1.0);
     }
   });
 
   resetBtn.addEventListener('click', () => {
+    sound.playClick();
     snake.reset();
     lastTickTime = performance.now();
     updateHud();
@@ -239,10 +427,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   themeSelect.addEventListener('change', (e) => {
+    sound.playClick();
     document.body.setAttribute('data-theme', e.target.value);
   });
 
   snakeStyleSelect.addEventListener('change', (e) => {
+    sound.playClick();
     renderer.snakeStyle = e.target.value;
   });
 

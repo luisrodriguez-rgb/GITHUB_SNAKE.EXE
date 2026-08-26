@@ -89,6 +89,32 @@
       </div>
     </section>
 
+    <!-- Pro Interaction Tools Bar -->
+    <section class="tools-bar">
+      <div class="tools-group">
+        <button id="modeBtn" class="btn btn-cyber-secondary tool-btn">
+          Control: IA Autonoma
+        </button>
+        <button id="paintBtn" class="btn btn-cyber-secondary tool-btn">
+          Pintar: Inactivo
+        </button>
+        <button id="audioBtn" class="btn btn-cyber-secondary tool-btn">
+          Audio: OFF
+        </button>
+      </div>
+
+      <div class="tools-group">
+        <button id="exportSvgBtn" class="btn btn-cyber-secondary tool-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar SVG
+        </button>
+        <button id="exportYamlBtn" class="btn btn-cyber-primary tool-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Generar Workflow YAML
+        </button>
+      </div>
+    </section>
+
     <!-- Real-time HUD Stats -->
     <section class="hud-grid">
       <div class="stat-card">
@@ -104,7 +130,7 @@
         <div class="stat-value" id="statLength">4 <span class="stat-unit">segmentos</span></div>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Estado de Telemetría</span>
+        <span class="stat-label">Estado de Telemetria</span>
         <div class="stat-value" style="font-size: 0.95rem;" id="statState">Escaneando red...</div>
       </div>
     </section>
@@ -130,7 +156,7 @@
       </div>
 
       <div class="slider-group">
-        <span>Morfología:</span>
+        <span>Morfologia:</span>
         <select id="snakeStyleSelect" class="cyber-select">
           <option value="matrix_viper" selected>Cyber Matrix Viper</option>
           <option value="capsule">Neon Capsule</option>
@@ -145,19 +171,19 @@
       <div class="doc-card">
         <h3>Renderizado Zero-Flicker a 60 FPS</h3>
         <p>
-          Calcula la posición de sub-píxel mediante <span class="code-badge">interpolación lineal continua (LERP)</span> entre ticks discretos, eliminando cualquier vibración o salto abrupto en la pantalla.
+          Calcula la posicion de sub-pixel mediante <span class="code-badge">interpolacion lineal continua (LERP)</span> entre ticks discretos, eliminando cualquier vibracion o salto abrupto en la pantalla.
         </p>
       </div>
       <div class="doc-card">
         <h3>Pathfinding BFS + Lookahead</h3>
         <p>
-          Ejecuta un árbol de búsqueda en anchura que localiza los commits más ricos energéticamente mientras utiliza un algoritmo de <span class="code-badge">Flood Fill de seguridad</span> para jamás quedar atrapada.
+          Ejecuta un arbol de busqueda en anchura que localiza los commits mas ricos energeticamente mientras utiliza un algoritmo de <span class="code-badge">Flood Fill de seguridad</span> para jamas quedar atrapada.
         </p>
       </div>
       <div class="doc-card">
         <h3>Sincronizacion con GitHub API</h3>
         <p>
-          Parsea la matriz de 53 semanas × 7 días en tiempo real y reacciona dinámicamente disipando la intensidad de cada commit devorado con partículas cuánticas.
+          Parsea la matriz de 53 semanas x 7 dias en tiempo real y reacciona dinamicamente disipando la intensidad de cada commit devorado con particulas cuanticas.
         </p>
       </div>
     </section>
@@ -167,7 +193,28 @@
     </footer>
   </div>
 
+  <!-- Modal GitHub Actions Workflow -->
+  <div id="modalWorkflow" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Configuracion GitHub Actions (.github/workflows/snake.yml)</h3>
+        <button id="closeModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">1. Copia este workflow en tu repositorio <code>usuario/usuario</code>:</p>
+        <textarea id="yamlOutput" readonly class="code-box"></textarea>
+        <button id="copyYamlBtn" class="btn btn-cyber-primary" style="width: 100%; margin-bottom: 1.2rem;">Copiar YAML</button>
+
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">2. Pega este bloque en tu <code>README.md</code>:</p>
+        <textarea id="readmeOutput" readonly class="code-box" style="height: 90px;"></textarea>
+        <button id="copyReadmeBtn" class="btn btn-cyber-secondary" style="width: 100%;">Copiar Markdown</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/exporter.js"></script>
   <script src="js/github.js"></script>
   <script src="js/pathfinding.js"></script>
   <script src="js/snake.js"></script>
