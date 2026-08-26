@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator & Loop Controller (Pro Edition)
- * Integra Audio Sintético, Control Manual (WASD), Editor de Matriz y Exportador.
+ * Integra Audio Sintético, Control Manual (WASD), Editor de Matriz, Exportador y Ranking.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -19,8 +19,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const speedValue = document.getElementById('speedValue');
   const themeSelect = document.getElementById('themeSelect');
   const snakeStyleSelect = document.getElementById('snakeStyleSelect');
+  const leaderboardGrid = document.getElementById('leaderboardGrid');
 
-  // Nuevos Controles Pro
+  // Herramientas Pro
   const audioBtn = document.getElementById('audioBtn');
   const modeBtn = document.getElementById('modeBtn');
   const paintBtn = document.getElementById('paintBtn');
@@ -49,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let grid = [];
   let isRunning = true;
-  let ticksPerSecond = parseInt(speedSlider.value, 10) || 12;
+  let ticksPerSecond = parseInt(speedSlider.value, 10) || 6;
   let lastTickTime = performance.now();
   let animationFrameId = null;
 
@@ -100,9 +101,54 @@ document.addEventListener('DOMContentLoaded', async () => {
   initMatrixRain();
 
   /**
+   * Renderiza el Ranking de Desarrolladores Destacados
+   */
+  function renderLeaderboard() {
+    if (!leaderboardGrid) return;
+    leaderboardGrid.innerHTML = '';
+
+    fetcher.topDevelopers.forEach(dev => {
+      const card = document.createElement('div');
+      card.className = 'leaderboard-card';
+      card.innerHTML = `
+        <div class="card-top-row">
+          <div class="rank-badge">#${dev.rank}</div>
+          <button class="btn btn-cyber-secondary tool-btn load-dev-btn" data-user="${dev.username}">Cargar Perfil</button>
+        </div>
+        <div class="dev-main-info">
+          <h4>${dev.name}</h4>
+          <span>@${dev.username}</span>
+          <div class="dev-role">${dev.role}</div>
+        </div>
+        <div class="dev-metrics">
+          <div class="metric-item">
+            <label>Commits Anuales</label>
+            <value>${dev.commits}</value>
+          </div>
+          <div class="metric-item">
+            <label>Racha Activa</label>
+            <value>${dev.streak}</value>
+          </div>
+        </div>
+      `;
+
+      card.querySelector('.load-dev-btn').addEventListener('click', () => {
+        sound.playClick();
+        usernameInput.value = dev.username;
+        presetPills.forEach(p => p.classList.remove('active'));
+        loadUserGrid(dev.username);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      leaderboardGrid.appendChild(card);
+    });
+  }
+
+  /**
    * Carga el perfil de usuario o mapa
    */
-  async function loadUserGrid(username) {
+  async function loadUserGrid(rawInput) {
+    const username = fetcher.sanitizeUsername(rawInput);
     currentUsername = username;
     statState.textContent = 'Decodificando commits...';
     try {
@@ -138,13 +184,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     let nextStep = null;
 
     if (isManualMode) {
-      // Modo Manual: Calcular siguiente paso con la dirección elegida por el usuario
       const head = snake.head;
       const targetX = (head.x + manualNextDir.x + 53) % 53;
       const targetY = (head.y + manualNextDir.y + 7) % 7;
       nextStep = { x: targetX, y: targetY };
     } else {
-      // Modo IA: Búsqueda de rutas BFS
       nextStep = pathfinder.findNextStep(snake, grid);
     }
 
@@ -160,9 +204,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  /**
-   * Cuenta cuántos commits verdes quedan en el grid
-   */
   function countRemainingCommits() {
     let count = 0;
     for (let x = 0; x < grid.length; x++) {
@@ -173,9 +214,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return count;
   }
 
-  /**
-   * Actualiza el panel HUD de estadísticas
-   */
   function updateHud() {
     const remaining = countRemainingCommits();
     statRemaining.textContent = remaining;
@@ -183,9 +221,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     statLength.innerHTML = `${snake.length} <span class="stat-unit">segmentos</span>`;
   }
 
-  /**
-   * Bucle principal de renderizado continuo a 60 FPS
-   */
   function gameLoop(now) {
     drawMatrixRain();
 
@@ -209,9 +244,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     animationFrameId = requestAnimationFrame(gameLoop);
   }
 
-  // --- Controles de Teclado (WASD / Flechas para Modo Manual) ---
+  // --- Controles de Teclado (Bloquea scroll y permite control total WASD / Flechas) ---
   window.addEventListener('keydown', (e) => {
-    if (document.activeElement === usernameInput) return;
+    const activeEl = document.activeElement;
+    if (activeEl === usernameInput || (activeEl && activeEl.tagName === 'TEXTAREA')) {
+      return;
+    }
+
+    // Prevenir que las teclas de flecha y barra espaciadora desplacen la página
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+      e.preventDefault();
+    }
+
+    // Barra espaciadora: Pausar / Reanudar
+    if (e.key === ' ') {
+      playPauseBtn.click();
+      return;
+    }
 
     let dir = null;
     if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') dir = { x: 0, y: -1 };
@@ -220,7 +269,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') dir = { x: 1, y: 0 };
 
     if (dir) {
-      // Evitar giro de 180 grados instantáneo sobre el propio cuello
       if (snake.direction.x !== -dir.x || snake.direction.y !== -dir.y) {
         manualNextDir = dir;
         if (!isManualMode) {
@@ -238,7 +286,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cellCoords = renderer.getCellFromCoords(clientX, clientY);
     if (cellCoords && grid[cellCoords.x] && grid[cellCoords.x][cellCoords.y]) {
       const cell = grid[cellCoords.x][cellCoords.y];
-      // Ciclar nivel: 0 -> 1 -> 2 -> 3 -> 4 -> 0
       cell.level = (cell.level + 1) % 5;
       cell.originalLevel = cell.level;
       cell.count = cell.level * 4;
@@ -309,7 +356,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Alternar Modo IA / Manual
   modeBtn.addEventListener('click', () => {
     sound.playClick();
     isManualMode = !isManualMode;
@@ -324,7 +370,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Alternar Modo Pintar
   paintBtn.addEventListener('click', () => {
     sound.playClick();
     isPaintMode = !isPaintMode;
@@ -339,7 +384,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Audio Toggle
   audioBtn.addEventListener('click', () => {
     const isMuted = sound.toggleMute();
     if (!isMuted) {
@@ -352,13 +396,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Exportar SVG
   exportSvgBtn.addEventListener('click', () => {
     sound.playClick();
     exporter.exportAnimatedSvg(grid, currentUsername);
   });
 
-  // Exportar Workflow Modal
   exportYamlBtn.addEventListener('click', () => {
     sound.playClick();
     const yaml = exporter.generateWorkflowYaml(currentUsername);
@@ -387,7 +429,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => { copyReadmeBtn.textContent = 'Copiar Markdown'; }, 2000);
   });
 
-  // Controles de Reproducción
   playPauseBtn.addEventListener('click', () => {
     sound.playClick();
     isRunning = !isRunning;
@@ -436,7 +477,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderer.snakeStyle = e.target.value;
   });
 
-  // Carga inicial
+  // Inicializar ranking y carga de usuario inicial
+  renderLeaderboard();
   await loadUserGrid('torvalds');
   animationFrameId = requestAnimationFrame(gameLoop);
 });

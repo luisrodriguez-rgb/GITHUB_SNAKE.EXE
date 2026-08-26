@@ -48,14 +48,19 @@
       </div>
     </header>
 
-    <!-- Terminal Command Toolbar -->
+    <!-- Terminal Command Toolbar & Input -->
     <section class="glass-panel">
+      <div class="input-header-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Ingresa un nombre de usuario o pega el enlace completo de GitHub:</span>
+      </div>
+
       <div class="toolbar-grid">
         <div class="cyber-input-wrapper">
           <div class="terminal-prefix">
-            <span>root@github:~$</span>
+            <span>github.com/</span>
           </div>
-          <input type="text" id="usernameInput" placeholder="ingresa usuario (ej: torvalds, gaearon)..." autocomplete="off" value="torvalds" spellcheck="false">
+          <input type="text" id="usernameInput" placeholder="usuario o enlace (ej: midudev, torvalds, https://github.com/antfu)..." autocomplete="off" value="torvalds" spellcheck="false">
         </div>
         
         <button id="fetchBtn" class="btn btn-cyber-primary">
@@ -72,12 +77,13 @@
       <div class="presets-container">
         <span class="presets-label">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          Objetivos de prueba:
+          Accesos directos:
         </span>
         <button class="preset-pill active" data-user="torvalds">Linus Torvalds</button>
+        <button class="preset-pill" data-user="midudev">Midudev</button>
+        <button class="preset-pill" data-user="antfu">Anthony Fu</button>
         <button class="preset-pill" data-user="gaearon">Dan Abramov</button>
         <button class="preset-pill" data-user="sindresorhus">Sindre Sorhus</button>
-        <button class="preset-pill" data-user="antfu">Anthony Fu</button>
         <button class="preset-pill" data-user="dense_matrix">Matriz Densa</button>
       </div>
     </section>
@@ -151,8 +157,8 @@
 
       <div class="slider-group">
         <span>Frecuencia:</span>
-        <input type="range" id="speedSlider" min="2" max="30" value="12" step="1">
-        <span id="speedValue" style="color: var(--matrix-green); font-weight: 700; width: 50px;">12 t/s</span>
+        <input type="range" id="speedSlider" min="1" max="18" value="6" step="1">
+        <span id="speedValue" style="color: var(--matrix-green); font-weight: 700; width: 50px;">6 t/s</span>
       </div>
 
       <div class="slider-group">
@@ -163,6 +169,20 @@
           <option value="smooth">Laser Continuo</option>
           <option value="retro">Pixel Block</option>
         </select>
+      </div>
+    </section>
+
+    <!-- Leaderboard / Ranking Section -->
+    <section class="glass-panel">
+      <div class="section-title-bar">
+        <div>
+          <h2>Ranking de Desarrolladores Destacados</h2>
+          <p>Explora y devora las matrices de contribucion de los creadores mas activos de Open Source.</p>
+        </div>
+      </div>
+
+      <div id="leaderboardGrid" class="leaderboard-grid">
+        <!-- Renderizado dinamicamente desde JavaScript -->
       </div>
     </section>
 

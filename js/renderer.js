@@ -1,6 +1,6 @@
 /**
  * Canvas 2D Zero-Flicker 60 FPS Matrix Renderer
- * Renderizado de alta resolución Retina, sub-píxel LERP, ondas expansivas (Shockwaves) y modo editor.
+ * Incluye corrección de salto en bordes (Anti-Stretching), sub-píxel LERP, shockwaves y editor.
  */
 
 class SnakeRenderer {
@@ -14,7 +14,7 @@ class SnakeRenderer {
     this.paddingX = 20;
     this.paddingY = 20;
 
-    this.snakeStyle = 'matrix_viper'; // 'matrix_viper', 'capsule', 'smooth', 'retro'
+    this.snakeStyle = 'matrix_viper';
     this.scanlineX = 0;
     this.time = 0;
     this.shockwaves = [];
@@ -36,9 +36,6 @@ class SnakeRenderer {
     this.ctx.scale(dpr, dpr);
   }
 
-  /**
-   * Obtiene la celda de la matriz a partir de las coordenadas del ratón en el canvas
-   */
   getCellFromCoords(clientX, clientY) {
     const rect = this.canvas.getBoundingClientRect();
     const scaleX = (this.canvas.width / (window.devicePixelRatio || 1)) / rect.width;
@@ -52,7 +49,6 @@ class SnakeRenderer {
     const row = Math.floor(py / step);
 
     if (col >= 0 && col < 53 && row >= 0 && row < 7) {
-      // Verificar si el cursor está dentro de la celda y no en el espacio de separación
       const cellPx = col * step;
       const cellPy = row * step;
       if (px >= cellPx && px <= cellPx + this.cellSize && py >= cellPy && py <= cellPy + this.cellSize) {
@@ -62,9 +58,6 @@ class SnakeRenderer {
     return null;
   }
 
-  /**
-   * Agrega una onda expansiva lumínica en la coordenada de la celda
-   */
   addShockwave(gridX, gridY, intensity = 4) {
     const step = this.cellSize + this.cellGap;
     const px = this.paddingX + gridX * step + this.cellSize / 2;
@@ -81,9 +74,6 @@ class SnakeRenderer {
     });
   }
 
-  /**
-   * Actualiza la animación de las ondas de choque
-   */
   updateShockwaves() {
     for (let i = this.shockwaves.length - 1; i >= 0; i--) {
       const sw = this.shockwaves[i];
@@ -95,9 +85,6 @@ class SnakeRenderer {
     }
   }
 
-  /**
-   * Obtiene los colores activos del tema CSS
-   */
   getThemeColors() {
     const style = getComputedStyle(document.body);
     return {
@@ -113,9 +100,6 @@ class SnakeRenderer {
     };
   }
 
-  /**
-   * Renderiza el frame con interpolación visual continua
-   */
   render(grid, snake, progress = 1.0) {
     this.time += 0.05;
     const colors = this.getThemeColors();
@@ -124,32 +108,21 @@ class SnakeRenderer {
 
     this.ctx.clearRect(0, 0, width, height);
 
-    // 1. Dibujar cuadrícula de contribuciones
     this.drawGrid(grid, colors);
 
-    // 2. Dibujar celda en foco de edición si existe
     if (this.hoverCell) {
       this.drawHoverReticle(this.hoverCell, colors);
     }
 
-    // 3. Haz de radar holográfico
     this.drawRadarScanline(width, height, colors);
-
-    // 4. Ondas de choque lumínicas (Shockwaves)
     this.drawShockwaves(colors);
-
-    // 5. Partículas cuánticas y binarias
     this.drawParticles(snake.particles, colors);
 
-    // 6. Dibujar la serpiente
     if (snake.body && snake.body.length > 0) {
       this.drawSnake(snake, progress, colors);
     }
   }
 
-  /**
-   * Dibuja los bloques de contribución
-   */
   drawGrid(grid, colors) {
     const colorMap = [
       colors.empty,
@@ -169,14 +142,12 @@ class SnakeRenderer {
         this.ctx.fillStyle = color;
         this.drawRoundedRect(px, py, this.cellSize, this.cellSize, this.cellRadius);
 
-        // Borde fino en celdas vacías
         if (cell.level === 0) {
           this.ctx.strokeStyle = 'rgba(0, 255, 102, 0.05)';
           this.ctx.lineWidth = 1;
           this.drawRoundedRect(px, py, this.cellSize, this.cellSize, this.cellRadius, true);
         }
 
-        // Resplandor en celdas activas
         if (cell.level >= 2) {
           this.ctx.save();
           this.ctx.shadowColor = colors.matrixGreen;
@@ -189,9 +160,6 @@ class SnakeRenderer {
     }
   }
 
-  /**
-   * Dibuja un retículo en la celda sobre la que se encuentra el ratón
-   */
   drawHoverReticle(cell, colors) {
     const step = this.cellSize + this.cellGap;
     const px = this.paddingX + cell.x * step;
@@ -206,9 +174,6 @@ class SnakeRenderer {
     this.ctx.restore();
   }
 
-  /**
-   * Dibuja las ondas de choque radiales
-   */
   drawShockwaves(colors) {
     this.ctx.save();
     for (const sw of this.shockwaves) {
@@ -225,9 +190,6 @@ class SnakeRenderer {
     this.ctx.restore();
   }
 
-  /**
-   * Scanline de radar que barre horizontalmente la cuadrícula
-   */
   drawRadarScanline(width, height, colors) {
     this.scanlineX = (this.scanlineX + 1.2) % (width + 60);
     const sx = this.scanlineX - 30;
@@ -242,7 +204,7 @@ class SnakeRenderer {
   }
 
   /**
-   * Dibuja la serpiente de forma interpolada
+   * Dibuja la serpiente corrigiendo saltos en bordes (evita líneas cruzando la pantalla)
    */
   drawSnake(snake, progress, colors) {
     const { body, prevBody, direction } = snake;
@@ -253,14 +215,32 @@ class SnakeRenderer {
       const curr = body[i];
       const prev = prevBody[i] || curr;
 
-      const ix = prev.x + (curr.x - prev.x) * progress;
-      const iy = prev.y + (curr.y - prev.y) * progress;
+      let ix = curr.x;
+      let iy = curr.y;
+
+      // Detectar si hubo salto/teletransporte de borde
+      const isWrapX = Math.abs(curr.x - prev.x) > 1;
+      const isWrapY = Math.abs(curr.y - prev.y) > 1;
+
+      if (!isWrapX) {
+        ix = prev.x + (curr.x - prev.x) * progress;
+      } else {
+        // En salto de borde, cambiar limpiamente a mitad de paso sin cruzar la pantalla
+        ix = progress < 0.5 ? prev.x : curr.x;
+      }
+
+      if (!isWrapY) {
+        iy = prev.y + (curr.y - prev.y) * progress;
+      } else {
+        iy = progress < 0.5 ? prev.y : curr.y;
+      }
 
       coords.push({
         x: this.paddingX + ix * stepSize,
         y: this.paddingY + iy * stepSize,
-        gridX: ix,
-        gridY: iy
+        gridX: curr.x,
+        gridY: curr.y,
+        isWrap: isWrapX || isWrapY
       });
     }
 
@@ -280,9 +260,6 @@ class SnakeRenderer {
     }
   }
 
-  /**
-   * Estilo Matrix Viper
-   */
   drawMatrixViper(coords, direction, colors) {
     const head = coords[0];
 
@@ -313,9 +290,6 @@ class SnakeRenderer {
     this.drawMatrixEyes(head, direction, colors);
   }
 
-  /**
-   * Ojos Matrix con visor láser
-   */
   drawMatrixEyes(head, direction, colors) {
     const eyeRadius = 2.2;
     const eyeOffset = 3.2;
@@ -355,9 +329,6 @@ class SnakeRenderer {
     this.ctx.restore();
   }
 
-  /**
-   * Estilo Cápsula
-   */
   drawCapsuleSnake(coords, direction, colors) {
     const head = coords[0];
     this.ctx.save();
@@ -379,7 +350,7 @@ class SnakeRenderer {
   }
 
   /**
-   * Estilo Línea Láser
+   * Estilo Línea Láser: no dibuja líneas cruzadas si hay salto en el borde
    */
   drawSmoothSnake(coords, colors) {
     if (coords.length < 2) return;
@@ -392,12 +363,20 @@ class SnakeRenderer {
     this.ctx.shadowColor = colors.snakeGlow;
     this.ctx.shadowBlur = 14;
 
-    this.ctx.beginPath();
     const half = this.cellSize / 2;
+    this.ctx.beginPath();
     this.ctx.moveTo(coords[0].x + half, coords[0].y + half);
 
     for (let i = 1; i < coords.length; i++) {
-      this.ctx.lineTo(coords[i].x + half, coords[i].y + half);
+      const prev = coords[i - 1];
+      const curr = coords[i];
+
+      // Si hay salto de borde entre dos segmentos contiguos, separar el trazo
+      if (Math.abs(curr.gridX - prev.gridX) > 1 || Math.abs(curr.gridY - prev.gridY) > 1) {
+        this.ctx.moveTo(curr.x + half, curr.y + half);
+      } else {
+        this.ctx.lineTo(curr.x + half, curr.y + half);
+      }
     }
     this.ctx.stroke();
 
@@ -408,9 +387,6 @@ class SnakeRenderer {
     this.ctx.restore();
   }
 
-  /**
-   * Estilo Retro Pixel
-   */
   drawRetroSnake(coords, colors) {
     for (let i = 0; i < coords.length; i++) {
       const seg = coords[i];
@@ -421,9 +397,6 @@ class SnakeRenderer {
     }
   }
 
-  /**
-   * Partículas y dígitos binarios
-   */
   drawParticles(particles, colors) {
     const stepSize = this.cellSize + this.cellGap;
     this.ctx.save();
@@ -449,9 +422,6 @@ class SnakeRenderer {
     this.ctx.restore();
   }
 
-  /**
-   * Helper para dibujar rectángulos redondeados
-   */
   drawRoundedRect(x, y, w, h, r, strokeOnly = false) {
     this.ctx.beginPath();
     this.ctx.moveTo(x + r, y);

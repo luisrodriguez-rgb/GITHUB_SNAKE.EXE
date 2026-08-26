@@ -1,33 +1,96 @@
 /**
  * GitHub Contributions Grid Fetcher & Generator
- * Procesa o simula la matriz de 53 semanas x 7 días de contribuciones de GitHub.
+ * Procesa enlaces completos, nombres de usuario y gestiona el Ranking de Desarrolladores.
  */
 
 class GitHubFetcher {
   constructor() {
     this.cols = 53;
     this.rows = 7;
+
+    // Lista de desarrolladores destacados para el Ranking
+    this.topDevelopers = [
+      {
+        rank: 1,
+        name: 'Anthony Fu',
+        username: 'antfu',
+        role: 'Vue / Vite / Nuxt Core',
+        commits: '5,840',
+        streak: '365 dias'
+      },
+      {
+        rank: 2,
+        name: 'Sindre Sorhus',
+        username: 'sindresorhus',
+        role: 'Open Source Maintainer',
+        commits: '4,210',
+        streak: '320 dias'
+      },
+      {
+        rank: 3,
+        name: 'Evan You',
+        username: 'yyx990803',
+        role: 'Creador de Vue.js & Vite',
+        commits: '3,450',
+        streak: '280 dias'
+      },
+      {
+        rank: 4,
+        name: 'Linus Torvalds',
+        username: 'torvalds',
+        role: 'Creador de Linux & Git',
+        commits: '3,290',
+        streak: '340 dias'
+      },
+      {
+        rank: 5,
+        name: 'Midudev',
+        username: 'midudev',
+        role: 'FullStack & Open Source',
+        commits: '3,120',
+        streak: '295 dias'
+      },
+      {
+        rank: 6,
+        name: 'Dan Abramov',
+        username: 'gaearon',
+        role: 'Creador de Redux',
+        commits: '2,890',
+        streak: '210 dias'
+      }
+    ];
   }
 
   /**
-   * Obtiene la cuadrícula de contribuciones de un usuario
-   * @param {string} username - Nombre de usuario de GitHub
-   * @returns {Promise<Array<Array<Object>>>} Matriz 53x7 de celdas
+   * Limpia y extrae el nombre de usuario incluso si pegan enlaces completos como https://github.com/usuario
    */
-  async getContributions(username) {
-    const cleanUser = username.trim().toLowerCase();
+  sanitizeUsername(input) {
+    if (!input) return 'torvalds';
+    let clean = input.trim();
+    // Eliminar protocolo y dominio (https://github.com/, http://github.com/, github.com/)
+    clean = clean.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '');
+    // Eliminar rutas adicionales (/repos, /tab, query params)
+    clean = clean.split('/')[0].split('?')[0].split('#')[0];
+    // Eliminar arroba inicial si existe
+    clean = clean.replace(/^@/, '');
+    return clean.toLowerCase().trim() || 'torvalds';
+  }
+
+  /**
+   * Obtiene la cuadrícula de contribuciones de un usuario o enlace
+   */
+  async getContributions(rawInput) {
+    const username = this.sanitizeUsername(rawInput);
     
-    // Perfiles predefinidos de prueba instantáneos (100% offline o fallback)
-    if (cleanUser === 'dense_matrix') {
+    if (username === 'dense_matrix') {
       return this.generateDenseGrid();
     }
 
     try {
-      // Intentar consultar una API pública de contribuciones de GitHub
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-      const response = await fetch(`https://github-contributions-api.jogruber.de/v4/${cleanUser}?y=last`, {
+      const response = await fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`, {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
@@ -39,20 +102,14 @@ class GitHubFetcher {
         }
       }
     } catch (err) {
-      console.warn(`[GitHubFetcher] Usando generador simulado para '${cleanUser}' debido a:`, err.message);
+      console.warn(`[GitHubFetcher] Usando generador simulado para '${username}':`, err.message);
     }
 
-    // Si falla o no hay conexión, generar un mapa determinista realista basado en el nombre de usuario
-    return this.generateRealisticMock(cleanUser);
+    return this.generateRealisticMock(username);
   }
 
-  /**
-   * Parsea la respuesta de la API a una matriz 53x7
-   */
   parseApiContributions(contributions) {
     const grid = this.createEmptyGrid();
-    
-    // Tomar los últimos 371 días (53 semanas * 7)
     const recent = contributions.slice(-371);
     
     for (let i = 0; i < recent.length; i++) {
@@ -75,9 +132,6 @@ class GitHubFetcher {
     return grid;
   }
 
-  /**
-   * Crea una cuadrícula vacía de 53 columnas x 7 filas
-   */
   createEmptyGrid() {
     const grid = [];
     for (let x = 0; x < this.cols; x++) {
@@ -96,9 +150,6 @@ class GitHubFetcher {
     return grid;
   }
 
-  /**
-   * Generador determinista realista basado en un hash del username
-   */
   generateRealisticMock(seedString) {
     const grid = this.createEmptyGrid();
     let seed = 0;
@@ -112,15 +163,13 @@ class GitHubFetcher {
       return seed / 233280;
     };
 
-    // Probabilidad de actividad según el perfil
-    const activityFactor = seedString === 'torvalds' ? 0.45 : seedString === 'antfu' ? 0.75 : 0.35;
+    const activityFactor = seedString === 'antfu' ? 0.75 : seedString === 'torvalds' ? 0.55 : 0.40;
 
     for (let x = 0; x < this.cols; x++) {
       for (let y = 0; y < this.rows; y++) {
         const rand = pseudoRandom();
-        // Los fines de semana (y === 0 o y === 6) suelen tener menos commits
         const isWeekend = (y === 0 || y === 6);
-        const threshold = isWeekend ? activityFactor * 0.4 : activityFactor;
+        const threshold = isWeekend ? activityFactor * 0.45 : activityFactor;
 
         let level = 0;
         if (rand < threshold) {
@@ -144,9 +193,6 @@ class GitHubFetcher {
     return grid;
   }
 
-  /**
-   * Generador de matriz densa para pruebas intensivas de pathfinding
-   */
   generateDenseGrid() {
     const grid = this.createEmptyGrid();
     for (let x = 0; x < this.cols; x++) {
@@ -164,16 +210,13 @@ class GitHubFetcher {
     return grid;
   }
 
-  /**
-   * Generador totalmente aleatorio
-   */
   generateRandomGrid() {
     const grid = this.createEmptyGrid();
     for (let x = 0; x < this.cols; x++) {
       for (let y = 0; y < this.rows; y++) {
         const rand = Math.random();
         let level = 0;
-        if (rand > 0.65) {
+        if (rand > 0.60) {
           level = Math.floor(Math.random() * 4) + 1;
         }
         grid[x][y] = {
@@ -189,5 +232,4 @@ class GitHubFetcher {
   }
 }
 
-// Exportar global para el navegador
 window.GitHubFetcher = GitHubFetcher;
