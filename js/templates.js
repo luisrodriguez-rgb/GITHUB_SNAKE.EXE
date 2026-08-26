@@ -1,11 +1,10 @@
 /**
  * Commit Art & Custom Text Font Rasterizer Engine
- * Convierte cualquier palabra o frase en píxeles sobre la matriz de 53x7 y genera scripts Git personalizados.
+ * Convierte palabras en píxeles sobre la matriz de 53x7 con niveles y conteos de commits variados y orgánicos.
  */
 
 class CommitArtEngine {
   constructor() {
-    // Diccionario de fuente Bitmap 3x5 y 4x5 para la cuadrícula de 7 filas
     this.font = {
       'A': [[1,2,3,4],[0,2],[0,2],[1,2,3,4]],
       'B': [[0,1,2,3,4],[0,2,4],[0,2,4],[1,3]],
@@ -58,7 +57,6 @@ class CommitArtEngine {
       ' ': [[],[]]
     };
 
-    // Plantillas predefinidas
     this.templates = {
       hire_me: {
         name: 'HIRE ME',
@@ -79,15 +77,18 @@ class CommitArtEngine {
     };
   }
 
-  /**
-   * Convierte un texto personalizado en una lista de coordenadas [x, y]
-   * centrado vertical y horizontalmente en la matriz de 53x7.
-   */
+  computeDateForCoords(col, row) {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const daysAgo = ((52 - col) * 7) + (currentDay - row);
+    const targetDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+    return targetDate.toISOString().split('T')[0];
+  }
+
   textToPattern(text, cols = 53, rows = 7) {
     const cleanText = text.toUpperCase().trim() || 'DEV';
     const letterSpacing = 1;
 
-    // 1. Calcular ancho total necesario
     let totalWidth = 0;
     const glyphs = [];
 
@@ -101,9 +102,8 @@ class CommitArtEngine {
       }
     }
 
-    // 2. Calcular punto de inicio X centrado
     let startX = Math.max(1, Math.floor((cols - totalWidth) / 2));
-    const startY = 1; // Centrado vertical en fila 1 (0 a 6)
+    const startY = 1;
 
     const pattern = [];
     let curX = startX;
@@ -128,9 +128,6 @@ class CommitArtEngine {
     return pattern;
   }
 
-  /**
-   * Genera la matriz de 53x7 con el texto renderizado
-   */
   generateGridFromText(text, cols = 53, rows = 7) {
     const pattern = this.textToPattern(text, cols, rows);
 
@@ -138,19 +135,36 @@ class CommitArtEngine {
     for (let x = 0; x < cols; x++) {
       const col = [];
       for (let y = 0; y < rows; y++) {
-        col.push({ x, y, level: 0, originalLevel: 0, count: 0 });
+        col.push({
+          x,
+          y,
+          level: 0,
+          originalLevel: 0,
+          count: 0,
+          date: this.computeDateForCoords(x, y)
+        });
       }
       grid.push(col);
     }
 
     pattern.forEach(([px, py]) => {
       if (px >= 0 && px < cols && py >= 0 && py < rows) {
+        // Asignación de nivel y conteo orgánico aleatorio entre niveles 2, 3 y 4
+        const rand = Math.random();
+        let level = 4;
+        if (rand < 0.20) level = 2;
+        else if (rand < 0.50) level = 3;
+        else level = 4;
+
+        const count = Math.floor(Math.random() * 25) + (level * 7); // Entre 14 y 55 commits por celda
+
         grid[px][py] = {
           x: px,
           y: py,
-          level: 4,
-          originalLevel: 4,
-          count: 15
+          level: level,
+          originalLevel: level,
+          count: count,
+          date: this.computeDateForCoords(px, py)
         };
       }
     });
@@ -158,9 +172,6 @@ class CommitArtEngine {
     return grid;
   }
 
-  /**
-   * Aplica una plantilla predefinida o texto
-   */
   applyTemplate(templateKey, cols = 53, rows = 7) {
     if (templateKey === 'invader') {
       const pattern = [
@@ -194,28 +205,41 @@ class CommitArtEngine {
     for (let x = 0; x < cols; x++) {
       const col = [];
       for (let y = 0; y < rows; y++) {
-        col.push({ x, y, level: 0, originalLevel: 0, count: 0 });
+        col.push({
+          x,
+          y,
+          level: 0,
+          originalLevel: 0,
+          count: 0,
+          date: this.computeDateForCoords(x, y)
+        });
       }
       grid.push(col);
     }
 
     pattern.forEach(([px, py]) => {
       if (px >= 0 && px < cols && py >= 0 && py < rows) {
+        const rand = Math.random();
+        let level = 4;
+        if (rand < 0.25) level = 2;
+        else if (rand < 0.55) level = 3;
+        else level = 4;
+
+        const count = Math.floor(Math.random() * 20) + (level * 8);
+
         grid[px][py] = {
           x: px,
           y: py,
-          level: 4,
-          originalLevel: 4,
-          count: 15
+          level: level,
+          originalLevel: level,
+          count: count,
+          date: this.computeDateForCoords(px, py)
         };
       }
     });
     return grid;
   }
 
-  /**
-   * Genera un script Bash personalizado para cualquier palabra ingresada
-   */
   generateBashScript(textOrKey) {
     let pattern = [];
     let name = textOrKey;
@@ -244,7 +268,12 @@ git add README.md
 git commit -m "init custom artwork"
 
 YEAR=$(date +%Y)
-${pattern.map(([x, y]) => `GIT_AUTHOR_DATE="$YEAR-01-01T12:00:00 +${x * 7 + y} days" GIT_COMMITTER_DATE="$YEAR-01-01T12:00:00 +${x * 7 + y} days" git commit --allow-empty -m "pixel [${x},${y}]"`).join('\n')}
+${pattern.map(([x, y]) => {
+  const count = Math.floor(Math.random() * 6) + 3; // 3 a 8 commits por punto
+  return `for i in {1..${count}}; do
+  GIT_AUTHOR_DATE="$YEAR-01-01T12:00:00 +${x * 7 + y} days $i minutes" GIT_COMMITTER_DATE="$YEAR-01-01T12:00:00 +${x * 7 + y} days $i minutes" git commit --allow-empty -m "pixel [${x},${y}] #$i"
+done`;
+}).join('\n')}
 
 echo "Arte '${name}' generado exitosamente."
 echo "Para pintarlo en tu perfil de GitHub:"
