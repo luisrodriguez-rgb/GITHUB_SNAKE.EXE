@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator & Loop Controller (Pro Edition)
- * Sistema de Puntuación, Progreso Individual de Jugadores, Duelo, Creador de Palabras Custom y Fin de Partida.
+ * Sistema de Puntuación, Progreso Individual de Jugadores, Duelo, Creador de Palabras Custom, Fin de Partida y Tooltip de Contribuciones.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -20,6 +20,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const themeSelect = document.getElementById('themeSelect');
   const snakeStyleSelect = document.getElementById('snakeStyleSelect');
   const leaderboardGrid = document.getElementById('leaderboardGrid');
+
+  // Tooltip
+  const matrixTooltip = document.getElementById('matrixTooltip');
+  const tooltipCount = document.getElementById('tooltipCount');
+  const tooltipDate = document.getElementById('tooltipDate');
+  const tooltipLevel = document.getElementById('tooltipLevel');
 
   // Tarjeta de Perfil Activo
   const activeAvatar = document.getElementById('activeAvatar');
@@ -117,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let isManualMode = false;
   let isDuelMode = false;
-  let snake2 = null; // Jugador 2 (Cian)
+  let snake2 = null;
   let manualNextDir = { x: 1, y: 0 };
   let player2NextDir = { x: -1, y: 0 };
   let isPaintMode = false;
@@ -128,6 +134,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (speed <= 3) return `${speed} t/s (Relajado)`;
     if (speed <= 6) return `${speed} t/s (Optimo)`;
     return `${speed} t/s (Rapido)`;
+  }
+
+  function formatSpanishDate(dateStr) {
+    if (!dateStr) return 'Fecha no disponible';
+    const [year, month, day] = dateStr.split('-');
+    const months = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+    ];
+    const monthName = months[parseInt(month, 10) - 1] || month;
+    return `el ${parseInt(day, 10)} de ${monthName} de ${year}`;
   }
 
   function showAchievementToast(ach) {
@@ -519,7 +536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // --- Interacción Canvas (Pintar) ---
+  // --- Tooltip & Interacción Canvas ---
   function paintCellAt(clientX, clientY) {
     const cellCoords = renderer.getCellFromCoords(clientX, clientY);
     if (cellCoords && grid[cellCoords.x] && grid[cellCoords.x][cellCoords.y]) {
@@ -536,6 +553,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   canvas.addEventListener('mousemove', (e) => {
     const cell = renderer.getCellFromCoords(e.clientX, e.clientY);
     renderer.hoverCell = cell;
+
+    if (cell && grid[cell.x] && grid[cell.x][cell.y]) {
+      const c = grid[cell.x][cell.y];
+      const count = c.count !== undefined ? c.count : (c.level > 0 ? c.level * 3 : 0);
+      tooltipCount.textContent = count === 0 ? 'Sin contribuciones' : (count === 1 ? '1 contribucion' : `${count} contribuciones`);
+      tooltipDate.textContent = formatSpanishDate(c.date);
+      tooltipLevel.textContent = `Nivel de actividad: ${c.level}/4`;
+
+      // Posicionar tooltip
+      const tooltipX = e.clientX + 14;
+      const tooltipY = e.clientY - 48;
+      matrixTooltip.style.left = `${tooltipX}px`;
+      matrixTooltip.style.top = `${tooltipY}px`;
+      matrixTooltip.classList.add('visible');
+    } else {
+      matrixTooltip.classList.remove('visible');
+    }
+
     if (isPaintMode && isMouseDown && cell) {
       paintCellAt(e.clientX, e.clientY);
     }
@@ -544,6 +579,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   canvas.addEventListener('mouseleave', () => {
     renderer.hoverCell = null;
     isMouseDown = false;
+    matrixTooltip.classList.remove('visible');
   });
 
   canvas.addEventListener('mousedown', (e) => {
@@ -660,7 +696,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalTemplates.classList.remove('visible');
   });
 
-  // Creador de Texto Personalizado
   applyCustomWordBtn.addEventListener('click', () => {
     const text = customWordInput.value.trim();
     if (text) {

@@ -189,10 +189,11 @@ body[data-theme="light"] .leaderboard-card,
 body[data-theme="light"] .template-item,
 body[data-theme="light"] .ach-card,
 body[data-theme="light"] .result-player-box,
-body[data-theme="light"] .custom-word-card {
+body[data-theme="light"] .custom-word-card,
+body[data-theme="light"] .cyber-tooltip {
   background: #ffffff;
   border-color: rgba(31, 35, 40, 0.15);
-  box-shadow: 0 2px 8px rgba(140, 149, 159, 0.12);
+  box-shadow: 0 4px 16px rgba(140, 149, 159, 0.2);
 }
 
 body[data-theme="light"] .doc-card h3,
@@ -303,6 +304,47 @@ body {
 
 body[data-theme="light"] #matrixCanvas {
   opacity: 0.05;
+}
+
+/* Floating Cyber Tooltip */
+.cyber-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: var(--bg-secondary);
+  border: 1px solid var(--matrix-green);
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85), 0 0 12px var(--matrix-glow);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-family: var(--font-mono);
+}
+
+.cyber-tooltip.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.tooltip-count {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--matrix-green);
+}
+
+.tooltip-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.tooltip-level-tag {
+  font-size: 0.65rem;
+  color: var(--text-main);
+  opacity: 0.7;
 }
 
 /* Main Container */

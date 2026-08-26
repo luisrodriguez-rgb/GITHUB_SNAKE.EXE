@@ -1,6 +1,6 @@
 /**
  * GitHub Contributions Grid Fetcher & Generator
- * Procesa perfiles completos, avatares y gestiona el Ranking de Desarrolladores.
+ * Procesa perfiles completos, avatares, fechas calculadas y gestiona el Ranking de Desarrolladores.
  */
 
 class GitHubFetcher {
@@ -8,7 +8,6 @@ class GitHubFetcher {
     this.cols = 53;
     this.rows = 7;
 
-    // Lista de desarrolladores destacados para el Ranking con avatares reales
     this.topDevelopers = [
       {
         rank: 1,
@@ -73,9 +72,6 @@ class GitHubFetcher {
     ];
   }
 
-  /**
-   * Limpia y extrae el nombre de usuario
-   */
   sanitizeUsername(input) {
     if (!input) return 'torvalds';
     let clean = input.trim();
@@ -85,13 +81,8 @@ class GitHubFetcher {
     return clean.toLowerCase().trim() || 'torvalds';
   }
 
-  /**
-   * Obtiene los datos de perfil públicos de GitHub (nombre, bio, avatar, repos)
-   */
   async getUserProfile(username) {
     const cleanUser = this.sanitizeUsername(username);
-
-    // Si es uno de los desarrolladores destacados, devolver sus datos de inmediato
     const matched = this.topDevelopers.find(d => d.username === cleanUser);
 
     try {
@@ -117,7 +108,6 @@ class GitHubFetcher {
       }
     } catch (e) {}
 
-    // Fallback con datos formateados
     return {
       username: cleanUser,
       name: matched ? matched.name : cleanUser.charAt(0).toUpperCase() + cleanUser.slice(1),
@@ -129,9 +119,14 @@ class GitHubFetcher {
     };
   }
 
-  /**
-   * Obtiene la cuadrícula de contribuciones de un usuario o enlace
-   */
+  computeDateForCoords(col, row) {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const daysAgo = ((52 - col) * 7) + (currentDay - row);
+    const targetDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+    return targetDate.toISOString().split('T')[0];
+  }
+
   async getContributions(rawInput) {
     const username = this.sanitizeUsername(rawInput);
     
@@ -170,14 +165,19 @@ class GitHubFetcher {
       const row = i % 7;
       if (col < this.cols && row < this.rows) {
         const item = recent[i];
-        const level = Math.min(4, item.level || (item.count > 0 ? (item.count > 10 ? 4 : item.count > 5 ? 3 : item.count > 2 ? 2 : 1) : 0));
+        const count = item.count !== undefined ? item.count : 0;
+        let level = item.level;
+        if (level === undefined) {
+          level = count === 0 ? 0 : (count > 10 ? 4 : count > 5 ? 3 : count > 2 ? 2 : 1);
+        }
+
         grid[col][row] = {
           x: col,
           y: row,
-          level: level,
-          originalLevel: level,
-          count: item.count || (level > 0 ? level * 3 : 0),
-          date: item.date
+          level: Math.min(4, level),
+          originalLevel: Math.min(4, level),
+          count: count,
+          date: item.date || this.computeDateForCoords(col, row)
         };
       }
     }
@@ -195,7 +195,8 @@ class GitHubFetcher {
           y: y,
           level: 0,
           originalLevel: 0,
-          count: 0
+          count: 0,
+          date: this.computeDateForCoords(x, y)
         });
       }
       grid.push(column);
@@ -225,12 +226,13 @@ class GitHubFetcher {
         const threshold = isWeekend ? activityFactor * 0.45 : activityFactor;
 
         let level = 0;
+        let count = 0;
         if (rand < threshold) {
           const intensity = pseudoRandom();
-          if (intensity > 0.85) level = 4;
-          else if (intensity > 0.60) level = 3;
-          else if (intensity > 0.35) level = 2;
-          else level = 1;
+          if (intensity > 0.85) { level = 4; count = Math.floor(pseudoRandom() * 10) + 12; }
+          else if (intensity > 0.60) { level = 3; count = Math.floor(pseudoRandom() * 5) + 6; }
+          else if (intensity > 0.35) { level = 2; count = Math.floor(pseudoRandom() * 3) + 3; }
+          else { level = 1; count = Math.floor(pseudoRandom() * 2) + 1; }
         }
 
         grid[x][y] = {
@@ -238,7 +240,8 @@ class GitHubFetcher {
           y: y,
           level: level,
           originalLevel: level,
-          count: level > 0 ? Math.floor(pseudoRandom() * 8) + (level * 2) : 0
+          count: count,
+          date: this.computeDateForCoords(x, y)
         };
       }
     }
@@ -251,12 +254,14 @@ class GitHubFetcher {
     for (let x = 0; x < this.cols; x++) {
       for (let y = 0; y < this.rows; y++) {
         const level = ((x + y) % 5 === 0 || (x * y) % 7 === 0) ? Math.floor(Math.random() * 4) + 1 : 0;
+        const count = level > 0 ? level * 4 : 0;
         grid[x][y] = {
           x: x,
           y: y,
           level: level,
           originalLevel: level,
-          count: level * 3
+          count: count,
+          date: this.computeDateForCoords(x, y)
         };
       }
     }
@@ -269,15 +274,18 @@ class GitHubFetcher {
       for (let y = 0; y < this.rows; y++) {
         const rand = Math.random();
         let level = 0;
+        let count = 0;
         if (rand > 0.60) {
           level = Math.floor(Math.random() * 4) + 1;
+          count = Math.floor(Math.random() * 12) + 1;
         }
         grid[x][y] = {
           x: x,
           y: y,
           level: level,
           originalLevel: level,
-          count: level > 0 ? Math.floor(Math.random() * 12) + 1 : 0
+          count: count,
+          date: this.computeDateForCoords(x, y)
         };
       }
     }
