@@ -1,6 +1,6 @@
 /**
  * Snake State & Logic Manager
- * Administra las coordenadas de la serpiente, historial de interpolación y digestión de commits.
+ * Administra las coordenadas de la serpiente, historial de interpolación, dirección normalizada y digestión de commits.
  */
 
 class Snake {
@@ -20,7 +20,7 @@ class Snake {
     this.isAlive = true;
     this.particles = [];
 
-    // Inicializar segmentos iniciales horizontales
+    // Inicializar segmentos horizontales
     for (let i = 0; i < this.initialLength; i++) {
       const seg = {
         x: Math.max(0, this.startPos.x - i),
@@ -36,22 +36,25 @@ class Snake {
   }
 
   /**
-   * Ejecuta un paso discreto en el grid
-   * @param {{x: number, y: number}} nextPos - Coordenada destino
-   * @param {Array<Array<Object>>} grid - Matriz de celdas
-   * @param {Function} onEatCallback - Callback disparado al devorar un commit
+   * Ejecuta un paso discreto en el grid con normalización de bordes
    */
   moveTo(nextPos, grid, onEatCallback) {
     if (!nextPos) return;
 
-    // Guardar snapshot del cuerpo previo para interpolar fluidamente entre t=0 y t=1
+    // Snapshot previo para interpolación LERP
     this.prevBody = this.body.map(seg => ({ ...seg }));
 
-    // Determinar vector de dirección
-    this.direction = {
-      x: nextPos.x - this.head.x,
-      y: nextPos.y - this.head.y
-    };
+    // Determinar vector de dirección normalizado (corrige salto de 180° / bordes de 52 celdas)
+    let dx = nextPos.x - this.head.x;
+    let dy = nextPos.y - this.head.y;
+
+    if (dx > 1) dx = -1;       // Teletransporte de 0 a 52 (hacia la izquierda)
+    else if (dx < -1) dx = 1;  // Teletransporte de 52 a 0 (hacia la derecha)
+
+    if (dy > 1) dy = -1;       // Teletransporte de 0 a 6 (hacia arriba)
+    else if (dy < -1) dy = 1;  // Teletransporte de 6 a 0 (hacia abajo)
+
+    this.direction = { x: dx, y: dy };
 
     // Insertar nueva cabeza
     this.body.unshift({ x: nextPos.x, y: nextPos.y });
@@ -59,17 +62,14 @@ class Snake {
     // Revisar si la celda contenía un commit verde
     const targetCell = grid[nextPos.x] && grid[nextPos.x][nextPos.y];
     if (targetCell && targetCell.level > 0) {
-      // Devorar: bajar un nivel de contribución
       targetCell.level -= 1;
       this.eatenCommits++;
       this.score += 10;
 
-      // Crecer cada 3 commits devorados hasta un tope razonable (máx 14 bloques)
       if (this.eatenCommits % 3 === 0 && this.length < 14) {
         this.length++;
       }
 
-      // Crear partículas visuales
       this.spawnParticles(nextPos.x, nextPos.y, targetCell.originalLevel);
 
       if (onEatCallback) {
@@ -77,19 +77,18 @@ class Snake {
       }
     }
 
-    // Recortar la cola si excede el tamaño actual
+    // Recortar la cola
     while (this.body.length > this.length) {
       this.body.pop();
     }
 
-    // Mantener la longitud del prevBody alineada
     while (this.prevBody.length > this.body.length) {
       this.prevBody.pop();
     }
   }
 
   /**
-   * Genera partículas cuánticas / dígitos binarios cuando la serpiente devora un commit
+   * Genera partículas cuánticas y dígitos binarios al devorar commits
    */
   spawnParticles(gridX, gridY, intensity) {
     const count = 6 + intensity * 3;
@@ -101,7 +100,7 @@ class Snake {
         x: gridX,
         y: gridY,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 0.5, // Leve flotación hacia arriba
+        vy: Math.sin(angle) * speed - 0.5,
         alpha: 1.0,
         decay: Math.random() * 0.035 + 0.015,
         size: Math.random() * 3 + 2,
@@ -112,9 +111,6 @@ class Snake {
     }
   }
 
-  /**
-   * Actualiza la física de las partículas activas
-   */
   updateParticles() {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];

@@ -1,6 +1,6 @@
 /**
  * Canvas 2D Zero-Flicker 60 FPS Matrix Renderer
- * Incluye corrección de salto en bordes (Anti-Stretching), sub-píxel LERP, shockwaves y editor.
+ * Renderizado toroidal sin cortes con Ghost Segments en bordes, sub-píxel LERP, shockwaves y editor.
  */
 
 class SnakeRenderer {
@@ -204,99 +204,131 @@ class SnakeRenderer {
   }
 
   /**
-   * Dibuja la serpiente corrigiendo saltos en bordes (evita líneas cruzando la pantalla)
+   * Calcula las coordenadas de cada segmento usando interpolación toroidal continua
    */
-  drawSnake(snake, progress, colors) {
-    const { body, prevBody, direction } = snake;
+  getInterpolatedSegments(snake, progress) {
+    const { body, prevBody } = snake;
     const stepSize = this.cellSize + this.cellGap;
+    const segments = [];
 
-    const coords = [];
     for (let i = 0; i < body.length; i++) {
       const curr = body[i];
       const prev = prevBody[i] || curr;
 
-      let ix = curr.x;
-      let iy = curr.y;
+      let vx = prev.x + (curr.x - prev.x) * progress;
+      let vy = prev.y + (curr.y - prev.y) * progress;
 
-      // Detectar si hubo salto/teletransporte de borde
-      const isWrapX = Math.abs(curr.x - prev.x) > 1;
-      const isWrapY = Math.abs(curr.y - prev.y) > 1;
-
-      if (!isWrapX) {
-        ix = prev.x + (curr.x - prev.x) * progress;
-      } else {
-        // En salto de borde, cambiar limpiamente a mitad de paso sin cruzar la pantalla
-        ix = progress < 0.5 ? prev.x : curr.x;
+      // Corrección de salto horizontal (0 <-> 52)
+      if (curr.x === 0 && prev.x === 52) {
+        vx = 52 + progress;
+      } else if (curr.x === 52 && prev.x === 0) {
+        vx = -progress;
       }
 
-      if (!isWrapY) {
-        iy = prev.y + (curr.y - prev.y) * progress;
-      } else {
-        iy = progress < 0.5 ? prev.y : curr.y;
+      // Corrección de salto vertical (0 <-> 6)
+      if (curr.y === 0 && prev.y === 6) {
+        vy = 6 + progress;
+      } else if (curr.y === 6 && prev.y === 0) {
+        vy = -progress;
       }
 
-      coords.push({
-        x: this.paddingX + ix * stepSize,
-        y: this.paddingY + iy * stepSize,
-        gridX: curr.x,
-        gridY: curr.y,
-        isWrap: isWrapX || isWrapY
+      segments.push({
+        main: {
+          x: this.paddingX + vx * stepSize,
+          y: this.paddingY + vy * stepSize,
+          gridX: vx,
+          gridY: vy
+        },
+        // Segmentos fantasma para renderizar entrada y salida simultánea en bordes
+        ghost: (vx >= 52 || vx < 0 || vy >= 6 || vy < 0) ? {
+          x: this.paddingX + ((vx + 53) % 53) * stepSize,
+          y: this.paddingY + ((vy + 7) % 7) * stepSize
+        } : null,
+        isHead: (i === 0),
+        index: i,
+        total: body.length
       });
     }
 
+    return segments;
+  }
+
+  /**
+   * Dibuja la serpiente según la morfología seleccionada
+   */
+  drawSnake(snake, progress, colors) {
+    const segments = this.getInterpolatedSegments(snake, progress);
+    const direction = snake.direction;
+
     switch (this.snakeStyle) {
       case 'matrix_viper':
-        this.drawMatrixViper(coords, direction, colors);
+        this.drawMatrixViper(segments, direction, colors);
         break;
       case 'smooth':
-        this.drawSmoothSnake(coords, colors);
+        this.drawSmoothSnake(segments, direction, colors);
         break;
       case 'retro':
-        this.drawRetroSnake(coords, colors);
+        this.drawRetroSnake(segments, colors);
         break;
       default:
-        this.drawCapsuleSnake(coords, direction, colors);
+        this.drawCapsuleSnake(segments, direction, colors);
         break;
     }
   }
 
-  drawMatrixViper(coords, direction, colors) {
-    const head = coords[0];
+  /**
+   * Dibuja un segmento individual con soporte para su clon fantasma en el borde
+   */
+  renderSegment(segData, drawFn) {
+    drawFn(segData.main.x, segData.main.y, segData);
+    if (segData.ghost) {
+      drawFn(segData.ghost.x, segData.ghost.y, segData);
+    }
+  }
+
+  drawMatrixViper(segments, direction, colors) {
+    const head = segments[0];
 
     this.ctx.save();
-    for (let i = coords.length - 1; i >= 0; i--) {
-      const seg = coords[i];
-      const isHead = (i === 0);
-      const ratio = 1 - (i / coords.length) * 0.35;
+    for (let i = segments.length - 1; i >= 0; i--) {
+      const seg = segments[i];
+      const isHead = seg.isHead;
+      const ratio = 1 - (i / seg.total) * 0.35;
       const size = this.cellSize * ratio;
       const offset = (this.cellSize - size) / 2;
       const pulse = Math.sin(this.time * 4 - i * 0.5) * 0.15 + 0.85;
 
       this.ctx.shadowColor = colors.snakeGlow;
       this.ctx.shadowBlur = isHead ? 16 : 8 * pulse;
-
       this.ctx.fillStyle = isHead ? colors.snakeHead : colors.snakeBody;
-      this.drawRoundedRect(seg.x + offset, seg.y + offset, size, size, size * 0.35);
 
-      if (!isHead) {
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        const innerSize = size * 0.4;
-        const innerOffset = (this.cellSize - innerSize) / 2;
-        this.drawRoundedRect(seg.x + innerOffset, seg.y + innerOffset, innerSize, innerSize, 2);
-      }
+      this.renderSegment(seg, (x, y) => {
+        this.drawRoundedRect(x + offset, y + offset, size, size, size * 0.35);
+
+        if (!isHead) {
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          const innerSize = size * 0.4;
+          const innerOffset = (this.cellSize - innerSize) / 2;
+          this.drawRoundedRect(x + innerOffset, y + innerOffset, innerSize, innerSize, 2);
+          this.ctx.fillStyle = colors.snakeBody;
+        }
+      });
     }
     this.ctx.restore();
 
-    this.drawMatrixEyes(head, direction, colors);
+    this.drawMatrixEyes(head.main, direction, colors);
+    if (head.ghost) {
+      this.drawMatrixEyes(head.ghost, direction, colors);
+    }
   }
 
-  drawMatrixEyes(head, direction, colors) {
+  drawMatrixEyes(headPos, direction, colors) {
     const eyeRadius = 2.2;
     const eyeOffset = 3.2;
-    const centerX = head.x + this.cellSize / 2;
-    const centerY = head.y + this.cellSize / 2;
+    const centerX = headPos.x + this.cellSize / 2;
+    const centerY = headPos.y + this.cellSize / 2;
 
-    let e1x, e1y, e2x, e2y;
+    let e1x = centerX, e1y = centerY, e2x = centerX, e2y = centerY;
 
     if (direction.x > 0) {
       e1x = centerX + eyeOffset; e1y = centerY - 2.8;
@@ -329,31 +361,35 @@ class SnakeRenderer {
     this.ctx.restore();
   }
 
-  drawCapsuleSnake(coords, direction, colors) {
-    const head = coords[0];
+  drawCapsuleSnake(segments, direction, colors) {
+    const head = segments[0];
     this.ctx.save();
     this.ctx.shadowColor = colors.snakeGlow;
     this.ctx.shadowBlur = 12;
 
-    for (let i = coords.length - 1; i >= 0; i--) {
-      const seg = coords[i];
-      const isHead = (i === 0);
-      const radiusRatio = Math.max(0.6, 1 - (i / coords.length) * 0.4);
+    for (let i = segments.length - 1; i >= 0; i--) {
+      const seg = segments[i];
+      const isHead = seg.isHead;
+      const radiusRatio = Math.max(0.6, 1 - (i / seg.total) * 0.4);
       const size = this.cellSize * radiusRatio;
       const offset = (this.cellSize - size) / 2;
 
       this.ctx.fillStyle = isHead ? colors.snakeHead : colors.snakeBody;
-      this.drawRoundedRect(seg.x + offset, seg.y + offset, size, size, size * 0.4);
+
+      this.renderSegment(seg, (x, y) => {
+        this.drawRoundedRect(x + offset, y + offset, size, size, size * 0.4);
+      });
     }
     this.ctx.restore();
-    this.drawMatrixEyes(head, direction, colors);
+
+    this.drawMatrixEyes(head.main, direction, colors);
+    if (head.ghost) {
+      this.drawMatrixEyes(head.ghost, direction, colors);
+    }
   }
 
-  /**
-   * Estilo Línea Láser: no dibuja líneas cruzadas si hay salto en el borde
-   */
-  drawSmoothSnake(coords, colors) {
-    if (coords.length < 2) return;
+  drawSmoothSnake(segments, direction, colors) {
+    if (segments.length < 2) return;
 
     this.ctx.save();
     this.ctx.lineCap = 'round';
@@ -365,14 +401,14 @@ class SnakeRenderer {
 
     const half = this.cellSize / 2;
     this.ctx.beginPath();
-    this.ctx.moveTo(coords[0].x + half, coords[0].y + half);
+    this.ctx.moveTo(segments[0].main.x + half, segments[0].main.y + half);
 
-    for (let i = 1; i < coords.length; i++) {
-      const prev = coords[i - 1];
-      const curr = coords[i];
+    for (let i = 1; i < segments.length; i++) {
+      const prev = segments[i - 1].main;
+      const curr = segments[i].main;
 
-      // Si hay salto de borde entre dos segmentos contiguos, separar el trazo
-      if (Math.abs(curr.gridX - prev.gridX) > 1 || Math.abs(curr.gridY - prev.gridY) > 1) {
+      // Si hay un salto en las coordenadas de la cuadrícula, iniciar un nuevo sub-trazo
+      if (Math.abs(curr.gridX - prev.gridX) > 1.5 || Math.abs(curr.gridY - prev.gridY) > 1.5) {
         this.ctx.moveTo(curr.x + half, curr.y + half);
       } else {
         this.ctx.lineTo(curr.x + half, curr.y + half);
@@ -380,20 +416,34 @@ class SnakeRenderer {
     }
     this.ctx.stroke();
 
+    const head = segments[0];
     this.ctx.fillStyle = colors.snakeHead;
     this.ctx.beginPath();
-    this.ctx.arc(coords[0].x + half, coords[0].y + half, this.cellSize * 0.5, 0, Math.PI * 2);
+    this.ctx.arc(head.main.x + half, head.main.y + half, this.cellSize * 0.5, 0, Math.PI * 2);
     this.ctx.fill();
+
+    if (head.ghost) {
+      this.ctx.beginPath();
+      this.ctx.arc(head.ghost.x + half, head.ghost.y + half, this.cellSize * 0.5, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
     this.ctx.restore();
+
+    this.drawMatrixEyes(head.main, direction, colors);
+    if (head.ghost) {
+      this.drawMatrixEyes(head.ghost, direction, colors);
+    }
   }
 
-  drawRetroSnake(coords, colors) {
-    for (let i = 0; i < coords.length; i++) {
-      const seg = coords[i];
-      this.ctx.fillStyle = (i === 0) ? colors.snakeHead : colors.snakeBody;
-      this.ctx.fillRect(seg.x, seg.y, this.cellSize, this.cellSize);
-      this.ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-      this.ctx.strokeRect(seg.x, seg.y, this.cellSize, this.cellSize);
+  drawRetroSnake(segments, colors) {
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      this.ctx.fillStyle = seg.isHead ? colors.snakeHead : colors.snakeBody;
+      this.renderSegment(seg, (x, y) => {
+        this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
+        this.ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        this.ctx.strokeRect(x, y, this.cellSize, this.cellSize);
+      });
     }
   }
 
