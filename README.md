@@ -152,6 +152,11 @@ Escribe cualquier palabra (ej: tu nombre, tu lenguaje favorito o mensaje) y el m
 |   |-- templates.js      # Rasterizador de fuentes bitmap y scripts Bash Git
 |   `-- app.js            # Orquestador maestro, bucle principal y eventos DOM
 |-- README.md             # Documentacion tecnica del repositorio
+|-- _headers              # Cabeceras de seguridad HTTP, HSTS, CSP y cache para produccion
+|-- docs/
+|   `-- production_guide.md # Guia de arquitectura, seguridad, proxies y analiticas
+|-- server/
+|   `-- edge_proxy_worker.js # Proxy Edge con cache Stale-While-Revalidate y bypass de rate limit
 `-- snake_link.md         # Especificacion matematica de algoritmos
 ```
 
