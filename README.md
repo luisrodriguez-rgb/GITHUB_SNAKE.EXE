@@ -179,13 +179,94 @@ Escribe cualquier palabra (ej: tu nombre, tu lenguaje favorito o mensaje) y el m
 
 ---
 
-## Como Integrar en tu Perfil de GitHub
+## Guia Detallada: Como Integrar la Serpiente en tu Perfil de GitHub
 
-1. Genera el archivo `.github/workflows/snake.yml` desde el boton **"Generar Workflow YAML"** en la aplicacion.
-2. Agrega este bloque en tu `README.md` principal:
-   ```markdown
-   ![Snake animation](https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake.svg)
-   ```
+GitHub cuenta con una funcionalidad especial donde el archivo `README.md` de un repositorio con tu mismo nombre de usuario se convierte en la portada principal de tu perfil.
+
+### Paso 1: Crear tu Repositorio Especial
+1. Ve a [github.com/new](https://github.com/new).
+2. En **Repository name**, escribe exactamente tu nombre de usuario de GitHub (ejemplo: `luisrodriguez-rgb`).
+3. Veras un mensaje informativo confirmando que has desbloqueado el repositorio especial.
+4. Asegurate de que este configurado como **Public** y marca la casilla **Add a README file**.
+5. Haz clic en **Create repository**.
+
+### Paso 2: Habilitar Permisos de Escritura para GitHub Actions
+Para que la accion automatizada pueda guardar el archivo SVG generado en tu repositorio sin errores de permisos:
+1. En tu repositorio `usuario/usuario`, ve a la pestana **Settings** (Configuracion).
+2. En la barra lateral izquierda, entra en **Actions** -> **General**.
+3. Baja hasta la seccion **Workflow permissions**.
+4. Marca la opcion **Read and write permissions**.
+5. Marca la casilla **Allow GitHub Actions to create and approve pull requests**.
+6. Haz clic en **Save**.
+
+### Paso 3: Crear el Workflow Automatizado (`snake.yml`)
+1. Dentro de tu repositorio especial, crea el archivo en la siguiente ruta:  
+   `.github/workflows/snake.yml`
+2. Copia y pega la siguiente configuracion (reemplaza `TU_USUARIO` por tu usuario de GitHub):
+
+```yaml
+name: Generate Snake Contribution Animation
+
+on:
+  # Se ejecuta automaticamente cada 24 horas a medianoche
+  schedule:
+    - cron: "0 0 * * *"
+  # Permite disparar la ejecucion manualmente en cualquier momento
+  workflow_dispatch:
+  # Se ejecuta al hacer push a la rama principal
+  push:
+    branches:
+      - main
+
+jobs:
+  generate:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Generate Snake SVG
+        uses: Platane/snk/svg-only@v3
+        with:
+          github_user_name: TU_USUARIO
+          outputs: |
+            dist/github-contribution-grid-snake.svg
+            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy SVG to Output Branch
+        uses: crazy-max/ghaction-github-pages@v3.1.0
+        with:
+          target_branch: output
+          build_dir: dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Paso 4: Ejecutar el Workflow por Primera Vez
+1. Ve a la pestana **Actions** de tu repositorio.
+2. En el menu izquierdo, selecciona **Generate Snake Contribution Animation**.
+3. Haz clic en el boton desplegable **Run workflow** -> **Run workflow**.
+4. Una vez completado en verde, se habra creado automaticamente la rama `output` con los graficos generados.
+
+### Paso 5: Mostrar la Animacion en tu Portada
+Edita tu `README.md` principal y agrega este bloque para soporte automatico en modo oscuro y claro:
+
+```markdown
+### Mi Matriz de Contribuciones
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake.svg">
+  <img alt="Snake Contribution Animation" src="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake.svg">
+</picture>
+```
+
+### Resolucion de Problemas Frecuentes:
+* **Error `Resource not accessible by integration` (403)**: Ocurre si olvidaste aplicar el **Paso 2**. Asegurate de activar `Read and write permissions` en Settings -> Actions -> General.
+* **La imagen no se actualiza de inmediato**: GitHub utiliza un CDN de proxy de imagenes (`camo.githubusercontent.com`). Puede tardar unos minutos en refrescar la cache despues de la primera ejecucion.
 
 ---
 
