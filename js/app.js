@@ -120,6 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const recorder = new VideoRecorderEngine(canvas);
   const artEngine = new CommitArtEngine();
   const achievements = new AchievementsEngine();
+  const analytics = new AnalyticsEngine();
 
   // Estados
   let grid = [];
@@ -863,6 +864,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       morph: exportMorphSelect.value,
       pause: exportPauseSelect.value
     };
+    analytics.trackEvent('export_svg', options);
     exporter.exportAnimatedSvg(grid, currentUsername, options);
     modalExportSvg.classList.remove('visible');
   });

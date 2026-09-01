@@ -437,7 +437,63 @@ header {
 .header-status {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.github-star-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 255, 102, 0.08);
+  border: 1px solid var(--border-color);
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+.github-star-btn:hover {
+  background: rgba(0, 255, 102, 0.2);
+  border-color: var(--matrix-green);
+  color: var(--matrix-green);
+  transform: translateY(-1px);
+  box-shadow: 0 0 12px var(--matrix-glow);
+}
+
+.star-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(0, 255, 102, 0.15);
+  border: 1px solid var(--border-color);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  color: var(--matrix-green);
+}
+
+body[data-theme="light"] .github-star-btn {
+  background: #ffffff;
+  border-color: rgba(31, 35, 40, 0.2);
+  color: #1f2328;
+}
+
+body[data-theme="light"] .github-star-btn:hover {
+  background: #f6f8fa;
+  border-color: #0969da;
+  color: #0969da;
+  box-shadow: 0 2px 8px rgba(9, 105, 218, 0.2);
+}
+
+body[data-theme="light"] .star-badge {
+  background: rgba(9, 105, 218, 0.1);
+  border-color: rgba(9, 105, 218, 0.25);
+  color: #0969da;
 }
 
 .terminal-status-pill {
