@@ -8,8 +8,8 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   
-  # Content Security Policy (Permite fuentes seguras, avatares de GitHub y APIs de contribucion)
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://github.com https://*.githubusercontent.com https://raw.githubusercontent.com; connect-src 'self' https://api.github.com https://github-contributions-api.jogruber.de; media-src 'self' blob:;
+  # Content Security Policy (Permite fuentes seguras, avatares de GitHub, APIs y Cloudflare Analytics)
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://github.com https://*.githubusercontent.com https://raw.githubusercontent.com; connect-src 'self' https://api.github.com https://github-contributions-api.jogruber.de https://cloudflareinsights.com; media-src 'self' blob:;
 
 # Cache Inmutable para Recursos Estaticos (Fuentes, Iconos, Imagenes)
 /assets/*
