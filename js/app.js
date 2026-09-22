@@ -56,6 +56,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const achievementsBtn = document.getElementById('achievementsBtn');
   const achievementsLabel = document.getElementById('achievementsLabel');
 
+  // Modal Grabar Video HD / Pantalla
+  const modalRecordVideo = document.getElementById('modalRecordVideo');
+  const closeRecordModalBtn = document.getElementById('closeRecordModalBtn');
+  const recordSourceSelect = document.getElementById('recordSourceSelect');
+  const recordDurationSelect = document.getElementById('recordDurationSelect');
+  const startRecordingActionBtn = document.getElementById('startRecordingActionBtn');
+
   // Modal Exportar SVG
   const modalExportSvg = document.getElementById('modalExportSvg');
   const closeExportSvgModalBtn = document.getElementById('closeExportSvgModalBtn');
@@ -785,22 +792,55 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   recordBtn.addEventListener('click', () => {
     sound.playClick();
-    if (recorder.isRecording) return;
+    if (recorder.isRecording) {
+      recorder.stopRecording();
+      return;
+    }
+    modalRecordVideo.classList.add('visible');
+  });
+
+  closeRecordModalBtn.addEventListener('click', () => {
+    sound.playClick();
+    modalRecordVideo.classList.remove('visible');
+  });
+
+  startRecordingActionBtn.addEventListener('click', () => {
+    sound.playClick();
+    const source = recordSourceSelect.value;
+    const duration = parseInt(recordDurationSelect.value, 10);
+    modalRecordVideo.classList.remove('visible');
 
     recordBtn.classList.add('active-tool');
-    recorder.startRecording(
-      8,
-      (sec) => {
-        recordBtnText.textContent = `Grabando (${sec}s)...`;
-      },
-      (err) => {
-        recordBtn.classList.remove('active-tool');
-        recordBtnText.textContent = 'Grabar Clip WebM';
-        if (!err) {
-          achievements.unlock('cinematographer', showAchievementToast);
-        }
+    recordBtnText.textContent = 'Iniciando captura...';
+
+    const recordingOptions = {
+      duration: duration,
+      filenamePrefix: `github-snake-${currentUsername}`
+    };
+
+    const onProgress = (time) => {
+      if (typeof time === 'number') {
+        recordBtnText.textContent = `Detener (${time}s)...`;
+      } else {
+        recordBtnText.textContent = 'Detener Grabacion (REC)';
       }
-    );
+    };
+
+    const onComplete = (err, info) => {
+      recordBtn.classList.remove('active-tool');
+      recordBtnText.textContent = 'Grabar Video (Pantalla / Tablero)';
+      if (!err) {
+        sound.playShockwave();
+        analytics.trackEvent('record_video', { source, duration });
+        achievements.unlock('cinematographer', showAchievementToast);
+      }
+    };
+
+    if (source === 'screen') {
+      recorder.startScreenRecording(recordingOptions, onProgress, onComplete);
+    } else {
+      recorder.startCanvasRecording(recordingOptions, onProgress, onComplete);
+    }
   });
 
   achievementsBtn.addEventListener('click', () => {

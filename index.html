@@ -178,7 +178,7 @@
       <div class="tools-group">
         <button id="recordBtn" class="btn btn-cyber-secondary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
-          <span id="recordBtnText">Grabar Clip WebM</span>
+          <span id="recordBtnText">Grabar Video (Pantalla / Tablero)</span>
         </button>
         <button id="exportSvgBtn" class="btn btn-cyber-secondary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -281,6 +281,52 @@
     <footer>
       <p>&copy; GITHUB_SNAKE_MATRIX // CONSTRUIDO CON CANVAS 2D, LERP SUB-PIXEL & VANILLA JS</p>
     </footer>
+  </div>
+
+  <!-- Modal Grabar Video HD / Pantalla Completa -->
+  <div id="modalRecordVideo" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3>Grabacion de Video HD (Pantalla / Tablero)</h3>
+        <button id="closeRecordModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; flex-direction: column; gap: 1.1rem;">
+          <div>
+            <label style="font-size: 0.82rem; font-family: var(--font-mono); color: var(--text-muted); font-weight: 700; margin-bottom: 0.35rem; display: block;">
+              Que deseas capturar en el video?
+            </label>
+            <select id="recordSourceSelect" class="cyber-select" style="width: 100%;">
+              <option value="screen" selected>Pantalla o Pestana Completa (Perfil, avatar, velocidad y juego)</option>
+              <option value="canvas">Solo el Tablero de Juego (Canvas aislado)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.82rem; font-family: var(--font-mono); color: var(--text-muted); font-weight: 700; margin-bottom: 0.35rem; display: block;">
+              Duracion de la Grabacion:
+            </label>
+            <select id="recordDurationSelect" class="cyber-select" style="width: 100%;">
+              <option value="10" selected>10 segundos (Recomendado para X / Twitter)</option>
+              <option value="15">15 segundos</option>
+              <option value="20">20 segundos</option>
+              <option value="0">Manual (Hasta que presiones Detener)</option>
+            </select>
+          </div>
+
+          <div class="info-alert-box" style="margin-top: 0.35rem;">
+            <strong>Ideal para compartir en redes sociales:</strong>
+            <p style="margin-top: 0.25rem; font-size: 0.82rem;">
+              Al elegir <code>Pantalla o Pestana Completa</code>, tu navegador te mostrara una ventana para seleccionar que pestana compartir. Elige esta misma pestana y grabara con maxima fluidez a 60 FPS mostrando el usuario activo, avatar, controles de velocidad, estilo y el juego.
+            </p>
+          </div>
+        </div>
+
+        <button id="startRecordingActionBtn" class="btn btn-cyber-primary" style="width: 100%; margin-top: 1.4rem; padding: 0.85rem;">
+          Iniciar Grabacion
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal Exportar SVG Personalizado -->
