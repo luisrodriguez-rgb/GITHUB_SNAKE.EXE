@@ -3,7 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitHub Matrix Snake Engine | 60FPS Simulator & Game</title>
+  <title>GITHUB_SNAKE.EXE | Interactive GitHub Contribution Engine & Game</title>
+  <meta name="description" content="Simulador y juego interactivo a 60 FPS sobre el historial de GitHub. Pathfinding BFS, Flood Fill, Modo Duelo y generador de Commit Art.">
+  <meta property="og:title" content="GITHUB_SNAKE.EXE — Interactive GitHub Contribution Engine">
+  <meta property="og:description" content="Convierte cualquier perfil de GitHub en una simulación a 60 FPS con IA, modo versus y generador de Commit Art.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/luisrodriguez-rgb/GITHUB_SNAKE.EXE/main/assets/hero_preview.png">
+  <meta property="og:url" content="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GITHUB_SNAKE.EXE — Interactive GitHub Contribution Engine">
+  <meta name="twitter:description" content="Simulación jugable en Canvas 2D a 60 FPS con IA (BFS + Flood Fill) y generador de Commit Art.">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/luisrodriguez-rgb/GITHUB_SNAKE.EXE/main/assets/hero_preview.png">
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
@@ -152,6 +162,16 @@
     <section class="glass-panel stage-container">
       <div class="canvas-wrapper">
         <canvas id="snakeCanvas" width="920" height="145"></canvas>
+      </div>
+      <!-- D-Pad Virtual Tactil para Moviles -->
+      <div class="mobile-dpad-container" id="mobileDpad">
+        <button class="dpad-btn dpad-up" data-dir="up" aria-label="Arriba">▲</button>
+        <div class="dpad-row">
+          <button class="dpad-btn dpad-left" data-dir="left" aria-label="Izquierda">◀</button>
+          <button class="dpad-btn dpad-action" id="dpadActionBtn">MODO</button>
+          <button class="dpad-btn dpad-right" data-dir="right" aria-label="Derecha">▶</button>
+        </div>
+        <button class="dpad-btn dpad-down" data-dir="down" aria-label="Abajo">▼</button>
       </div>
     </section>
 
@@ -420,9 +440,22 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
-          <button id="rematchBtn" class="btn btn-cyber-primary" style="flex: 1;">Nueva Partida / Revancha</button>
-          <button id="victoryExportSvgBtn" class="btn btn-cyber-secondary" style="flex: 1;">Exportar SVG Completo</button>
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap;">
+          <button id="rematchBtn" class="btn btn-cyber-primary" style="flex: 1.2;">Nueva Partida / Revancha</button>
+          <button id="shareTwitterBtn" class="btn btn-cyber-secondary" style="flex: 1; border-color: #1da1f2; color: #1da1f2; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            Compartir en X
+          </button>
+          <button id="victoryExportSvgBtn" class="btn btn-cyber-secondary" style="flex: 1;">Exportar SVG</button>
+        </div>
+
+        <div class="star-cta-box" style="margin-top: 1.25rem; padding: 0.85rem 1rem; background: rgba(0, 255, 102, 0.05); border: 1px dashed var(--border-color); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+          <span style="font-size: 0.82rem; color: var(--text-muted); font-family: var(--font-mono);">
+            ¿Te ha gustado el proyecto? Apóyalo con una estrella:
+          </span>
+          <a href="https://github.com/luisrodriguez-rgb/GITHUB_SNAKE.EXE" target="_blank" rel="noopener noreferrer" class="btn btn-cyber-primary tool-btn" style="padding: 0.4rem 0.85rem; font-size: 0.78rem; white-space: nowrap;">
+            Star en GitHub ★
+          </a>
         </div>
       </div>
     </div>

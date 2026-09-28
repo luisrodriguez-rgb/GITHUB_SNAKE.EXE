@@ -959,6 +959,88 @@ canvas#snakeCanvas {
   image-rendering: crisp-edges;
   position: relative;
   z-index: 2;
+  touch-action: none;
+}
+
+/* Virtual Mobile D-Pad Controls */
+.mobile-dpad-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.25rem;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.dpad-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dpad-btn {
+  width: 52px;
+  height: 52px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--matrix-green);
+  font-size: 1.15rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(0, 255, 102, 0.1);
+  transition: all 0.1s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dpad-btn:active {
+  background: rgba(0, 255, 102, 0.25);
+  border-color: var(--matrix-green);
+  transform: scale(0.92);
+  box-shadow: 0 0 16px var(--matrix-glow);
+}
+
+.dpad-action {
+  width: 68px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  background: rgba(0, 255, 102, 0.1);
+}
+
+body[data-theme="light"] .dpad-btn {
+  background: #ffffff;
+  border-color: rgba(31, 35, 40, 0.2);
+  color: #0969da;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+body[data-theme="light"] .dpad-btn:active {
+  background: #ebf5ff;
+  border-color: #0969da;
+}
+
+@media (max-width: 900px) {
+  .stage-container {
+    padding: 1rem 0.5rem;
+  }
+  .canvas-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dpad-btn {
+    width: 58px;
+    height: 58px;
+    font-size: 1.35rem;
+  }
 }
 
 /* Pro Tools Bar */

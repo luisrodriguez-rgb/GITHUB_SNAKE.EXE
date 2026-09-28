@@ -534,25 +534,83 @@ document.addEventListener('DOMContentLoaded', async () => {
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') dir = { x: 1, y: 0 };
 
     if (dir) {
-      if (isDuelMode && snake2) {
-        if (snake2.direction.x !== -dir.x || snake2.direction.y !== -dir.y) {
-          player2NextDir = dir;
+      applyDirection(dir);
+    }
+  });
+
+  function applyDirection(dir) {
+    if (!dir) return;
+    if (isDuelMode && snake2) {
+      if (snake2.direction.x !== -dir.x || snake2.direction.y !== -dir.y) {
+        player2NextDir = dir;
+        achievements.unlock('manual_pilot', showAchievementToast);
+      }
+    } else {
+      if (snake.direction.x !== -dir.x || snake.direction.y !== -dir.y) {
+        manualNextDir = dir;
+        if (!isManualMode) {
+          isManualMode = true;
+          modeBtn.textContent = 'Control: Manual (WASD)';
+          modeBtn.classList.add('active-tool');
+          statState.textContent = 'Modo Manual (WASD / Tactil)';
           achievements.unlock('manual_pilot', showAchievementToast);
-        }
-      } else {
-        if (snake.direction.x !== -dir.x || snake.direction.y !== -dir.y) {
-          manualNextDir = dir;
-          if (!isManualMode) {
-            isManualMode = true;
-            modeBtn.textContent = 'Control: Manual (WASD)';
-            modeBtn.classList.add('active-tool');
-            statState.textContent = 'Modo Manual (WASD / Flechas)';
-            achievements.unlock('manual_pilot', showAchievementToast);
-          }
         }
       }
     }
+  }
+
+  // --- Controles Tactiles: Swipe en Canvas ---
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (e.changedTouches.length > 0) {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+      const minSwipeDistance = 25;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (Math.abs(dx) > minSwipeDistance) {
+          applyDirection(dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 });
+        }
+      } else {
+        if (Math.abs(dy) > minSwipeDistance) {
+          applyDirection(dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 });
+        }
+      }
+    }
+  }, { passive: true });
+
+  // --- Controles Tactiles: D-Pad Virtual en Pantalla ---
+  document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      sound.playClick();
+      const d = btn.getAttribute('data-dir');
+      if (d === 'up') applyDirection({ x: 0, y: -1 });
+      if (d === 'down') applyDirection({ x: 0, y: 1 });
+      if (d === 'left') applyDirection({ x: -1, y: 0 });
+      if (d === 'right') applyDirection({ x: 1, y: 0 });
+    });
   });
+
+  const dpadActionBtn = document.getElementById('dpadActionBtn');
+  if (dpadActionBtn) {
+    dpadActionBtn.addEventListener('click', () => {
+      sound.playClick();
+      modeBtn.click();
+      dpadActionBtn.textContent = isManualMode ? 'MANUAL' : 'AUTO';
+    });
+  }
 
   // --- Tooltip & Interacción Canvas ---
   function paintCellAt(clientX, clientY) {
@@ -870,6 +928,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     exportSvgBtn.click();
   });
 
+  const shareTwitterBtn = document.getElementById('shareTwitterBtn');
+  if (shareTwitterBtn) {
+    shareTwitterBtn.addEventListener('click', () => {
+      sound.playClick();
+      const score = snake.score;
+      const user = currentUsername;
+      const text = `Acabo de devorar los commits de @${user} con ${score} puntos a 60 FPS en GITHUB_SNAKE.EXE!\nPruébalo con tu perfil de GitHub:`;
+      const url = 'https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/';
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+      window.open(twitterUrl, '_blank', 'noopener,noreferrer');
+      analytics.trackEvent('share_twitter', { user, score });
+    });
+  }
+
   audioBtn.addEventListener('click', () => {
     const isMuted = sound.toggleMute();
     if (!isMuted) {
@@ -987,6 +1059,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     sound.playClick();
     renderer.snakeStyle = e.target.value;
   });
+
+  // Contador Dinamico de Estrellas en GitHub
+  async function updateGitHubStarsBadge() {
+    try {
+      const res = await fetch('https://api.github.com/repos/luisrodriguez-rgb/GITHUB_SNAKE.EXE');
+      if (res.ok) {
+        const data = await res.json();
+        const count = data.stargazers_count !== undefined ? data.stargazers_count : 0;
+        const badge = document.querySelector('.github-star-btn .star-badge');
+        if (badge) {
+          badge.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ${count}`;
+        }
+      }
+    } catch (e) {}
+  }
+  updateGitHubStarsBadge();
 
   // Inicialización
   updateAchievementsBadge();
