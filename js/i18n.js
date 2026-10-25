@@ -162,6 +162,11 @@ const STATIC_EN = {
   '3. Ejecutalo en': '3. Run it from',
   'y pega esto en tu': 'and paste this into your',
   'Copiar YAML': 'Copy YAML',
+  'Workflow en tu repositorio': 'Workflow in your repository',
+  'Enlace directo (sin configurar nada)': 'Direct link (no setup)',
+  '2. Pega esto en tu': '2. Paste this into your',
+  '. Se actualiza solo cada pocas horas:': '. It refreshes on its own every few hours:',
+  'Metodo': 'Method',
   'Copiar Markdown': 'Copy Markdown',
 
   // Atributos (placeholder, title, aria-label, alt)

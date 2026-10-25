@@ -101,6 +101,25 @@ Example: `dist/snake-neon.svg?theme=neon_cyan&speed=fast&morph=capsule`.
 
 The Action reads your calendar from GitHub's official GraphQL API, so the grid matches your profile exactly. If it can't read real data it fails with a clear error instead of drawing a fake grid. Invalid options fail the run and list the valid values.
 
+### Alternative: direct link, no workflow (SVG endpoint)
+
+The repo ships a serverless function ([`server/snake-svg.js`](server/snake-svg.js)) that renders the SVG on the fly with the same engine:
+
+```html
+<img src="https://YOUR-ENDPOINT/api/YOUR_USER.svg?theme=cyberpunk&morph=capsule" width="100%">
+```
+
+It takes the same options as the Action (`theme`, `speed`, `morph`, `pause`). On errors it returns an SVG that says what went wrong (unknown user, invalid option...) instead of a broken image.
+
+**Deploy it on Vercel (free Hobby plan):**
+1. Import this repository at [vercel.com/new](https://vercel.com/new) (framework: *Other*, no build command).
+2. Create a GitHub token: *Settings → Developer settings → Fine-grained tokens*, with **no permissions** (it only reads public data).
+3. In Vercel, add it as the `GITHUB_TOKEN` environment variable and deploy.
+4. Try `https://YOUR-PROJECT.vercel.app/api/YOUR_USER.svg?theme=dark`.
+5. To offer the **Direct link** option on the site, set that base URL in `<meta name="snake-api" content="...">` in `index.html`.
+
+Each SVG is cached on the CDN for 6 hours per user and option set, so the token barely touches its API quota. Cloudflare Workers isn't used because rendering an SVG takes ~70–200 ms of CPU and its free plan allows 10 ms.
+
 ---
 
 ## How it works

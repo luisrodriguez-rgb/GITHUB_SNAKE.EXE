@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="style.css?v=20261025-duel">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
+  <!-- URL base del endpoint SVG (server/snake-svg.js desplegado en Vercel), p. ej. https://github-snake.vercel.app. Vacío = no se ofrece -->
+  <meta name="snake-api" content="">
 </head>
 <body data-theme="dark">
 
@@ -629,6 +631,11 @@
         <button id="closeModalBtn" class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
+        <div id="wfMethod" class="wf-mode" role="radiogroup" aria-label="Metodo" hidden>
+          <label><input type="radio" name="wfMethodChoice" value="action" checked> Workflow en tu repositorio</label>
+          <label><input type="radio" name="wfMethodChoice" value="endpoint"> Enlace directo (sin configurar nada)</label>
+        </div>
+
         <p class="wf-step">1. Elige el estilo:</p>
 
         <div class="wf-mode" role="radiogroup" aria-label="Modo de color">
@@ -670,11 +677,14 @@
           </figure>
         </div>
 
-        <p class="wf-step">2. Crea <code>.github/workflows/snake.yml</code> en tu repositorio <code>usuario/usuario</code>:</p>
-        <textarea id="yamlOutput" readonly class="code-box"></textarea>
-        <button id="copyYamlBtn" class="btn btn-cyber-primary" style="width: 100%; margin-bottom: 1.2rem;">Copiar YAML</button>
+        <div id="wfActionSteps">
+          <p class="wf-step">2. Crea <code>.github/workflows/snake.yml</code> en tu repositorio <code>usuario/usuario</code>:</p>
+          <textarea id="yamlOutput" readonly class="code-box"></textarea>
+          <button id="copyYamlBtn" class="btn btn-cyber-primary" style="width: 100%; margin-bottom: 1.2rem;">Copiar YAML</button>
 
-        <p class="wf-step">3. Ejecutalo en <strong>Actions &rarr; GitHub Snake &rarr; Run workflow</strong> y pega esto en tu <code>README.md</code>:</p>
+          <p class="wf-step">3. Ejecutalo en <strong>Actions &rarr; GitHub Snake &rarr; Run workflow</strong> y pega esto en tu <code>README.md</code>:</p>
+        </div>
+        <p id="wfEndpointStep" class="wf-step" hidden>2. Pega esto en tu <code>README.md</code>. Se actualiza solo cada pocas horas:</p>
         <textarea id="readmeOutput" readonly class="code-box" style="height: 90px;"></textarea>
         <button id="copyReadmeBtn" class="btn btn-cyber-secondary" style="width: 100%;">Copiar Markdown</button>
       </div>

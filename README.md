@@ -176,6 +176,9 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 ├── favicon.svg           # Favicon y logo vectorial SVG oficial de alta resolución
 ├── embed.js              # Web Component autónomo <github-snake> para portafolios
 ├── action.yml            # GitHub Action: genera los SVG animados en tu perfil
+├── api/snake.js          # Función serverless (Vercel) del endpoint /api/<usuario>.svg
+├── shared/snake-core.js  # Opciones del SVG y calendario GraphQL, compartido por Action y endpoint
+├── vercel.json           # Reescritura /api/<usuario>.svg y archivos incluidos en la función
 ├── action/               # Punto de entrada de la Action (Node.js, sin dependencias)
 ├── tests/                # Tests de la Action (node --test tests/*.test.js)
 ├── _headers              # Cabeceras de seguridad HTTP, HSTS, CSP y caché para producción
@@ -302,6 +305,25 @@ Edita tu `README.md` principal y agrega este bloque para soporte automático en 
   <img alt="GITHUB_SNAKE.EXE contribution animation" src="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-snake.svg">
 </picture>
 ```
+
+### Alternativa: enlace directo sin workflow (endpoint SVG)
+
+El repositorio incluye una función serverless ([`server/snake-svg.js`](server/snake-svg.js)) que sirve el SVG al vuelo con el mismo motor:
+
+```html
+<img src="https://TU-ENDPOINT/api/TU_USUARIO.svg?theme=cyberpunk&morph=capsule" width="100%">
+```
+
+Acepta las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`). Si algo falla, devuelve un SVG con el motivo (usuario inexistente, opción no válida...) en lugar de una imagen rota.
+
+**Desplegarlo en Vercel (plan Hobby gratuito):**
+1. Importa este repositorio en [vercel.com/new](https://vercel.com/new) (framework: *Other*, sin comando de build).
+2. Crea un token en GitHub: *Settings → Developer settings → Fine-grained tokens*, **sin ningún permiso** (solo hace falta leer datos públicos).
+3. En Vercel, añade la variable de entorno `GITHUB_TOKEN` con ese token y despliega.
+4. Prueba `https://TU-PROYECTO.vercel.app/api/TU_USUARIO.svg?theme=dark`.
+5. Para que la web ofrezca la opción **Enlace directo**, pon esa URL base en `<meta name="snake-api" content="...">` de `index.html`.
+
+Cada SVG se cachea 6 horas en la CDN por usuario y combinación de opciones, así que el token apenas consume su límite de la API. No se usa Cloudflare Workers porque generar un SVG cuesta ~70-200 ms de CPU y su plan gratuito permite 10 ms.
 
 ---
 

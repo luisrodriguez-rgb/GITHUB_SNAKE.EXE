@@ -1040,6 +1040,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const wfPreviewLightBox = document.getElementById('wfPreviewLightBox');
   const wfPreviewDarkCaption = document.getElementById('wfPreviewDarkCaption');
   const wfPreviewUrls = {};
+  const wfMethod = document.getElementById('wfMethod');
+  const wfActionSteps = document.getElementById('wfActionSteps');
+  const wfEndpointStep = document.getElementById('wfEndpointStep');
+  // Endpoint SVG desplegado (meta snake-api en index.html). Sin él solo se ofrece el workflow
+  const snakeApiBase = (document.querySelector('meta[name="snake-api"]')?.content || '').trim().replace(/\/$/, '');
+  wfMethod.hidden = !snakeApiBase;
 
   // Las opciones salen de los selectores del exportador SVG para no duplicar listas
   wfDarkTheme.innerHTML = exportThemeSelect.innerHTML;
@@ -1084,11 +1090,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     setPreview(wfPreviewDark, 'dark', { ...common, theme: style.darkTheme });
     if (style.adaptive) setPreview(wfPreviewLight, 'light', { ...common, theme: style.lightTheme });
 
+    const useEndpoint = Boolean(snakeApiBase) && document.querySelector('input[name="wfMethodChoice"]:checked').value === 'endpoint';
+    wfActionSteps.hidden = useEndpoint;
+    wfEndpointStep.hidden = !useEndpoint;
+
     yamlOutput.value = exporter.generateWorkflowYaml(currentUsername, style);
-    readmeOutput.value = exporter.generateReadmeSnippet(currentUsername, style);
+    readmeOutput.value = exporter.generateReadmeSnippet(currentUsername, style, useEndpoint ? snakeApiBase : '');
   }
 
-  [wfDarkTheme, wfLightTheme, wfMorph, wfSpeed, wfPause, ...document.querySelectorAll('input[name="wfMode"]')]
+  [wfDarkTheme, wfLightTheme, wfMorph, wfSpeed, wfPause, ...document.querySelectorAll('input[name="wfMode"], input[name="wfMethodChoice"]')]
     .forEach(el => el.addEventListener('change', () => {
       sound.playClick();
       updateWorkflowModal();

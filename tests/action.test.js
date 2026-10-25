@@ -128,3 +128,11 @@ test('el SVG parte de la matriz original aunque la partida ya haya comido celdas
   grid.flat().forEach(c => { c.level = 0; });
   assert.strictEqual(exporter.buildAnimatedSvg(grid, {}).length, before.length);
 });
+
+test('con endpoint configurado, el README apunta a /api/<usuario>.svg con las opciones elegidas', () => {
+  const engine = loadEngine();
+  const exporter = new engine.ExporterEngine();
+  const snippet = exporter.generateReadmeSnippet('octocat', { adaptive: true, darkTheme: 'cyberpunk', lightTheme: 'light', morph: 'capsule' }, 'https://snake.example.dev');
+  assert.match(snippet, /srcset="https:\/\/snake\.example\.dev\/api\/octocat\.svg\?theme=cyberpunk&morph=capsule"/);
+  assert.match(snippet, /src="https:\/\/snake\.example\.dev\/api\/octocat\.svg\?theme=light&morph=capsule"/);
+});
