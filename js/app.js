@@ -965,7 +965,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const eaten = snake.eatenCommits + (snake2 ? snake2.eatenCommits : 0);
       const text = dataIsSimulated
         ? `Mi serpiente con IA (BFS + Flood Fill) acaba de limpiar una matriz de GitHub con ${score} puntos en GITHUB_SNAKE.EXE.\n¿Y tu perfil?`
-        : `Mi serpiente con IA acaba de devorar ${eaten} commits de @${user} en GitHub (${score} pts) en GITHUB_SNAKE.EXE.\nPrueba con tu perfil:`;
+        : `Mi serpiente con IA acaba de devorar ${eaten} commits de github.com/${user} (${score} pts) en GITHUB_SNAKE.EXE.\nPrueba con tu perfil:`;
       const url = profileUrl(user);
       const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
       window.open(twitterUrl, '_blank', 'noopener,noreferrer');
@@ -1175,11 +1175,171 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateAchievementsBadge();
   speedValue.textContent = formatSpeedLabel(ticksPerSecond);
   renderLeaderboard();
+  // --- Duelo de Perfiles ---
+  const duelForm = document.getElementById('duelForm');
+  const duelUserA = document.getElementById('duelUserA');
+  const duelUserB = document.getElementById('duelUserB');
+  const duelStartBtn = document.getElementById('duelStartBtn');
+  const duelStatus = document.getElementById('duelStatus');
+  const duelArena = document.getElementById('duelArena');
+  const duelTimer = document.getElementById('duelTimer');
+  const duelSkipBtn = document.getElementById('duelSkipBtn');
+  const duelRematchBtn = document.getElementById('duelRematchBtn');
+  const duelShareBtn = document.getElementById('duelShareBtn');
+  const duelCopyBtn = document.getElementById('duelCopyBtn');
+  const duelPlayerEls = [...duelArena.querySelectorAll('.duel-player')];
+  let duelResult = null;
+
+  const profileDuel = new ProfileDuel({
+    canvases: [...duelArena.querySelectorAll('.duel-canvas')],
+    fetcher,
+    onUpdate: renderDuelState,
+    onFinish: showDuelResult
+  });
+
+  function duelUrl(a, b) {
+    const url = new URL(profileUrl(a));
+    url.searchParams.set('vs', b);
+    url.hash = 'duelSection';
+    return url.toString();
+  }
+
+  function renderDuelState(state) {
+    duelTimer.textContent = state.secondsLeft;
+    state.players.forEach((p, i) => {
+      const el = duelPlayerEls[i];
+      el.querySelector('.duel-score').textContent = `${p.score} pts`;
+      el.querySelector('.duel-bar-fill').style.width = `${p.percent}%`;
+    });
+  }
+
+  function setDuelFinishedUi(finished) {
+    duelSkipBtn.hidden = finished;
+    duelRematchBtn.hidden = !finished;
+    duelShareBtn.hidden = !finished;
+    duelCopyBtn.hidden = !finished;
+  }
+
+  function showDuelResult(state) {
+    duelResult = state;
+    setDuelFinishedUi(true);
+    duelPlayerEls.forEach((el, i) => el.classList.toggle('is-winner', state.winner === state.players[i]));
+    const [a, b] = state.players;
+    duelStatus.textContent = state.winner
+      ? `Gana ${state.winner.username}: ${state.winner.score} pts (${state.winner.percent}% de su GitHub devorado) contra ${(state.winner === a ? b : a).score} pts.`
+      : `Empate: ${a.score} pts cada uno.`;
+
+    const simulated = state.players.some(p => p.simulated);
+    // Con datos inventados no se ofrece presumir del resultado
+    duelShareBtn.disabled = simulated;
+    duelShareBtn.title = simulated ? 'No se pudieron leer los datos reales de algún perfil' : '';
+    sound.playShockwave();
+    analytics.trackEvent('profile_duel', { a: a.username, b: b.username });
+  }
+
+  async function startProfileDuel(rawA, rawB) {
+    const a = fetcher.sanitizeUsername(rawA);
+    const b = fetcher.sanitizeUsername(rawB);
+    if (!rawB || !rawB.trim()) {
+      duelStatus.textContent = 'Escribe el usuario de tu rival.';
+      duelUserB.focus();
+      return;
+    }
+    if (a === b) {
+      duelStatus.textContent = 'Elige dos usuarios distintos.';
+      return;
+    }
+
+    duelUserA.value = a;
+    duelUserB.value = b;
+    duelStartBtn.disabled = true;
+    duelStatus.textContent = `Cargando ${a} y ${b}...`;
+    try {
+      const players = await profileDuel.load([a, b]);
+      players.forEach((p, i) => {
+        const el = duelPlayerEls[i];
+        el.classList.remove('is-winner');
+        el.querySelector('.duel-avatar').src = p.profile.avatar;
+        el.querySelector('.duel-name').textContent = p.username;
+        el.querySelector('.duel-sim').hidden = !p.simulated;
+      });
+      duelArena.hidden = false;
+      setDuelFinishedUi(false);
+      duelStatus.textContent = players.some(p => p.simulated)
+        ? 'Aviso: algún perfil no se pudo leer y usa datos simulados.'
+        : '¡Pelea!';
+      try {
+        history.replaceState(null, '', duelUrl(a, b));
+      } catch (e) {}
+      profileDuel.start();
+    } catch (err) {
+      console.error(err);
+      duelStatus.textContent = 'No se pudo iniciar el duelo.';
+    } finally {
+      duelStartBtn.disabled = false;
+    }
+  }
+
+  duelForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    sound.playClick();
+    startProfileDuel(duelUserA.value || currentUsername, duelUserB.value);
+  });
+
+  duelSkipBtn.addEventListener('click', () => {
+    sound.playClick();
+    profileDuel.skipToEnd();
+  });
+
+  duelRematchBtn.addEventListener('click', () => {
+    sound.playClick();
+    duelPlayerEls.forEach(el => el.classList.remove('is-winner'));
+    setDuelFinishedUi(false);
+    duelStatus.textContent = '¡Revancha!';
+    profileDuel.start();
+  });
+
+  duelShareBtn.addEventListener('click', () => {
+    if (!duelResult) return;
+    sound.playClick();
+    const [a, b] = duelResult.players;
+    const w = duelResult.winner;
+    const text = w
+      ? `Duelo de GitHubs en GITHUB_SNAKE.EXE: ${a.username} (${a.score} pts) vs ${b.username} (${b.score} pts). Gana ${w.username} con el ${w.percent}% de su grafico devorado por la IA.\n¿Tu GitHub le gana?`
+      : `Duelo de GitHubs en GITHUB_SNAKE.EXE: ${a.username} vs ${b.username} terminó en empate (${a.score} pts).\n¿Tu GitHub les gana?`;
+    const url = duelUrl(a.username, b.username);
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer');
+    analytics.trackEvent('share_duel', { a: a.username, b: b.username });
+  });
+
+  duelCopyBtn.addEventListener('click', async () => {
+    if (!duelResult) return;
+    sound.playClick();
+    const [a, b] = duelResult.players;
+    try {
+      await navigator.clipboard.writeText(duelUrl(a.username, b.username));
+      duelCopyBtn.textContent = 'Copiado';
+    } catch (e) {
+      duelCopyBtn.textContent = 'No se pudo copiar';
+    }
+    setTimeout(() => { duelCopyBtn.textContent = 'Copiar enlace'; }, 2000);
+  });
+
   // ?u=usuario abre directamente ese perfil (enlaces compartidos)
-  const sharedUser = new URLSearchParams(window.location.search).get('u');
+  // Se leen antes de cargar: loadUserGrid reescribe la URL
+  const sharedParams = new URLSearchParams(window.location.search);
+  const sharedUser = sharedParams.get('u');
+  const sharedRival = sharedParams.get('vs');
   const initialUser = sharedUser ? fetcher.sanitizeUsername(sharedUser) : 'torvalds';
   usernameInput.value = initialUser;
   presetPills.forEach(p => p.classList.toggle('active', p.getAttribute('data-user') === initialUser));
   await loadUserGrid(initialUser);
   animationFrameId = requestAnimationFrame(gameLoop);
+
+  // ?u=a&vs=b abre un duelo de perfiles
+  duelUserA.value = initialUser;
+  if (sharedRival) {
+    document.getElementById('duelSection').scrollIntoView({ behavior: 'smooth' });
+    startProfileDuel(initialUser, sharedRival);
+  }
 });

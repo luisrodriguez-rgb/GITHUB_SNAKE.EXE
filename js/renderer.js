@@ -16,6 +16,8 @@ class SnakeRenderer {
     this.paddingY = 20;
 
     this.snakeStyle = 'matrix_viper';
+    // Colores de serpiente que sustituyen a los del tema (duelo de perfiles)
+    this.snakePalette = null;
     this.scanlineX = 0;
     this.time = 0;
     this.shockwaves = [];
@@ -103,7 +105,7 @@ class SnakeRenderer {
 
   render(grid, snake, progress = 1.0, secondSnake = null) {
     this.time += 0.05;
-    const colors = this.getThemeColors();
+    const colors = this.snakePalette ? { ...this.getThemeColors(), ...this.snakePalette } : this.getThemeColors();
     const width = this.canvas.width / (window.devicePixelRatio || 1);
     const height = this.canvas.height / (window.devicePixelRatio || 1);
 

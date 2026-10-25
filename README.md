@@ -66,6 +66,8 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
   * **IA Autónoma**: Simulación automática auto-optimizada.
   * **Modo Manual**: Control directo con teclado (WASD / Flechas) con prevención de giros inversos.
   * **Modo Duelo**: Serpiente Verde (IA) vs Serpiente Cian (Jugador) con barra de progreso dual en tiempo real y pantalla de victoria/game over.
+  * **Duelo de Perfiles**: dos usuarios reales de GitHub, la misma IA y 60 segundos. Gana el perfil cuya serpiente devora más puntos. El resultado depende solo de los ticks (es reproducible en cualquier equipo) y se comparte con un enlace: `?u=tu_usuario&vs=rival`.
+  * **Enlaces directos**: `?u=usuario` abre la web con la cuadrícula de ese perfil.
 
 ---
 
@@ -189,6 +191,7 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 │   ├── achievements.js   # Sistema de medallas, persistencia y eventos
 │   ├── audio.js          # Sintetizador procedural Web Audio API
 │   ├── calendar.js       # Geometría de la cuadrícula (fecha de cada celda)
+│   ├── duel.js           # Duelo de perfiles: dos matrices reales, misma IA, ticks fijos
 │   ├── exporter.js       # Exportador SVG con barrido 100% y generador YAML
 │   ├── github.js         # API Fetcher, cálculo de fechas y ranking de devs
 │   ├── pathfinding.js    # Algoritmo BFS y evaluación de seguridad Flood Fill

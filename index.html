@@ -262,6 +262,57 @@
       </div>
     </section>
 
+    <!-- Duelo de Perfiles -->
+    <section id="duelSection" class="glass-panel">
+      <div class="section-title-bar">
+        <div>
+          <h2>Duelo de Perfiles</h2>
+          <p>Dos perfiles reales, la misma IA y 60 segundos. Gana el GitHub que mas commits le da de comer a su serpiente.</p>
+        </div>
+      </div>
+
+      <form id="duelForm" class="duel-form">
+        <input type="text" id="duelUserA" class="duel-input" placeholder="tu usuario" autocomplete="off" spellcheck="false" aria-label="Tu usuario de GitHub">
+        <span class="duel-vs">VS</span>
+        <input type="text" id="duelUserB" class="duel-input" placeholder="rival (ej: midudev)" autocomplete="off" spellcheck="false" aria-label="Usuario rival de GitHub">
+        <button type="submit" id="duelStartBtn" class="btn btn-cyber-primary">A pelear</button>
+      </form>
+      <p id="duelStatus" class="duel-status" role="status"></p>
+
+      <div id="duelArena" class="duel-arena" hidden>
+        <div class="duel-player" data-player="0">
+          <div class="duel-player-head">
+            <img class="duel-avatar" alt="">
+            <span class="duel-name"></span>
+            <span class="duel-sim" hidden>datos simulados</span>
+            <span class="duel-score">0 pts</span>
+          </div>
+          <div class="duel-bar"><div class="duel-bar-fill"></div></div>
+          <div class="canvas-wrapper"><canvas class="duel-canvas"></canvas></div>
+        </div>
+
+        <div class="duel-timer"><span id="duelTimer">60</span>s</div>
+
+        <div class="duel-player" data-player="1">
+          <div class="duel-player-head">
+            <img class="duel-avatar" alt="">
+            <span class="duel-name"></span>
+            <span class="duel-sim" hidden>datos simulados</span>
+            <span class="duel-score">0 pts</span>
+          </div>
+          <div class="duel-bar"><div class="duel-bar-fill"></div></div>
+          <div class="canvas-wrapper"><canvas class="duel-canvas"></canvas></div>
+        </div>
+
+        <div class="duel-actions">
+          <button type="button" id="duelSkipBtn" class="btn btn-cyber-secondary">Ver resultado ya</button>
+          <button type="button" id="duelRematchBtn" class="btn btn-cyber-secondary" hidden>Revancha</button>
+          <button type="button" id="duelShareBtn" class="btn btn-cyber-primary" hidden>Compartir en X</button>
+          <button type="button" id="duelCopyBtn" class="btn btn-cyber-secondary" hidden>Copiar enlace</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Leaderboard / Ranking Section -->
     <section class="glass-panel">
       <div class="section-title-bar">
@@ -637,6 +688,7 @@
   <script src="js/pathfinding.js"></script>
   <script src="js/snake.js"></script>
   <script src="js/renderer.js"></script>
+  <script src="js/duel.js"></script>
   <script src="js/app.js"></script>
   <!-- Cloudflare Web Analytics -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3e77b1cd85dc43deb7ca6f16ca8c9fef"}'></script>
