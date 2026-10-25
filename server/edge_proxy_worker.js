@@ -1,17 +1,18 @@
 /**
- * Cloudflare Worker / Edge Proxy para GitHub API & Rate Limiting Caching
- * 
+ * Cloudflare Worker / Edge Proxy para la API de contribuciones
+ *
  * Funcionalidad:
- * 1. Resuelve el límite de 60 peticiones/hora de GitHub usando caché distribuida en Edge (1 hora TTL).
- * 2. Soporta Stale-While-Revalidate (devuelve datos instantáneamente mientras actualiza en segundo plano).
- * 3. Permite inyectar un GITHUB_TOKEN seguro en variables de entorno para 5,000 req/hora.
- * 4. Aplica Rate Limiting estricto por IP para prevenir ataques de denegación de servicio (DDoS).
+ * 1. Cachea en el edge (Cache API de Cloudflare, 1 hora) la respuesta de github-contributions-api.jogruber.de,
+ *    para no repetir la misma consulta por cada visitante.
+ * 2. Valida el nombre de usuario y añade cabeceras CORS.
+ *
+ * No incluye rate limiting por IP: si lo necesitas, configúralo con las reglas de Rate Limiting de Cloudflare.
+ * Nunca envíes un GITHUB_TOKEN a esta API: es un servicio de terceros, no api.github.com.
  */
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const clientIP = request.headers.get('CF-Connecting-IP') || 'anonymous';
 
     // CORS Headers
     const corsHeaders = {
@@ -34,7 +35,13 @@ export default {
       });
     }
 
-    const username = pathParts[2].toLowerCase().replace(/[^a-z0-9-_]/g, '');
+    const username = pathParts[2].toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 39);
+    if (!username) {
+      return new Response(JSON.stringify({ error: 'Usuario no valido' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
 
     // 1. Verificación de Caché en Edge (Cloudflare Cache API)
     const cacheKey = new Request(url.toString(), request);
@@ -51,15 +58,11 @@ export default {
       });
     }
 
-    // 2. Consulta con Stale-While-Revalidate hacia GitHub API o API de respaldo
+    // 2. Consulta a la API de contribuciones (cache miss)
     const targetUrl = `https://github-contributions-api.jogruber.de/v4/${username}?y=last`;
     const fetchHeaders = {
       'User-Agent': 'GitHub-Snake-Matrix-Proxy/2.0'
     };
-
-    if (env.GITHUB_TOKEN) {
-      fetchHeaders['Authorization'] = `Bearer ${env.GITHUB_TOKEN}`;
-    }
 
     try {
       const apiResponse = await fetch(targetUrl, { headers: fetchHeaders });
@@ -74,7 +77,7 @@ export default {
       const data = await apiResponse.json();
       const bodyString = JSON.stringify(data);
 
-      // 3. Crear respuesta con cabeceras de caché ultra optimizadas (1 hora pública, 24 horas stale)
+      // 3. Respuesta cacheable 1 hora (stale-while-revalidate lo aplican los navegadores/CDN que lo soporten)
       response = new Response(bodyString, {
         status: 200,
         headers: {

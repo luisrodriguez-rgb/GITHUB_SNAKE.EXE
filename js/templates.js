@@ -78,11 +78,7 @@ class CommitArtEngine {
   }
 
   computeDateForCoords(col, row) {
-    const now = new Date();
-    const currentDay = now.getDay();
-    const daysAgo = ((52 - col) * 7) + (currentDay - row);
-    const targetDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
-    return targetDate.toISOString().split('T')[0];
+    return ContributionCalendar.isoForCell(col, row);
   }
 
   textToPattern(text, cols = 53, rows = 7) {
@@ -257,27 +253,49 @@ class CommitArtEngine {
       pattern = this.textToPattern(name);
     }
 
+    // Solo caracteres de la fuente: el nombre se escribe dentro del script y no debe poder inyectar shell
+    const safeName = String(name).toUpperCase().replace(/[^A-Z0-9 !?<>\/\-+*=#.:]/g, '').trim() || 'DEV';
+    const now = new Date();
+
+    const commitLines = pattern
+      .filter(([x, y]) => !ContributionCalendar.isFuture(x, y, now))
+      .map(([x, y]) => {
+        const count = Math.floor(Math.random() * 6) + 3; // 3 a 8 commits por pixel
+        return `paint ${ContributionCalendar.isoForCell(x, y, now)} ${count}`;
+      });
+
     return `#!/usr/bin/env bash
-# Generador de Commit Art en GitHub
-# Repositorio destino recomendado: Crea un repositorio NUEVO y VACIO en tu GitHub
+# Generador de Commit Art para GitHub: '${safeName}'
+# Generado el ${ContributionCalendar.formatIso(now)}. Las fechas estan alineadas con la cuadricula
+# de contribuciones de ese dia; si lo ejecutas semanas despues, el dibujo se desplaza a la izquierda.
+#
+# Requisitos para que GitHub cuente los commits:
+#   - El email de git debe ser uno verificado en tu cuenta de GitHub (git config user.email).
+#   - Sube los commits a la rama por defecto (main) de un repositorio tuyo.
+#   - Son commits vacios: el dibujo es decorativo, no actividad real.
+set -euo pipefail
 
 mkdir -p git-art-custom && cd git-art-custom
-git init
-echo "# GitHub Commit Art: ${name}" > README.md
+git init -q
+git checkout -q -b main 2>/dev/null || true
+echo '# GitHub Commit Art: ${safeName}' > README.md
 git add README.md
-git commit -m "init custom artwork"
+git commit -q -m "init custom artwork"
 
-YEAR=$(date +%Y)
-${pattern.map(([x, y]) => {
-  const count = Math.floor(Math.random() * 6) + 3; // 3 a 8 commits por punto
-  return `for i in {1..${count}}; do
-  GIT_AUTHOR_DATE="$YEAR-01-01T12:00:00 +${x * 7 + y} days $i minutes" GIT_COMMITTER_DATE="$YEAR-01-01T12:00:00 +${x * 7 + y} days $i minutes" git commit --allow-empty -m "pixel [${x},${y}] #$i"
-done`;
-}).join('\n')}
+paint() {
+  local day="$1" count="$2" i
+  for ((i = 1; i <= count; i++)); do
+    GIT_AUTHOR_DATE="\${day}T12:$(printf '%02d' "$i"):00" \\
+    GIT_COMMITTER_DATE="\${day}T12:$(printf '%02d' "$i"):00" \\
+      git commit -q --allow-empty -m "pixel \${day} #\${i}"
+  done
+}
 
-echo "Arte '${name}' generado exitosamente."
+${commitLines.join('\n')}
+
+echo "Arte '${safeName}' generado: $(git rev-list --count HEAD) commits."
 echo "Para pintarlo en tu perfil de GitHub:"
-echo "1. Crea un repo en github.com"
+echo "1. Crea un repositorio vacio en github.com"
 echo "2. git remote add origin <tu_repo_url>"
 echo "3. git push -u origin main"`;
   }

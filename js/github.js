@@ -7,6 +7,8 @@ class GitHubFetcher {
   constructor() {
     this.cols = 53;
     this.rows = 7;
+    // 'api' | 'mock': origen de la última matriz cargada, para avisar en la UI cuando es simulada
+    this.lastSource = 'mock';
 
     this.topDevelopers = [
       {
@@ -15,8 +17,6 @@ class GitHubFetcher {
         username: 'antfu',
         avatar: 'https://github.com/antfu.png?size=100',
         role: 'Vue / Vite / Nuxt Core',
-        commits: '5,840',
-        streak: '365 dias',
         location: 'Tokio, Japon'
       },
       {
@@ -25,8 +25,6 @@ class GitHubFetcher {
         username: 'sindresorhus',
         avatar: 'https://github.com/sindresorhus.png?size=100',
         role: 'Open Source Maintainer',
-        commits: '4,210',
-        streak: '320 dias',
         location: 'Suecia'
       },
       {
@@ -35,8 +33,6 @@ class GitHubFetcher {
         username: 'yyx990803',
         avatar: 'https://github.com/yyx990803.png?size=100',
         role: 'Creador de Vue.js & Vite',
-        commits: '3,450',
-        streak: '280 dias',
         location: 'Singapur'
       },
       {
@@ -45,8 +41,6 @@ class GitHubFetcher {
         username: 'torvalds',
         avatar: 'https://github.com/torvalds.png?size=100',
         role: 'Creador de Linux & Git',
-        commits: '3,290',
-        streak: '340 dias',
         location: 'Portland, EE.UU.'
       },
       {
@@ -55,8 +49,6 @@ class GitHubFetcher {
         username: 'midudev',
         avatar: 'https://github.com/midudev.png?size=100',
         role: 'FullStack & Open Source',
-        commits: '3,120',
-        streak: '295 dias',
         location: 'Espana'
       },
       {
@@ -65,8 +57,6 @@ class GitHubFetcher {
         username: 'gaearon',
         avatar: 'https://github.com/gaearon.png?size=100',
         role: 'Creador de Redux',
-        commits: '2,890',
-        streak: '210 dias',
         location: 'Londres, Reino Unido'
       }
     ];
@@ -114,22 +104,20 @@ class GitHubFetcher {
       avatar: `https://github.com/${cleanUser}.png?size=100`,
       bio: matched ? matched.role : 'Desarrollador en GitHub',
       location: matched ? matched.location : 'Comunidad Global',
-      repos: 42,
-      followers: 128
+      repos: null,
+      followers: null,
+      isFallback: true
     };
   }
 
   computeDateForCoords(col, row) {
-    const now = new Date();
-    const currentDay = now.getDay();
-    const daysAgo = ((52 - col) * 7) + (currentDay - row);
-    const targetDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
-    return targetDate.toISOString().split('T')[0];
+    return ContributionCalendar.isoForCell(col, row);
   }
 
   async getContributions(rawInput) {
     const username = this.sanitizeUsername(rawInput);
     
+    this.lastSource = 'mock';
     if (username === 'dense_matrix') {
       return this.generateDenseGrid();
     }
@@ -146,6 +134,7 @@ class GitHubFetcher {
       if (response.ok) {
         const data = await response.json();
         if (data.contributions && data.contributions.length > 0) {
+          this.lastSource = 'api';
           return this.parseApiContributions(data.contributions);
         }
       }
@@ -157,28 +146,25 @@ class GitHubFetcher {
   }
 
   parseApiContributions(contributions) {
+    // Se ubica cada día por su fecha: la API no garantiza que el primer elemento sea domingo
+    const byDate = new Map(contributions.map(item => [item.date, item]));
     const grid = this.createEmptyGrid();
-    const recent = contributions.slice(-371);
-    
-    for (let i = 0; i < recent.length; i++) {
-      const col = Math.floor(i / 7);
-      const row = i % 7;
-      if (col < this.cols && row < this.rows) {
-        const item = recent[i];
+
+    for (let col = 0; col < this.cols; col++) {
+      for (let row = 0; row < this.rows; row++) {
+        const cell = grid[col][row];
+        const item = byDate.get(cell.date);
+        if (!item) continue;
+
         const count = item.count !== undefined ? item.count : 0;
         let level = item.level;
         if (level === undefined) {
           level = count === 0 ? 0 : (count > 10 ? 4 : count > 5 ? 3 : count > 2 ? 2 : 1);
         }
 
-        grid[col][row] = {
-          x: col,
-          y: row,
-          level: Math.min(4, level),
-          originalLevel: Math.min(4, level),
-          count: count,
-          date: item.date || this.computeDateForCoords(col, row)
-        };
+        cell.level = Math.min(4, level);
+        cell.originalLevel = cell.level;
+        cell.count = count;
       }
     }
 
@@ -211,6 +197,8 @@ class GitHubFetcher {
       seed = (seed << 5) - seed + seedString.charCodeAt(i);
       seed |= 0;
     }
+    // Un hash negativo hacía que el generador devolviera siempre valores negativos (todo nivel 1)
+    seed = Math.abs(seed) % 233280;
 
     const pseudoRandom = () => {
       seed = (seed * 9301 + 49297) % 233280;

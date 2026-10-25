@@ -147,6 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isPaintMode = false;
   let isMouseDown = false;
   let currentUsername = 'torvalds';
+  let dataIsSimulated = false;
 
   function formatSpeedLabel(speed) {
     if (speed <= 3) return `${speed} t/s (Relajado)`;
@@ -196,13 +197,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     drops = Array(matrixColumns).fill(1).map(() => Math.floor(Math.random() * -50));
   }
 
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let rainTheme = null;
+  let rainColor = '#00ff66';
+
   function drawMatrixRain() {
-    const isLight = document.body.getAttribute('data-theme') === 'light';
+    if (reducedMotion.matches) return;
+
+    const theme = document.body.getAttribute('data-theme');
+    const isLight = theme === 'light';
     matrixCtx.fillStyle = isLight ? 'rgba(246, 248, 250, 0.15)' : 'rgba(4, 8, 6, 0.08)';
     matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
 
-    const style = getComputedStyle(document.body);
-    const rainColor = style.getPropertyValue('--matrix-green').trim() || '#00ff66';
+    // getComputedStyle fuerza un recálculo de estilos: solo se consulta al cambiar de tema
+    if (theme !== rainTheme) {
+      rainTheme = theme;
+      rainColor = getComputedStyle(document.body).getPropertyValue('--matrix-green').trim() || '#00ff66';
+    }
 
     matrixCtx.fillStyle = rainColor;
     matrixCtx.font = '12px JetBrains Mono';
@@ -243,12 +254,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <div class="dev-metrics">
           <div class="metric-item">
-            <label>Commits Anuales</label>
-            <value>${dev.commits}</value>
-          </div>
-          <div class="metric-item">
-            <label>Racha Activa</label>
-            <value>${dev.streak}</value>
+            <label>Ubicacion</label>
+            <value>${dev.location}</value>
           </div>
         </div>
       `;
@@ -303,11 +310,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       activeDevLink.href = `https://github.com/${profile.username}`;
       activeDevBio.textContent = profile.bio;
       activeDevLocation.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${profile.location}`;
-      activeDevRepos.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Repos: ${profile.repos}`;
+      activeDevRepos.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Repos: ${profile.repos ?? '—'}`;
     });
 
     try {
       grid = await fetcher.getContributions(username);
+      dataIsSimulated = fetcher.lastSource !== 'api';
       totalCommitsInitial = countRemainingCommits();
       totalPointsInitial = countTotalCommitPoints();
       snake.reset();
@@ -316,6 +324,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       lastTickTime = performance.now();
       updateHud();
       statState.textContent = isDuelMode ? 'Duelo Activo: IA vs Jugador' : (isManualMode ? 'Modo Manual (WASD / Flechas)' : 'Cazando commits (IA)');
+      if (dataIsSimulated) {
+        statState.textContent = `Datos simulados: no se pudo leer el perfil de @${username}`;
+      }
     } catch (err) {
       console.error(err);
       statState.textContent = 'Error al decodificar';
@@ -431,7 +442,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (remaining === 0 && !gameCompleted) {
       triggerGameOver();
     } else if (!isManualMode && !isDuelMode) {
-      statState.textContent = `Cazando (${remaining} restantes)`;
+      statState.textContent = `Cazando (${remaining} restantes)${dataIsSimulated ? ' · datos simulados' : ''}`;
     }
   }
 
@@ -688,6 +699,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     sound.playClick();
     gameCompleted = false;
     grid = fetcher.generateRandomGrid();
+    dataIsSimulated = false;
     totalCommitsInitial = countRemainingCommits();
     totalPointsInitial = countTotalCommitPoints();
     snake.reset();
@@ -777,6 +789,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       sound.playClick();
       gameCompleted = false;
       grid = artEngine.generateGridFromText(text);
+      dataIsSimulated = false;
       totalCommitsInitial = countRemainingCommits();
       totalPointsInitial = countTotalCommitPoints();
       snake.reset();
@@ -819,6 +832,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       gameCompleted = false;
       const tplKey = btn.getAttribute('data-tpl');
       grid = artEngine.applyTemplate(tplKey);
+      dataIsSimulated = false;
       totalCommitsInitial = countRemainingCommits();
       totalPointsInitial = countTotalCommitPoints();
       snake.reset();

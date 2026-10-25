@@ -24,7 +24,9 @@ class GitHubSnakeElement extends HTMLElement {
   }
 
   render() {
-    const user = this.getAttribute('user') || 'torvalds';
+    // El usuario se interpola en HTML y URLs: solo se aceptan nombres válidos de GitHub
+    const rawUser = (this.getAttribute('user') || '').trim();
+    const user = /^[a-z\d](?:[a-z\d-]{0,38})$/i.test(rawUser) ? rawUser : 'torvalds';
     const theme = this.getAttribute('theme') || 'dark';
     const speed = parseInt(this.getAttribute('speed'), 10) || 5;
 
@@ -89,7 +91,7 @@ class GitHubSnakeElement extends HTMLElement {
             <img src="https://github.com/${user}.png?size=48" alt="${user}" onerror="this.style.display='none'">
             <span>github.com/${user}</span>
           </a>
-          <span style="opacity: 0.6; font-size: 0.75rem; font-family: monospace;">GITHUB_SNAKE.EXE</span>
+          <span class="widget-tag" style="opacity: 0.6; font-size: 0.75rem; font-family: monospace;">GITHUB_SNAKE.EXE</span>
         </div>
         <div class="widget-canvas-container">
           <canvas id="embedCanvas" width="774" height="130"></canvas>
@@ -120,27 +122,37 @@ class GitHubSnakeElement extends HTMLElement {
     const snakeBody = isLight ? '#1a7f37' : '#00ff66';
     const colorMap = [emptyColor, l1, l2, l3, l4];
 
+    // Fecha local de cada celda, igual que la cuadrícula de GitHub (semana actual en la última columna)
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() - (cols - 1) * 7);
+    const isoForCell = (x, y) => {
+      const d = new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() + x * 7 + y);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
     // Intentar obtener contribuciones reales o generar mock
     let grid = [];
+    let simulated = true;
     try {
-      const res = await fetch(`https://github-contributions-api.jogruber.de/v4/${user}?y=last`);
+      const res = await fetch(`https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(user)}?y=last`);
       if (res.ok) {
         const data = await res.json();
-        const recent = (data.contributions || []).slice(-371);
+        const byDate = new Map((data.contributions || []).map(item => [item.date, item]));
         for (let x = 0; x < cols; x++) {
           const col = [];
           for (let y = 0; y < rows; y++) {
-            const idx = x * 7 + y;
-            const item = recent[idx] || {};
+            const item = byDate.get(isoForCell(x, y)) || {};
             const lvl = Math.min(4, item.level || (item.count > 0 ? 2 : 0));
             col.push({ x, y, level: lvl });
           }
           grid.push(col);
         }
+        simulated = byDate.size === 0;
       }
     } catch (e) {}
 
-    if (grid.length === 0) {
+    if (simulated) {
+      grid = [];
       for (let x = 0; x < cols; x++) {
         const col = [];
         for (let y = 0; y < rows; y++) {
@@ -149,15 +161,20 @@ class GitHubSnakeElement extends HTMLElement {
         }
         grid.push(col);
       }
+      const label = this.shadowRoot.querySelector('.widget-tag');
+      if (label) label.textContent = 'GITHUB_SNAKE.EXE · datos simulados';
     }
 
+    const maxLength = 14;
+    let length = 4;
     const snake = [{ x: 3, y: 3 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 3 }];
     let dir = { x: 1, y: 0 };
+    const neighbors = [{ x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 0, y: -1 }];
 
     function findNextStep() {
       const head = snake[0];
-      let bestDist = Infinity;
       let target = null;
+      let bestDist = Infinity;
 
       for (let x = 0; x < cols; x++) {
         for (let y = 0; y < rows; y++) {
@@ -171,16 +188,21 @@ class GitHubSnakeElement extends HTMLElement {
         }
       }
 
+      // Casillas libres (la punta de la cola se libera en este paso)
+      const body = new Set(snake.slice(0, -1).map(s => `${s.x},${s.y}`));
+      const options = neighbors
+        .map(d => ({ x: (head.x + d.x + cols) % cols, y: (head.y + d.y + rows) % rows, d }))
+        .filter(p => !body.has(`${p.x},${p.y}`));
+
+      if (options.length === 0) {
+        return { x: (head.x + dir.x + cols) % cols, y: (head.y + dir.y + rows) % rows, d: dir };
+      }
       if (!target) {
-        return { x: (head.x + dir.x + cols) % cols, y: (head.y + dir.y + rows) % rows };
+        return options.find(p => p.d.x === dir.x && p.d.y === dir.y) || options[0];
       }
 
-      // Dirección hacia target
-      let dx = 0, dy = 0;
-      if (target.x !== head.x) dx = target.x > head.x ? 1 : -1;
-      else if (target.y !== head.y) dy = target.y > head.y ? 1 : -1;
-
-      return { x: (head.x + dx + cols) % cols, y: (head.y + dy + rows) % rows };
+      const score = p => Math.abs(p.x - target.x) + Math.abs(p.y - target.y);
+      return options.reduce((best, p) => (score(p) < score(best) ? p : best));
     }
 
     const renderFrame = () => {
@@ -195,13 +217,14 @@ class GitHubSnakeElement extends HTMLElement {
       }
 
       const next = findNextStep();
-      snake.unshift(next);
+      dir = next.d;
+      snake.unshift({ x: next.x, y: next.y });
 
-      if (grid[next.x] && grid[next.x][next.y].level > 0) {
+      if (grid[next.x][next.y].level > 0) {
         grid[next.x][next.y].level = 0;
-      } else {
-        snake.pop();
+        if (length < maxLength) length++;
       }
+      while (snake.length > length) snake.pop();
 
       snake.forEach((seg, i) => {
         ctx.fillStyle = (i === 0) ? snakeHead : snakeBody;

@@ -44,12 +44,13 @@ La API publica de GitHub restringe las consultas no autenticadas a **60 peticion
 ### La Solucion: Cloudflare Edge Worker Proxy
 Se incluye el archivo [`server/edge_proxy_worker.js`](../server/edge_proxy_worker.js) que implementa:
 
-1. **Caché Distribuida con Stale-While-Revalidate**:
-   * Almacena los perfiles consultados en la memoria Edge durante 1 hora (`max-age=3600`).
-   * Si 1,000 usuarios consultan `@midudev` o `@torvalds`, **solo se gasta 1 peticion a GitHub**; las otras 999 se sirven desde la cache en menos de 5ms.
-2. **Inyeccion Segura de Tokens**:
-   * Permite configurar la variable de entorno `GITHUB_TOKEN` en Cloudflare Workers, aumentando el limite a **5,000 peticiones por hora**.
-3. **Rate Limiting por IP**:
+1. **Caché en el edge (1 hora)**:
+   * Guarda la respuesta de cada perfil en la Cache API de Cloudflare durante 1 hora (`max-age=3600`).
+   * Si 1,000 usuarios consultan `@midudev` en esa hora, solo la primera peticion llega a la API de contribuciones.
+2. **Sin tokens**:
+   * El worker consulta `github-contributions-api.jogruber.de`, un servicio de terceros. No configures un `GITHUB_TOKEN` para el: se lo estarias enviando a ese servicio.
+   * El frontend todavia llama a la API directamente; para usar el worker hay que apuntar `js/github.js` a su URL.
+3. **Rate Limiting por IP** (no incluido en el worker):
    * Puedes activar las reglas WAF de Cloudflare para limitar a maximo 30 solicitudes por minuto por IP para evitar ataques de denegacion de servicio.
 
 ---
