@@ -1,0 +1,42 @@
+name: Action CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Unit tests
+        run: node --test tests/*.test.js
+
+      - name: Run the action against the repository owner
+        uses: ./
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/github-snake.svg?theme=light
+            dist/github-snake-dark.svg?theme=dark
+
+      - name: Check generated files
+        run: |
+          for f in dist/github-snake.svg dist/github-snake-dark.svg; do
+            test -s "$f" || { echo "::error::$f missing or empty"; exit 1; }
+            head -c 60 "$f"; echo
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-snake-svg
+          path: dist/

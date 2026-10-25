@@ -78,7 +78,25 @@ class ExporterEngine {
    * Genera y descarga un SVG animado ultra optimizado
    */
   exportAnimatedSvg(grid, username = 'developer', options = {}) {
-    if (!grid || grid.length === 0) return;
+    const svgFinal = this.buildAnimatedSvg(grid, options);
+    if (!svgFinal) return;
+
+    const blob = new Blob([svgFinal], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `github-snake-${username}-${options.theme || 'dark'}-${options.speed || 'normal'}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Construye el SVG animado como texto. Sin dependencias del DOM: lo usa también la GitHub Action.
+   */
+  buildAnimatedSvg(grid, options = {}) {
+    if (!grid || grid.length === 0) return null;
 
     const themeKey = options.theme || 'dark';
     const palette = this.themePalettes[themeKey] || this.themePalettes.dark;
@@ -241,24 +259,17 @@ class ExporterEngine {
     // 6. SVG Minificado Final
     const svgFinal = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"><defs><filter id="g" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><style>svg{background:${palette.bg};border-radius:12px;border:1px solid ${palette.border}}${cellKeyframes}${snakeKeyframes}</style><g>${gridSvg}</g><g filter="url(#g)">${snakeElements}</g></svg>`;
 
-    // Descarga directa
-    const blob = new Blob([svgFinal], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `github-snake-${username}-${themeKey}-${speedMode}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    return svgFinal;
   }
 
   generateWorkflowYaml(username = 'USUARIO') {
-    return `name: Generate Snake Animation
+    return `name: GitHub Snake
 
 on:
+  # Se regenera cada dia a medianoche (UTC)
   schedule:
     - cron: "0 0 * * *"
+  # Permite ejecutarlo a mano desde la pestana Actions
   workflow_dispatch:
   push:
     branches:
@@ -273,17 +284,15 @@ jobs:
 
     steps:
       - name: Generate Snake SVG
-        uses: Platane/snk/svg-only@v3
+        uses: luisrodriguez-rgb/GITHUB_SNAKE.EXE@main
         with:
           github_user_name: ${username}
           outputs: |
-            dist/github-contribution-grid-snake.svg
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
-        env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+            dist/github-snake.svg?theme=light
+            dist/github-snake-dark.svg?theme=dark
 
       - name: Deploy to Output Branch
-        uses: crazy-max/ghaction-github-pages@v3.1.0
+        uses: crazy-max/ghaction-github-pages@v4
         with:
           target_branch: output
           build_dir: dist
@@ -293,9 +302,9 @@ jobs:
 
   generateReadmeSnippet(username = 'USUARIO') {
     return `<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake.svg">
-  <img alt="Snake Contribution Grid" src="https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-snake-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-snake.svg">
+  <img alt="GITHUB_SNAKE.EXE contribution animation" src="https://raw.githubusercontent.com/${username}/${username}/output/github-snake.svg">
 </picture>`;
   }
 }
