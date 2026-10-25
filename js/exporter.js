@@ -123,7 +123,8 @@ class ExporterEngine {
         col.push({
           x: x,
           y: y,
-          level: c ? c.level : 0,
+          // Se parte de la matriz original: en la web la partida en curso ya se ha comido celdas
+          level: c ? c.originalLevel : 0,
           originalLevel: c ? c.originalLevel : 0
         });
       }
@@ -262,7 +263,36 @@ class ExporterEngine {
     return svgFinal;
   }
 
-  generateWorkflowYaml(username = 'USUARIO') {
+  /**
+   * Rutas de salida de la Action según el estilo elegido.
+   * style: { adaptive, darkTheme, lightTheme, morph, speed, pause }
+   * adaptive=false usa solo darkTheme (el estilo único).
+   */
+  workflowOutputs(style = {}) {
+    const query = (theme) => {
+      const params = new URLSearchParams({ theme });
+      // Solo se escriben las opciones distintas de las de la Action, para que el YAML quede corto
+      if (style.morph && style.morph !== 'matrix_viper') params.set('morph', style.morph);
+      if (style.speed && style.speed !== 'normal') params.set('speed', style.speed);
+      if (style.pause && style.pause !== 'fast') params.set('pause', style.pause);
+      return params.toString();
+    };
+    const darkTheme = style.darkTheme || 'dark';
+
+    if (style.adaptive === false) {
+      return [{ file: 'github-snake.svg', query: query(darkTheme) }];
+    }
+    return [
+      { file: 'github-snake.svg', query: query(style.lightTheme || 'light') },
+      { file: 'github-snake-dark.svg', query: query(darkTheme) }
+    ];
+  }
+
+  generateWorkflowYaml(username = 'USUARIO', style = {}) {
+    const outputs = this.workflowOutputs(style)
+      .map(o => `            dist/${o.file}?${o.query}`)
+      .join('\n');
+
     return `name: GitHub Snake
 
 on:
@@ -288,8 +318,7 @@ jobs:
         with:
           github_user_name: ${username}
           outputs: |
-            dist/github-snake.svg?theme=light
-            dist/github-snake-dark.svg?theme=dark
+${outputs}
 
       - name: Deploy to Output Branch
         uses: crazy-max/ghaction-github-pages@v4
@@ -300,11 +329,17 @@ jobs:
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}`;
   }
 
-  generateReadmeSnippet(username = 'USUARIO') {
+  generateReadmeSnippet(username = 'USUARIO', style = {}) {
+    const base = `https://raw.githubusercontent.com/${username}/${username}/output`;
+    const alt = 'GITHUB_SNAKE.EXE contribution animation';
+
+    if (style.adaptive === false) {
+      return `<img alt="${alt}" src="${base}/github-snake.svg" width="100%">`;
+    }
     return `<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-snake-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-snake.svg">
-  <img alt="GITHUB_SNAKE.EXE contribution animation" src="https://raw.githubusercontent.com/${username}/${username}/output/github-snake.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="${base}/github-snake-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="${base}/github-snake.svg">
+  <img alt="${alt}" src="${base}/github-snake.svg" width="100%">
 </picture>`;
   }
 }

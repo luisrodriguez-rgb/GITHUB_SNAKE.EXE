@@ -98,3 +98,33 @@ test('run escribe un archivo por salida (API pública simulada)', async () => {
   assert.ok(fs.readFileSync(path.join(dir, 'out/a.svg'), 'utf8').includes('#040806'));
   assert.ok(fs.readFileSync(path.join(dir, 'out/b.svg'), 'utf8').includes('#ffffff'));
 });
+
+test('el workflow que genera la web usa salidas que la Action acepta', () => {
+  const engine = loadEngine();
+  const exporter = new engine.ExporterEngine();
+  const outputsOf = (yaml) => yaml.split('outputs: |\n')[1].split('\n\n')[0];
+
+  const adaptive = exporter.generateWorkflowYaml('octocat', {
+    adaptive: true, darkTheme: 'cyberpunk', lightTheme: 'light', morph: 'capsule', speed: 'fast', pause: 'none'
+  });
+  assert.deepStrictEqual(parseOutputs(outputsOf(adaptive)), [
+    { file: 'dist/github-snake.svg', options: { theme: 'light', morph: 'capsule', speed: 'fast', pause: 'none' } },
+    { file: 'dist/github-snake-dark.svg', options: { theme: 'cyberpunk', morph: 'capsule', speed: 'fast', pause: 'none' } }
+  ]);
+
+  const single = exporter.generateWorkflowYaml('octocat', { adaptive: false, darkTheme: 'amber_terminal' });
+  assert.deepStrictEqual(parseOutputs(outputsOf(single)), [
+    { file: 'dist/github-snake.svg', options: { theme: 'amber_terminal' } }
+  ]);
+  assert.match(exporter.generateReadmeSnippet('octocat', { adaptive: false }), /^<img [^>]*output\/github-snake\.svg/);
+  assert.match(exporter.generateReadmeSnippet('octocat', { adaptive: true }), /github-snake-dark\.svg/);
+});
+
+test('el SVG parte de la matriz original aunque la partida ya haya comido celdas', () => {
+  const engine = loadEngine();
+  const grid = weeksToGrid(fakeWeeks());
+  const exporter = new engine.ExporterEngine();
+  const before = exporter.buildAnimatedSvg(grid, {});
+  grid.flat().forEach(c => { c.level = 0; });
+  assert.strictEqual(exporter.buildAnimatedSvg(grid, {}).length, before.length);
+});

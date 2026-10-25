@@ -206,7 +206,7 @@
         </button>
         <button id="exportYamlBtn" class="btn btn-cyber-primary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          Generar Workflow YAML
+          Poner en mi perfil (Workflow)
         </button>
       </div>
     </section>
@@ -398,8 +398,8 @@
               Pausa de Reinicio (Loop):
             </label>
             <select id="exportPauseSelect" class="cyber-select" style="width: 100%;">
-              <option value="fast" selected>Instantaneo (0.6s de pausa)</option>
-              <option value="medium">Normal (1.5s de pausa)</option>
+              <option value="fast" selected>Corta (0.5s de pausa)</option>
+              <option value="medium">Normal (1.2s de pausa)</option>
               <option value="none">Sin pausa (Bucle continuo directo)</option>
             </select>
           </div>
@@ -567,17 +567,58 @@
 
   <!-- Modal GitHub Actions Workflow -->
   <div id="modalWorkflow" class="modal-backdrop">
-    <div class="modal-card">
+    <div class="modal-card wf-card">
       <div class="modal-header">
-        <h3>Configuracion GitHub Actions (.github/workflows/snake.yml)</h3>
+        <h3>Pon la serpiente en tu perfil de GitHub</h3>
         <button id="closeModalBtn" class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">1. Copia este workflow en tu repositorio <code>usuario/usuario</code>:</p>
+        <p class="wf-step">1. Elige el estilo:</p>
+
+        <div class="wf-mode" role="radiogroup" aria-label="Modo de color">
+          <label><input type="radio" name="wfMode" value="adaptive" checked> Automatico (claro / oscuro segun el visitante)</label>
+          <label><input type="radio" name="wfMode" value="single"> Siempre el mismo estilo</label>
+        </div>
+
+        <div class="wf-grid">
+          <div id="wfDarkField">
+            <label class="wf-label" for="wfDarkTheme" id="wfDarkLabel">Tema en modo oscuro</label>
+            <select id="wfDarkTheme" class="cyber-select"></select>
+          </div>
+          <div id="wfLightField">
+            <label class="wf-label" for="wfLightTheme">Tema en modo claro</label>
+            <select id="wfLightTheme" class="cyber-select"></select>
+          </div>
+          <div>
+            <label class="wf-label" for="wfMorph">Serpiente</label>
+            <select id="wfMorph" class="cyber-select"></select>
+          </div>
+          <div>
+            <label class="wf-label" for="wfSpeed">Velocidad</label>
+            <select id="wfSpeed" class="cyber-select"></select>
+          </div>
+          <div>
+            <label class="wf-label" for="wfPause">Pausa del bucle</label>
+            <select id="wfPause" class="cyber-select"></select>
+          </div>
+        </div>
+
+        <div class="wf-preview">
+          <figure id="wfPreviewDarkBox">
+            <img id="wfPreviewDark" alt="Vista previa del SVG en modo oscuro">
+            <figcaption id="wfPreviewDarkCaption">Modo oscuro</figcaption>
+          </figure>
+          <figure id="wfPreviewLightBox">
+            <img id="wfPreviewLight" alt="Vista previa del SVG en modo claro">
+            <figcaption>Modo claro</figcaption>
+          </figure>
+        </div>
+
+        <p class="wf-step">2. Crea <code>.github/workflows/snake.yml</code> en tu repositorio <code>usuario/usuario</code>:</p>
         <textarea id="yamlOutput" readonly class="code-box"></textarea>
         <button id="copyYamlBtn" class="btn btn-cyber-primary" style="width: 100%; margin-bottom: 1.2rem;">Copiar YAML</button>
 
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">2. Pega este bloque en tu <code>README.md</code>:</p>
+        <p class="wf-step">3. Ejecutalo en <strong>Actions &rarr; GitHub Snake &rarr; Run workflow</strong> y pega esto en tu <code>README.md</code>:</p>
         <textarea id="readmeOutput" readonly class="code-box" style="height: 90px;"></textarea>
         <button id="copyReadmeBtn" class="btn btn-cyber-secondary" style="width: 100%;">Copiar Markdown</button>
       </div>

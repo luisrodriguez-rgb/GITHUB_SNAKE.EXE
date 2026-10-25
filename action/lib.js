@@ -19,7 +19,7 @@ const OPTION_VALUES = {
 
 /** Carga los scripts del navegador en un contexto aislado y devuelve sus clases */
 function loadEngine() {
-  const sandbox = { console, Math, Date, Map, Set };
+  const sandbox = { console, Math, Date, Map, Set, URLSearchParams };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
   for (const file of ENGINE_FILES) {
