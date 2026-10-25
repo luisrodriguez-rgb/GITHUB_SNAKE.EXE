@@ -228,7 +228,7 @@ Para que la acción automatizada pueda guardar el archivo SVG generado en tu rep
 El repositorio incluye una GitHub Action propia ([`action.yml`](action.yml)) que ejecuta el mismo motor de la web: IA BFS + Flood Fill, barrido del 100% de la matriz y los mismos temas. Lee tu calendario con la API GraphQL oficial de GitHub, así que la cuadrícula coincide con la de tu perfil.
 
 1. Dentro de tu repositorio especial, crea el archivo `.github/workflows/snake.yml`.
-2. Copia esta configuración (reemplaza `TU_USUARIO` por tu usuario de GitHub). También puedes generarla ya rellenada con el botón **Generar Workflow YAML** de la web.
+2. Copia esta configuración (reemplaza `TU_USUARIO` por tu usuario de GitHub). También puedes generarla ya rellenada con el botón **Poner en mi perfil (Workflow)** de la web, donde eliges el estilo con vista previa.
 
 ```yaml
 name: GitHub Snake

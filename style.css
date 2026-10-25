@@ -1721,6 +1721,84 @@ body[data-theme="light"] .modal-card {
   background: #ffffff;
 }
 
+/* Modal del workflow: selector de estilo y vista previa */
+.wf-card {
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.wf-step {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.wf-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.82rem;
+}
+
+.wf-mode label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.wf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.wf-grid .cyber-select {
+  width: 100%;
+}
+
+.wf-label {
+  display: block;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+.wf-preview {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0 0 1.2rem;
+}
+
+.wf-preview figure {
+  margin: 0;
+}
+
+.wf-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  /* Fondo de GitHub en cada modo, para ver el SVG como quedara en el perfil */
+  background: #0d1117;
+  padding: 6px;
+}
+
+#wfPreviewLight {
+  background: #ffffff;
+}
+
+.wf-preview figcaption {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
 body[data-theme="light"] .code-box {
   background: #f6f8fa;
   color: #1f2328;
@@ -1789,9 +1867,11 @@ footer {
   }
   .tools-group .tool-btn {
     width: 100%;
+    min-width: 0;
     justify-content: center;
     text-align: center;
-    white-space: nowrap;
+    /* Con etiquetas largas, nowrap desbordaba la página en móviles de 390px */
+    white-space: normal;
     padding: 0.6rem 0.5rem;
     font-size: 0.76rem;
   }

@@ -292,11 +292,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  /** Enlace a la web que abre directamente la cuadrícula de un usuario */
+  function profileUrl(username) {
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('u', username);
+    return url.toString();
+  }
+
   async function loadUserGrid(rawInput) {
     const username = fetcher.sanitizeUsername(rawInput);
     currentUsername = username;
     gameCompleted = false;
     statState.textContent = 'Decodificando perfil...';
+
+    // La barra de direcciones queda lista para compartir este perfil
+    try {
+      history.replaceState(null, '', profileUrl(username));
+    } catch (e) {}
 
     achievements.profilesLoaded.add(username);
     if (achievements.profilesLoaded.size >= 3) {
@@ -948,8 +962,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       sound.playClick();
       const score = snake.score;
       const user = currentUsername;
-      const text = `Acabo de devorar los commits de @${user} con ${score} puntos a 60 FPS en GITHUB_SNAKE.EXE!\nPruébalo con tu perfil de GitHub:`;
-      const url = 'https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/';
+      const eaten = snake.eatenCommits + (snake2 ? snake2.eatenCommits : 0);
+      const text = dataIsSimulated
+        ? `Mi serpiente con IA (BFS + Flood Fill) acaba de limpiar una matriz de GitHub con ${score} puntos en GITHUB_SNAKE.EXE.\n¿Y tu perfil?`
+        : `Mi serpiente con IA acaba de devorar ${eaten} commits de @${user} en GitHub (${score} pts) en GITHUB_SNAKE.EXE.\nPrueba con tu perfil:`;
+      const url = profileUrl(user);
       const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
       window.open(twitterUrl, '_blank', 'noopener,noreferrer');
       analytics.trackEvent('share_twitter', { user, score });
@@ -995,12 +1012,76 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalExportSvg.classList.remove('visible');
   });
 
+  // --- Workflow para el perfil: estilo elegido + vista previa ---
+  const wfDarkTheme = document.getElementById('wfDarkTheme');
+  const wfLightTheme = document.getElementById('wfLightTheme');
+  const wfMorph = document.getElementById('wfMorph');
+  const wfSpeed = document.getElementById('wfSpeed');
+  const wfPause = document.getElementById('wfPause');
+  const wfLightField = document.getElementById('wfLightField');
+  const wfDarkLabel = document.getElementById('wfDarkLabel');
+  const wfPreviewDark = document.getElementById('wfPreviewDark');
+  const wfPreviewLight = document.getElementById('wfPreviewLight');
+  const wfPreviewLightBox = document.getElementById('wfPreviewLightBox');
+  const wfPreviewDarkCaption = document.getElementById('wfPreviewDarkCaption');
+  const wfPreviewUrls = {};
+
+  // Las opciones salen de los selectores del exportador SVG para no duplicar listas
+  wfDarkTheme.innerHTML = exportThemeSelect.innerHTML;
+  wfLightTheme.innerHTML = exportThemeSelect.innerHTML;
+  wfMorph.innerHTML = exportMorphSelect.innerHTML;
+  wfSpeed.innerHTML = exportSpeedSelect.innerHTML;
+  wfPause.innerHTML = exportPauseSelect.innerHTML;
+  wfDarkTheme.value = 'dark';
+  wfLightTheme.value = 'light';
+  wfMorph.value = 'matrix_viper';
+  wfSpeed.value = 'normal';
+  wfPause.value = 'fast';
+
+  function getWorkflowStyle() {
+    return {
+      adaptive: document.querySelector('input[name="wfMode"]:checked').value === 'adaptive',
+      darkTheme: wfDarkTheme.value,
+      lightTheme: wfLightTheme.value,
+      morph: wfMorph.value,
+      speed: wfSpeed.value,
+      pause: wfPause.value
+    };
+  }
+
+  function setPreview(img, key, options) {
+    const svg = exporter.buildAnimatedSvg(grid, options);
+    if (!svg) return;
+    if (wfPreviewUrls[key]) URL.revokeObjectURL(wfPreviewUrls[key]);
+    wfPreviewUrls[key] = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    img.src = wfPreviewUrls[key];
+  }
+
+  function updateWorkflowModal() {
+    const style = getWorkflowStyle();
+    const common = { morph: style.morph, speed: style.speed, pause: style.pause };
+
+    wfLightField.hidden = !style.adaptive;
+    wfPreviewLightBox.hidden = !style.adaptive;
+    wfDarkLabel.textContent = style.adaptive ? 'Tema en modo oscuro' : 'Tema';
+    wfPreviewDarkCaption.textContent = style.adaptive ? 'Modo oscuro' : 'Vista previa';
+
+    setPreview(wfPreviewDark, 'dark', { ...common, theme: style.darkTheme });
+    if (style.adaptive) setPreview(wfPreviewLight, 'light', { ...common, theme: style.lightTheme });
+
+    yamlOutput.value = exporter.generateWorkflowYaml(currentUsername, style);
+    readmeOutput.value = exporter.generateReadmeSnippet(currentUsername, style);
+  }
+
+  [wfDarkTheme, wfLightTheme, wfMorph, wfSpeed, wfPause, ...document.querySelectorAll('input[name="wfMode"]')]
+    .forEach(el => el.addEventListener('change', () => {
+      sound.playClick();
+      updateWorkflowModal();
+    }));
+
   exportYamlBtn.addEventListener('click', () => {
     sound.playClick();
-    const yaml = exporter.generateWorkflowYaml(currentUsername);
-    const readme = exporter.generateReadmeSnippet(currentUsername);
-    yamlOutput.value = yaml;
-    readmeOutput.value = readme;
+    updateWorkflowModal();
     modalWorkflow.classList.add('visible');
   });
 
@@ -1094,6 +1175,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateAchievementsBadge();
   speedValue.textContent = formatSpeedLabel(ticksPerSecond);
   renderLeaderboard();
-  await loadUserGrid('torvalds');
+  // ?u=usuario abre directamente ese perfil (enlaces compartidos)
+  const sharedUser = new URLSearchParams(window.location.search).get('u');
+  const initialUser = sharedUser ? fetcher.sanitizeUsername(sharedUser) : 'torvalds';
+  usernameInput.value = initialUser;
+  presetPills.forEach(p => p.classList.toggle('active', p.getAttribute('data-user') === initialUser));
+  await loadUserGrid(initialUser);
   animationFrameId = requestAnimationFrame(gameLoop);
 });

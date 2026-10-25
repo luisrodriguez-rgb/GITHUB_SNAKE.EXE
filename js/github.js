@@ -68,7 +68,10 @@ class GitHubFetcher {
     clean = clean.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '');
     clean = clean.split('/')[0].split('?')[0].split('#')[0];
     clean = clean.replace(/^@/, '');
-    return clean.toLowerCase().trim() || 'torvalds';
+    // Puede venir de un enlace compartido (?u=) y acaba en URLs: solo caracteres válidos de GitHub
+    // ('_' se mantiene por la matriz de demostración 'dense_matrix')
+    clean = clean.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 39);
+    return clean || 'torvalds';
   }
 
   async getUserProfile(username) {
