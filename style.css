@@ -4,7 +4,7 @@
   /* Matrix x GitHub Cyber Core Palette (Dark default) */
   --bg-primary: #040806;
   --bg-secondary: #08100c;
-  --bg-card: rgba(8, 18, 14, 0.78);
+  --bg-card: rgba(8, 18, 14, 0.92);
   --bg-card-hover: rgba(12, 26, 20, 0.88);
   
   --matrix-green: #00ff66;
@@ -242,7 +242,7 @@ body[data-theme="dark"] {
 body[data-theme="cyberpunk"] {
   --bg-primary: #090614;
   --bg-secondary: #120b24;
-  --bg-card: rgba(18, 11, 36, 0.8);
+  --bg-card: rgba(18, 11, 36, 0.92);
   --cell-empty: #170d2b;
   --cell-l1: #3b1059;
   --cell-l2: #72128a;
@@ -526,8 +526,8 @@ body[data-theme="light"] .star-badge {
 /* Cyber Glass Panel */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  /* Sin backdrop-filter: con la lluvia Matrix animada detrás, el desenfoque se recalculaba en cada frame
+     y bajaba el juego de ~54 a ~24 FPS en un móvil medio. El fondo casi opaco da el mismo aspecto. */
   border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 1.5rem;
@@ -1719,6 +1719,169 @@ body[data-theme="light"] .info-alert-box {
 
 body[data-theme="light"] .modal-card {
   background: #ffffff;
+}
+
+/* Selector de idioma */
+.lang-switch {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.lang-btn {
+  background: transparent;
+  border: 0;
+  padding: 0.45rem 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.lang-btn[aria-pressed="true"] {
+  background: var(--matrix-green);
+  color: #04110a;
+}
+
+/* Las clases con display (p. ej. .btn) anulaban el atributo hidden */
+[hidden] {
+  display: none !important;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Duelo de perfiles */
+.duel-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.duel-input {
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-main, inherit);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+body[data-theme="light"] .duel-input {
+  background: #ffffff;
+}
+
+.duel-vs {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--matrix-green);
+}
+
+.duel-status {
+  min-height: 1.2em;
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.duel-arena {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.duel-player-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+}
+
+.duel-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.duel-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.duel-sim {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid #fcee0a;
+  color: #fcee0a;
+}
+
+.duel-score {
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--matrix-green);
+}
+
+.duel-player[data-player="1"] .duel-score {
+  color: #00f2fe;
+}
+
+.duel-player.is-winner .canvas-wrapper {
+  border-color: var(--matrix-green);
+  box-shadow: 0 0 24px var(--matrix-glow);
+}
+
+.duel-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.2);
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.duel-bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--matrix-green);
+  transition: width 0.2s linear;
+}
+
+.duel-player[data-player="1"] .duel-bar-fill {
+  background: #00f2fe;
+}
+
+canvas.duel-canvas {
+  display: block;
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.duel-timer {
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.duel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
 }
 
 /* Modal del workflow: selector de estilo y vista previa */

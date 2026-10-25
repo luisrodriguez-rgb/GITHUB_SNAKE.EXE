@@ -4,6 +4,8 @@
 
 # GITHUB_SNAKE.EXE — Interactive GitHub Contribution Engine
 
+<p align="center"><a href="README.en.md">English</a> · <b>Español</b></p>
+
 > **Plataforma interactiva sobre Canvas 2D que transforma el historial de contribuciones de GitHub en una simulación a 60 FPS con IA (BFS + Flood Fill), generador de Commit Art y herramientas de exportación para desarrolladores.**
 
 <p align="center">
@@ -66,6 +68,8 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
   * **IA Autónoma**: Simulación automática auto-optimizada.
   * **Modo Manual**: Control directo con teclado (WASD / Flechas) con prevención de giros inversos.
   * **Modo Duelo**: Serpiente Verde (IA) vs Serpiente Cian (Jugador) con barra de progreso dual en tiempo real y pantalla de victoria/game over.
+  * **Duelo de Perfiles**: dos usuarios reales de GitHub, la misma IA y 60 segundos. Gana el perfil cuya serpiente devora más puntos. El resultado depende solo de los ticks (es reproducible en cualquier equipo) y se comparte con un enlace: `?u=tu_usuario&vs=rival`.
+  * **Enlaces directos**: `?u=usuario` abre la web con la cuadrícula de ese perfil.
 
 ---
 
@@ -172,6 +176,9 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 ├── favicon.svg           # Favicon y logo vectorial SVG oficial de alta resolución
 ├── embed.js              # Web Component autónomo <github-snake> para portafolios
 ├── action.yml            # GitHub Action: genera los SVG animados en tu perfil
+├── api/snake.js          # Función serverless (Vercel) del endpoint /api/<usuario>.svg
+├── shared/snake-core.js  # Opciones del SVG y calendario GraphQL, compartido por Action y endpoint
+├── vercel.json           # Reescritura /api/<usuario>.svg y archivos incluidos en la función
 ├── action/               # Punto de entrada de la Action (Node.js, sin dependencias)
 ├── tests/                # Tests de la Action (node --test tests/*.test.js)
 ├── _headers              # Cabeceras de seguridad HTTP, HSTS, CSP y caché para producción
@@ -189,6 +196,7 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 │   ├── achievements.js   # Sistema de medallas, persistencia y eventos
 │   ├── audio.js          # Sintetizador procedural Web Audio API
 │   ├── calendar.js       # Geometría de la cuadrícula (fecha de cada celda)
+│   ├── duel.js           # Duelo de perfiles: dos matrices reales, misma IA, ticks fijos
 │   ├── exporter.js       # Exportador SVG con barrido 100% y generador YAML
 │   ├── github.js         # API Fetcher, cálculo de fechas y ranking de devs
 │   ├── pathfinding.js    # Algoritmo BFS y evaluación de seguridad Flood Fill
@@ -298,6 +306,25 @@ Edita tu `README.md` principal y agrega este bloque para soporte automático en 
 </picture>
 ```
 
+### Alternativa: enlace directo sin workflow (endpoint SVG)
+
+El repositorio incluye una función serverless ([`server/snake-svg.js`](server/snake-svg.js)) que sirve el SVG al vuelo con el mismo motor:
+
+```html
+<img src="https://TU-ENDPOINT/api/TU_USUARIO.svg?theme=cyberpunk&morph=capsule" width="100%">
+```
+
+Acepta las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`). Si algo falla, devuelve un SVG con el motivo (usuario inexistente, opción no válida...) en lugar de una imagen rota.
+
+**Desplegarlo en Vercel (plan Hobby gratuito):**
+1. Importa este repositorio en [vercel.com/new](https://vercel.com/new) (framework: *Other*, sin comando de build).
+2. Crea un token en GitHub: *Settings → Developer settings → Fine-grained tokens*, **sin ningún permiso** (solo hace falta leer datos públicos).
+3. En Vercel, añade la variable de entorno `GITHUB_TOKEN` con ese token y despliega.
+4. Prueba `https://TU-PROYECTO.vercel.app/api/TU_USUARIO.svg?theme=dark`.
+5. Para que la web ofrezca la opción **Enlace directo**, pon esa URL base en `<meta name="snake-api" content="...">` de `index.html`.
+
+Cada SVG se cachea 6 horas en la CDN por usuario y combinación de opciones, así que el token apenas consume su límite de la API. No se usa Cloudflare Workers porque generar un SVG cuesta ~70-200 ms de CPU y su plan gratuito permite 10 ms.
+
 ---
 
 ## Ejecución en Local
@@ -319,6 +346,8 @@ Edita tu `README.md` principal y agrega este bloque para soporte automático en 
 
 3. **Abrir en el navegador**:
    Visita `http://localhost:3000` en tu navegador.
+
+4. **Al publicar cambios de CSS o JS**: cambia el valor de `?v=` en `index.html` (el mismo en todas las etiquetas). GitHub Pages deja que el navegador reutilice esos archivos durante 10 minutos; sin cambiar la versión, un visitante puede recibir el HTML nuevo con CSS/JS viejos. `node --test tests/*.test.js` comprueba que todas las etiquetas lleven la misma versión.
 
 ---
 

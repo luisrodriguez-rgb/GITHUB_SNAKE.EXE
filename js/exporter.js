@@ -329,17 +329,23 @@ ${outputs}
           GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}`;
   }
 
-  generateReadmeSnippet(username = 'USUARIO', style = {}) {
+  /**
+   * Bloque para el README. Con apiBase apunta al endpoint SVG (sin workflow);
+   * sin él, a la rama output que publica la Action.
+   */
+  generateReadmeSnippet(username = 'USUARIO', style = {}, apiBase = '') {
     const base = `https://raw.githubusercontent.com/${username}/${username}/output`;
     const alt = 'GITHUB_SNAKE.EXE contribution animation';
+    const urlFor = (output) => (apiBase ? `${apiBase}/api/${username}.svg?${output.query}` : `${base}/${output.file}`);
+    const [light, dark] = this.workflowOutputs(style);
 
     if (style.adaptive === false) {
-      return `<img alt="${alt}" src="${base}/github-snake.svg" width="100%">`;
+      return `<img alt="${alt}" src="${urlFor(light)}" width="100%">`;
     }
     return `<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="${base}/github-snake-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="${base}/github-snake.svg">
-  <img alt="${alt}" src="${base}/github-snake.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="${urlFor(dark)}">
+  <source media="(prefers-color-scheme: light)" srcset="${urlFor(light)}">
+  <img alt="${alt}" src="${urlFor(light)}" width="100%">
 </picture>`;
   }
 }

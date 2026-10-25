@@ -150,26 +150,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   let dataIsSimulated = false;
 
   function formatSpeedLabel(speed) {
-    if (speed <= 3) return `${speed} t/s (Relajado)`;
-    if (speed <= 6) return `${speed} t/s (Optimo)`;
-    return `${speed} t/s (Rapido)`;
+    if (speed <= 3) return t('speed.relaxed', { speed });
+    if (speed <= 6) return t('speed.optimal', { speed });
+    return t('speed.fast', { speed });
   }
 
   function formatSpanishDate(dateStr) {
-    if (!dateStr) return 'Fecha no disponible';
+    if (!dateStr) return t('tooltip.noDate');
     const [year, month, day] = dateStr.split('-');
     const months = [
       'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
     ];
+    if (I18n.lang === 'en') {
+      return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
     const monthName = months[parseInt(month, 10) - 1] || month;
     return `el ${parseInt(day, 10)} de ${monthName} de ${year}`;
   }
 
   function showAchievementToast(ach) {
     sound.playShockwave();
-    toastTitle.textContent = ach.title;
-    toastDesc.textContent = ach.desc;
+    toastTitle.textContent = t(`ach.${ach.id}.title`);
+    toastDesc.textContent = t(`ach.${ach.id}.desc`);
     achievementToast.classList.add('show');
     updateAchievementsBadge();
     setTimeout(() => {
@@ -180,7 +183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateAchievementsBadge() {
     const unlocked = achievements.getUnlockedCount();
     const total = achievements.getTotalCount();
-    achievementsLabel.textContent = `Logros: ${unlocked}/${total}`;
+    achievementsLabel.textContent = t('achievements.label', { unlocked, total });
   }
 
   // --- Lluvia Matrix ---
@@ -242,20 +245,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.innerHTML = `
         <div class="card-top-row">
           <div class="rank-badge">#${dev.rank}</div>
-          <button class="btn btn-cyber-secondary tool-btn load-dev-btn" data-user="${dev.username}">Cargar Perfil</button>
+          <button class="btn btn-cyber-secondary tool-btn load-dev-btn" data-user="${dev.username}">${t('leaderboard.load')}</button>
         </div>
         <div class="dev-header-flex">
           <img src="${dev.avatar}" alt="${dev.name}" class="dev-avatar-img" onerror="this.src='https://github.com/github.png?size=100'">
           <div class="dev-main-info">
             <h4>${dev.name}</h4>
             <span>@${dev.username}</span>
-            <div class="dev-role">${dev.role}</div>
+            <div class="dev-role">${I18n.lang === 'en' ? dev.roleEn : dev.role}</div>
           </div>
         </div>
         <div class="dev-metrics">
           <div class="metric-item">
-            <label>Ubicacion</label>
-            <value>${dev.location}</value>
+            <label>${t('leaderboard.location')}</label>
+            <value>${I18n.lang === 'en' ? dev.locationEn : dev.location}</value>
           </div>
         </div>
       `;
@@ -281,11 +284,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.className = `ach-card ${ach.unlocked ? 'unlocked' : ''}`;
       card.innerHTML = `
         <div>
-          <h4>${ach.title}</h4>
-          <p>${ach.desc}</p>
+          <h4>${t(`ach.${ach.id}.title`)}</h4>
+          <p>${t(`ach.${ach.id}.desc`)}</p>
         </div>
         <span class="ach-status-badge ${ach.unlocked ? 'unlocked' : 'locked'}">
-          ${ach.unlocked ? 'DESBLOQUEADO' : 'BLOQUEADO'}
+          ${ach.unlocked ? t('achievements.unlocked') : t('achievements.locked')}
         </span>
       `;
       achievementsListContainer.appendChild(card);
@@ -305,7 +308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const username = fetcher.sanitizeUsername(rawInput);
     currentUsername = username;
     gameCompleted = false;
-    statState.textContent = 'Decodificando perfil...';
+    statState.textContent = t('state.decoding');
 
     // La barra de direcciones queda lista para compartir este perfil
     try {
@@ -323,8 +326,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       activeDevUsername.textContent = `@${profile.username}`;
       activeDevLink.href = `https://github.com/${profile.username}`;
       activeDevBio.textContent = profile.bio;
-      activeDevLocation.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${profile.location}`;
-      activeDevRepos.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Repos: ${profile.repos ?? '—'}`;
+      // La ubicación la escribe cada usuario en GitHub: va como texto, nunca como HTML
+      activeDevLocation.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+      activeDevLocation.append(` ${profile.location}`);
+      activeDevRepos.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> ${t('profile.repos', { repos: profile.repos ?? '—' })}`;
     });
 
     try {
@@ -337,13 +342,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       lastTickTime = performance.now();
       updateHud();
-      statState.textContent = isDuelMode ? 'Duelo Activo: IA vs Jugador' : (isManualMode ? 'Modo Manual (WASD / Flechas)' : 'Cazando commits (IA)');
+      statState.textContent = isDuelMode ? t('state.duelActive') : (isManualMode ? t('state.manual') : t('state.hunting'));
       if (dataIsSimulated) {
-        statState.textContent = `Datos simulados: no se pudo leer el perfil de @${username}`;
+        statState.textContent = t('state.simulatedProfile', { user: username });
       }
     } catch (err) {
       console.error(err);
-      statState.textContent = 'Error al decodificar';
+      statState.textContent = t('state.decodeError');
     }
   }
 
@@ -390,42 +395,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     const p2Pct = 100 - p1Pct;
 
     resP1Score.textContent = `${p1Score} pts`;
-    resP1Eaten.textContent = `${p1Eaten} commits`;
+    resP1Eaten.textContent = t('gameover.commits', { count: p1Eaten });
     resP1Percent.textContent = `${p1Pct}%`;
 
     if (isDuelMode && snake2) {
       resP2Box.style.display = 'flex';
       resP2Score.textContent = `${p2Score} pts`;
-      resP2Eaten.textContent = `${p2Eaten} commits`;
+      resP2Eaten.textContent = t('gameover.commits', { count: p2Eaten });
       resP2Percent.textContent = `${p2Pct}%`;
 
       if (p2Score > p1Score) {
-        winnerBadge.textContent = '¡VICTORIA DEL JUGADOR 2!';
+        winnerBadge.textContent = t('gameover.p2Wins');
         winnerBadge.style.color = '#00f2fe';
         winnerBadge.style.borderColor = '#00f2fe';
-        winnerSummary.textContent = `¡Has superado a la IA con ${p2Score} puntos (${p2Eaten} commits devorados)!`;
+        winnerSummary.textContent = t('gameover.p2WinsSummary', { score: p2Score, eaten: p2Eaten });
       } else if (p1Score > p2Score) {
-        winnerBadge.textContent = '¡VICTORIA DE LA IA VERDE!';
+        winnerBadge.textContent = t('gameover.aiWins');
         winnerBadge.style.color = 'var(--matrix-green)';
         winnerBadge.style.borderColor = 'var(--matrix-green)';
-        winnerSummary.textContent = `La IA ha ganado el duelo con ${p1Score} puntos (${p1Eaten} commits devorados).`;
+        winnerSummary.textContent = t('gameover.aiWinsSummary', { score: p1Score, eaten: p1Eaten });
       } else {
-        winnerBadge.textContent = '¡EMPATE TÉCNICO!';
+        winnerBadge.textContent = t('gameover.tie');
         winnerBadge.style.color = '#fcee0a';
         winnerBadge.style.borderColor = '#fcee0a';
-        winnerSummary.textContent = `Ambos obtuvieron ${p1Score} puntos.`;
+        winnerSummary.textContent = t('gameover.tieSummary', { score: p1Score });
       }
     } else {
       resP2Box.style.display = 'none';
-      winnerBadge.textContent = '¡MATRIZ 100% PURIFICADA!';
+      winnerBadge.textContent = t('gameover.cleared');
       winnerBadge.style.color = 'var(--matrix-green)';
       winnerBadge.style.borderColor = 'var(--matrix-green)';
-      winnerSummary.textContent = `Has devorado la totalidad de los commits de @${currentUsername} con un puntaje final de ${p1Score} pts.`;
+      winnerSummary.textContent = t('gameover.clearedSummary', { user: currentUsername, score: p1Score });
     }
 
     achievements.unlock('clean_sweep', showAchievementToast);
     modalGameOver.classList.add('visible');
-    statState.textContent = 'Partida Completada al 100%';
+    statState.textContent = t('state.completed');
   }
 
   function doLogicalTick() {
@@ -456,7 +461,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (remaining === 0 && !gameCompleted) {
       triggerGameOver();
     } else if (!isManualMode && !isDuelMode) {
-      statState.textContent = `Cazando (${remaining} restantes)${dataIsSimulated ? ' · datos simulados' : ''}`;
+      statState.textContent = t('state.huntingLeft', { remaining }) + (dataIsSimulated ? t('state.simulatedSuffix') : '');
     }
   }
 
@@ -475,9 +480,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     statRemaining.textContent = remaining;
 
     if (isDuelMode && snake2) {
-      labelP1.textContent = 'P1 (IA Verde)';
+      labelP1.textContent = t('hud.p1Duel');
       statP1Score.textContent = `${snake.score} pts`;
-      labelP2.textContent = 'P2 (Jugador Cian)';
+      labelP2.textContent = t('hud.p2Duel');
       statP2Score.textContent = `${snake2.score} pts`;
 
       singleProgressTrack.style.display = 'none';
@@ -488,14 +493,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       const p2Pct = 100 - p1Pct;
 
       p1ProgressFill.style.width = `${p1Pct}%`;
-      p1ProgressFill.textContent = `IA: ${p1Pct}% (${snake.eatenCommits})`;
+      p1ProgressFill.textContent = `${t('hud.ai')}: ${p1Pct}% (${snake.eatenCommits})`;
       p2ProgressFill.style.width = `${p2Pct}%`;
       p2ProgressFill.textContent = `P2: ${p2Pct}% (${snake2.eatenCommits})`;
       progressPercentText.textContent = `${p1Pct}% / ${p2Pct}%`;
     } else {
-      labelP1.textContent = isManualMode ? 'Tu Puntaje (Manual)' : 'Puntaje de Caza (IA)';
+      labelP1.textContent = isManualMode ? t('hud.p1Manual') : t('hud.p1Ai');
       statP1Score.textContent = `${snake.score} pts`;
-      labelP2.textContent = 'Longitud de Serpiente';
+      labelP2.textContent = t('hud.length');
       statP2Score.textContent = `${snake.length} seg`;
 
       singleProgressTrack.style.display = 'block';
@@ -509,6 +514,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         progressPercentText.textContent = `${percent}%`;
       }
     }
+  }
+
+  let mainCanvasVisible = true;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(entries => {
+      mainCanvasVisible = entries[0].isIntersecting;
+    }).observe(canvas);
   }
 
   function gameLoop(now) {
@@ -531,7 +543,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isDuelMode && snake2) snake2.updateParticles();
 
     renderer.updateShockwaves();
-    renderer.render(grid, snake, progress, isDuelMode ? snake2 : null);
+    // Fuera de pantalla la lógica sigue, pero no se pinta (ahorra GPU mientras se ve el duelo).
+    // Grabando se pinta siempre: la captura del canvas se congelaría
+    if (mainCanvasVisible || recorder.isRecording) {
+      renderer.render(grid, snake, progress, isDuelMode ? snake2 : null);
+    }
 
     animationFrameId = requestAnimationFrame(gameLoop);
   }
@@ -575,9 +591,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         manualNextDir = dir;
         if (!isManualMode) {
           isManualMode = true;
-          modeBtn.textContent = 'Control: Manual (WASD)';
+          modeBtn.textContent = t('btn.modeManual');
           modeBtn.classList.add('active-tool');
-          statState.textContent = 'Modo Manual (WASD / Tactil)';
+          statState.textContent = t('state.manualTouch');
           achievements.unlock('manual_pilot', showAchievementToast);
         }
       }
@@ -658,9 +674,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (cell && grid[cell.x] && grid[cell.x][cell.y]) {
       const c = grid[cell.x][cell.y];
       const count = c.count !== undefined ? c.count : (c.level > 0 ? c.level * 3 : 0);
-      tooltipCount.textContent = count === 0 ? 'Sin contribuciones' : (count === 1 ? '1 contribucion' : `${count} contribuciones`);
+      tooltipCount.textContent = count === 0 ? t('tooltip.none') : (count === 1 ? t('tooltip.one') : t('tooltip.many', { count }));
       tooltipDate.textContent = formatSpanishDate(c.date);
-      tooltipLevel.textContent = `Nivel de actividad: ${c.level}/4`;
+      tooltipLevel.textContent = t('tooltip.level', { level: c.level });
 
       const tooltipX = e.clientX + 14;
       const tooltipY = e.clientY - 48;
@@ -720,11 +736,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isDuelMode && snake2) snake2.reset();
     lastTickTime = performance.now();
     presetPills.forEach(p => p.classList.remove('active'));
-    activeDevName.textContent = 'Matriz Aleatoria';
+    activeDevName.textContent = t('random.name');
     activeDevUsername.textContent = '@random_matrix';
-    activeDevBio.textContent = 'Simulacion generativa procedural';
+    activeDevBio.textContent = t('random.bio');
     updateHud();
-    statState.textContent = 'Matriz aleatoria generada';
+    statState.textContent = t('state.randomGrid');
   });
 
   presetPills.forEach(pill => {
@@ -742,14 +758,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     sound.playClick();
     isManualMode = !isManualMode;
     if (isManualMode) {
-      modeBtn.textContent = 'Control: Manual (WASD)';
+      modeBtn.textContent = t('btn.modeManual');
       modeBtn.classList.add('active-tool');
-      statState.textContent = 'Modo Manual (WASD / Flechas)';
+      statState.textContent = t('state.manual');
       achievements.unlock('manual_pilot', showAchievementToast);
     } else {
-      modeBtn.textContent = 'Control: IA Autonoma';
+      modeBtn.textContent = t('btn.modeAi');
       modeBtn.classList.remove('active-tool');
-      statState.textContent = 'Cazando commits (IA)';
+      statState.textContent = t('state.hunting');
     }
     updateHud();
   });
@@ -761,14 +777,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isDuelMode) {
       snake2 = new Snake(4, { x: 50, y: 6 });
       player2NextDir = { x: -1, y: 0 };
-      duelBtn.textContent = 'Duelo: Activo (IA vs P2)';
+      duelBtn.textContent = t('btn.duelOn');
       duelBtn.classList.add('active-tool');
-      statState.textContent = 'Duelo en curso: Controla P2 con WASD/Flechas';
+      statState.textContent = t('state.duelOn');
     } else {
       snake2 = null;
-      duelBtn.textContent = 'Modo Duelo (IA vs Jugador)';
+      duelBtn.textContent = t('btn.duelOff');
       duelBtn.classList.remove('active-tool');
-      statState.textContent = 'Modo Duelo desactivado';
+      statState.textContent = t('state.duelOff');
     }
     updateHud();
   });
@@ -777,11 +793,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     sound.playClick();
     isPaintMode = !isPaintMode;
     if (isPaintMode) {
-      paintBtn.textContent = 'Pintar: Activo';
+      paintBtn.textContent = t('btn.paintOn');
       paintBtn.classList.add('active-tool');
       canvas.style.cursor = 'crosshair';
     } else {
-      paintBtn.textContent = 'Pintar: Inactivo';
+      paintBtn.textContent = t('btn.paintOff');
       paintBtn.classList.remove('active-tool');
       canvas.style.cursor = 'default';
     }
@@ -810,12 +826,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (isDuelMode && snake2) snake2.reset();
       lastTickTime = performance.now();
       modalTemplates.classList.remove('visible');
-      activeDevName.textContent = `Texto: "${text.toUpperCase()}"`;
+      activeDevName.textContent = t('art.name', { text: text.toUpperCase() });
       activeDevUsername.textContent = `@commit_art`;
-      activeDevBio.textContent = `Arte en matriz personalizado`;
+      activeDevBio.textContent = t('art.bio');
       achievements.unlock('artist', showAchievementToast);
       updateHud();
-      statState.textContent = `Palabra '${text}' renderizada en el mapa`;
+      statState.textContent = t('state.wordRendered', { text });
     }
   });
 
@@ -855,7 +871,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       modalTemplates.classList.remove('visible');
       achievements.unlock('artist', showAchievementToast);
       updateHud();
-      statState.textContent = `Plantilla '${tplKey}' cargada`;
+      statState.textContent = t('state.templateLoaded', { tpl: tplKey });
     });
   });
 
@@ -897,7 +913,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalRecordVideo.classList.remove('visible');
 
     recordBtn.classList.add('active-tool');
-    recordBtnText.textContent = 'Iniciando captura...';
+    recordBtnText.textContent = t('record.starting');
 
     const recordingOptions = {
       duration: duration,
@@ -906,15 +922,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const onProgress = (time) => {
       if (typeof time === 'number') {
-        recordBtnText.textContent = `Detener (${time}s)...`;
+        recordBtnText.textContent = t('record.stopIn', { time });
       } else {
-        recordBtnText.textContent = 'Detener Grabacion (REC)';
+        recordBtnText.textContent = t('record.stop');
       }
     };
 
     const onComplete = (err, info) => {
       recordBtn.classList.remove('active-tool');
-      recordBtnText.textContent = 'Grabar Video (Pantalla / Tablero)';
+      recordBtnText.textContent = t('record.idle');
       if (!err) {
         sound.playShockwave();
         analytics.trackEvent('record_video', { source, duration });
@@ -964,8 +980,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const user = currentUsername;
       const eaten = snake.eatenCommits + (snake2 ? snake2.eatenCommits : 0);
       const text = dataIsSimulated
-        ? `Mi serpiente con IA (BFS + Flood Fill) acaba de limpiar una matriz de GitHub con ${score} puntos en GITHUB_SNAKE.EXE.\n¿Y tu perfil?`
-        : `Mi serpiente con IA acaba de devorar ${eaten} commits de @${user} en GitHub (${score} pts) en GITHUB_SNAKE.EXE.\nPrueba con tu perfil:`;
+        ? t('share.gameSimulated', { score })
+        : t('share.game', { eaten, user, score });
       const url = profileUrl(user);
       const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
       window.open(twitterUrl, '_blank', 'noopener,noreferrer');
@@ -976,11 +992,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   audioBtn.addEventListener('click', () => {
     const isMuted = sound.toggleMute();
     if (!isMuted) {
-      audioBtn.textContent = 'Audio: ON';
+      audioBtn.textContent = t('btn.audioOn');
       audioBtn.classList.add('active-tool');
       sound.playClick();
     } else {
-      audioBtn.textContent = 'Audio: OFF';
+      audioBtn.textContent = t('btn.audioOff');
       audioBtn.classList.remove('active-tool');
     }
   });
@@ -1025,6 +1041,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const wfPreviewLightBox = document.getElementById('wfPreviewLightBox');
   const wfPreviewDarkCaption = document.getElementById('wfPreviewDarkCaption');
   const wfPreviewUrls = {};
+  const wfMethod = document.getElementById('wfMethod');
+  const wfActionSteps = document.getElementById('wfActionSteps');
+  const wfEndpointStep = document.getElementById('wfEndpointStep');
+  // Endpoint SVG desplegado (meta snake-api en index.html). Sin él solo se ofrece el workflow
+  const snakeApiBase = (document.querySelector('meta[name="snake-api"]')?.content || '').trim().replace(/\/$/, '');
+  wfMethod.hidden = !snakeApiBase;
 
   // Las opciones salen de los selectores del exportador SVG para no duplicar listas
   wfDarkTheme.innerHTML = exportThemeSelect.innerHTML;
@@ -1063,17 +1085,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     wfLightField.hidden = !style.adaptive;
     wfPreviewLightBox.hidden = !style.adaptive;
-    wfDarkLabel.textContent = style.adaptive ? 'Tema en modo oscuro' : 'Tema';
-    wfPreviewDarkCaption.textContent = style.adaptive ? 'Modo oscuro' : 'Vista previa';
+    wfDarkLabel.textContent = style.adaptive ? t('wf.darkTheme') : t('wf.theme');
+    wfPreviewDarkCaption.textContent = style.adaptive ? t('wf.darkPreview') : t('wf.preview');
 
     setPreview(wfPreviewDark, 'dark', { ...common, theme: style.darkTheme });
     if (style.adaptive) setPreview(wfPreviewLight, 'light', { ...common, theme: style.lightTheme });
 
+    const useEndpoint = Boolean(snakeApiBase) && document.querySelector('input[name="wfMethodChoice"]:checked').value === 'endpoint';
+    wfActionSteps.hidden = useEndpoint;
+    wfEndpointStep.hidden = !useEndpoint;
+
     yamlOutput.value = exporter.generateWorkflowYaml(currentUsername, style);
-    readmeOutput.value = exporter.generateReadmeSnippet(currentUsername, style);
+    readmeOutput.value = exporter.generateReadmeSnippet(currentUsername, style, useEndpoint ? snakeApiBase : '');
   }
 
-  [wfDarkTheme, wfLightTheme, wfMorph, wfSpeed, wfPause, ...document.querySelectorAll('input[name="wfMode"]')]
+  [wfDarkTheme, wfLightTheme, wfMorph, wfSpeed, wfPause, ...document.querySelectorAll('input[name="wfMode"], input[name="wfMethodChoice"]')]
     .forEach(el => el.addEventListener('change', () => {
       sound.playClick();
       updateWorkflowModal();
@@ -1093,27 +1119,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   copyYamlBtn.addEventListener('click', () => {
     sound.playClick();
     navigator.clipboard.writeText(yamlOutput.value);
-    copyYamlBtn.textContent = 'Copiado';
-    setTimeout(() => { copyYamlBtn.textContent = 'Copiar YAML'; }, 2000);
+    copyYamlBtn.textContent = t('btn.copied');
+    setTimeout(() => { copyYamlBtn.textContent = t('btn.copyYaml'); }, 2000);
   });
 
   copyReadmeBtn.addEventListener('click', () => {
     sound.playClick();
     navigator.clipboard.writeText(readmeOutput.value);
-    copyReadmeBtn.textContent = 'Copiado';
-    setTimeout(() => { copyReadmeBtn.textContent = 'Copiar Markdown'; }, 2000);
+    copyReadmeBtn.textContent = t('btn.copied');
+    setTimeout(() => { copyReadmeBtn.textContent = t('btn.copyMarkdown'); }, 2000);
   });
 
   playPauseBtn.addEventListener('click', () => {
     sound.playClick();
     isRunning = !isRunning;
     if (isRunning) {
-      playIcon.textContent = 'Pausar';
+      playIcon.textContent = t('btn.pause');
       playPauseBtn.classList.remove('btn-cyber-secondary');
       playPauseBtn.classList.add('btn-cyber-primary');
       lastTickTime = performance.now();
     } else {
-      playIcon.textContent = 'Reanudar';
+      playIcon.textContent = t('btn.resume');
       playPauseBtn.classList.remove('btn-cyber-primary');
       playPauseBtn.classList.add('btn-cyber-secondary');
     }
@@ -1137,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isDuelMode && snake2) snake2.reset();
     lastTickTime = performance.now();
     updateHud();
-    statState.textContent = 'Protocolo reiniciado';
+    statState.textContent = t('state.reset');
   });
 
   speedSlider.addEventListener('input', (e) => {
@@ -1175,11 +1201,198 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateAchievementsBadge();
   speedValue.textContent = formatSpeedLabel(ticksPerSecond);
   renderLeaderboard();
+  // --- Duelo de Perfiles ---
+  const duelForm = document.getElementById('duelForm');
+  const duelUserA = document.getElementById('duelUserA');
+  const duelUserB = document.getElementById('duelUserB');
+  const duelStartBtn = document.getElementById('duelStartBtn');
+  const duelStatus = document.getElementById('duelStatus');
+  const duelArena = document.getElementById('duelArena');
+  const duelTimer = document.getElementById('duelTimer');
+  const duelSkipBtn = document.getElementById('duelSkipBtn');
+  const duelRematchBtn = document.getElementById('duelRematchBtn');
+  const duelShareBtn = document.getElementById('duelShareBtn');
+  const duelCopyBtn = document.getElementById('duelCopyBtn');
+  const duelPlayerEls = [...duelArena.querySelectorAll('.duel-player')];
+  let duelResult = null;
+
+  const profileDuel = new ProfileDuel({
+    canvases: [...duelArena.querySelectorAll('.duel-canvas')],
+    fetcher,
+    onUpdate: renderDuelState,
+    onFinish: showDuelResult
+  });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(entries => {
+      profileDuel.visible = entries[0].isIntersecting;
+    }).observe(duelArena);
+  }
+
+  function duelUrl(a, b) {
+    const url = new URL(profileUrl(a));
+    url.searchParams.set('vs', b);
+    url.hash = 'duelSection';
+    return url.toString();
+  }
+
+  function renderDuelState(state) {
+    duelTimer.textContent = state.secondsLeft;
+    state.players.forEach((p, i) => {
+      const el = duelPlayerEls[i];
+      el.querySelector('.duel-score').textContent = `${p.score} pts`;
+      el.querySelector('.duel-bar-fill').style.width = `${p.percent}%`;
+    });
+  }
+
+  function setDuelFinishedUi(finished) {
+    duelSkipBtn.hidden = finished;
+    duelRematchBtn.hidden = !finished;
+    duelShareBtn.hidden = !finished;
+    duelCopyBtn.hidden = !finished;
+  }
+
+  function showDuelResult(state) {
+    duelResult = state;
+    setDuelFinishedUi(true);
+    duelPlayerEls.forEach((el, i) => el.classList.toggle('is-winner', state.winner === state.players[i]));
+    renderDuelResultText(state);
+
+    const simulated = state.players.some(p => p.simulated);
+    // Con datos inventados no se ofrece presumir del resultado
+    duelShareBtn.disabled = simulated;
+    duelShareBtn.title = simulated ? t('duel.shareDisabled') : '';
+    sound.playShockwave();
+    analytics.trackEvent('profile_duel', { a: state.players[0].username, b: state.players[1].username });
+  }
+
+  function renderDuelResultText(state) {
+    const [a, b] = state.players;
+    duelStatus.textContent = state.winner
+      ? t('duel.winner', { winner: state.winner.username, score: state.winner.score, percent: state.winner.percent, loserScore: (state.winner === a ? b : a).score })
+      : t('duel.tie', { score: a.score });
+  }
+
+  async function startProfileDuel(rawA, rawB) {
+    const a = fetcher.sanitizeUsername(rawA);
+    const b = fetcher.sanitizeUsername(rawB);
+    if (!rawB || !rawB.trim()) {
+      duelStatus.textContent = t('duel.needRival');
+      duelUserB.focus();
+      return;
+    }
+    if (a === b) {
+      duelStatus.textContent = t('duel.sameUser');
+      return;
+    }
+
+    duelUserA.value = a;
+    duelUserB.value = b;
+    duelStartBtn.disabled = true;
+    duelStatus.textContent = t('duel.loading', { a, b });
+    try {
+      const players = await profileDuel.load([a, b]);
+      players.forEach((p, i) => {
+        const el = duelPlayerEls[i];
+        el.classList.remove('is-winner');
+        el.querySelector('.duel-avatar').src = p.profile.avatar;
+        el.querySelector('.duel-name').textContent = p.username;
+        el.querySelector('.duel-sim').hidden = !p.simulated;
+      });
+      duelArena.hidden = false;
+      setDuelFinishedUi(false);
+      duelStatus.textContent = players.some(p => p.simulated)
+        ? t('duel.simulatedWarning')
+        : t('duel.fight');
+      try {
+        history.replaceState(null, '', duelUrl(a, b));
+      } catch (e) {}
+      profileDuel.start();
+    } catch (err) {
+      console.error(err);
+      duelStatus.textContent = t('duel.error');
+    } finally {
+      duelStartBtn.disabled = false;
+    }
+  }
+
+  duelForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    sound.playClick();
+    startProfileDuel(duelUserA.value || currentUsername, duelUserB.value);
+  });
+
+  duelSkipBtn.addEventListener('click', () => {
+    sound.playClick();
+    profileDuel.skipToEnd();
+  });
+
+  duelRematchBtn.addEventListener('click', () => {
+    sound.playClick();
+    duelPlayerEls.forEach(el => el.classList.remove('is-winner'));
+    setDuelFinishedUi(false);
+    duelStatus.textContent = t('duel.rematch');
+    profileDuel.start();
+  });
+
+  duelShareBtn.addEventListener('click', () => {
+    if (!duelResult) return;
+    sound.playClick();
+    const [a, b] = duelResult.players;
+    const w = duelResult.winner;
+    const text = w
+      ? t('duel.shareText', { a: a.username, aScore: a.score, b: b.username, bScore: b.score, winner: w.username, percent: w.percent })
+      : t('duel.shareTie', { a: a.username, b: b.username, score: a.score });
+    const url = duelUrl(a.username, b.username);
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer');
+    analytics.trackEvent('share_duel', { a: a.username, b: b.username });
+  });
+
+  duelCopyBtn.addEventListener('click', async () => {
+    if (!duelResult) return;
+    sound.playClick();
+    const [a, b] = duelResult.players;
+    try {
+      await navigator.clipboard.writeText(duelUrl(a.username, b.username));
+      duelCopyBtn.textContent = t('btn.copied');
+    } catch (e) {
+      duelCopyBtn.textContent = t('btn.copyFailed');
+    }
+    setTimeout(() => { duelCopyBtn.textContent = t('btn.copyLink'); }, 2000);
+  });
+
+  // --- Cambio de idioma: i18n traduce el HTML estático y la app repinta lo que genera ella ---
+  window.addEventListener('languagechange-app', () => {
+    updateAchievementsBadge();
+    renderLeaderboard();
+    renderAchievementsModal();
+    speedValue.textContent = formatSpeedLabel(ticksPerSecond);
+    modeBtn.textContent = isManualMode ? t('btn.modeManual') : t('btn.modeAi');
+    duelBtn.textContent = isDuelMode ? t('btn.duelOn') : t('btn.duelOff');
+    paintBtn.textContent = isPaintMode ? t('btn.paintOn') : t('btn.paintOff');
+    audioBtn.textContent = sound.isMuted ? t('btn.audioOff') : t('btn.audioOn');
+    playIcon.textContent = isRunning ? t('btn.pause') : t('btn.resume');
+    if (!recorder.isRecording) recordBtnText.textContent = t('record.idle');
+    updateHud();
+    if (modalWorkflow.classList.contains('visible')) updateWorkflowModal();
+    if (duelResult && profileDuel.finished) renderDuelResultText(duelResult);
+    if (dataIsSimulated) statState.textContent = t('state.simulatedProfile', { user: currentUsername });
+  });
+
   // ?u=usuario abre directamente ese perfil (enlaces compartidos)
-  const sharedUser = new URLSearchParams(window.location.search).get('u');
+  // Se leen antes de cargar: loadUserGrid reescribe la URL
+  const sharedParams = new URLSearchParams(window.location.search);
+  const sharedUser = sharedParams.get('u');
+  const sharedRival = sharedParams.get('vs');
   const initialUser = sharedUser ? fetcher.sanitizeUsername(sharedUser) : 'torvalds';
   usernameInput.value = initialUser;
   presetPills.forEach(p => p.classList.toggle('active', p.getAttribute('data-user') === initialUser));
   await loadUserGrid(initialUser);
   animationFrameId = requestAnimationFrame(gameLoop);
+
+  // ?u=a&vs=b abre un duelo de perfiles
+  duelUserA.value = initialUser;
+  if (sharedRival) {
+    document.getElementById('duelSection').scrollIntoView({ behavior: 'smooth' });
+    startProfileDuel(initialUser, sharedRival);
+  }
 });

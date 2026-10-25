@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/api/:user.svg", "destination": "/api/snake?user=:user" }
+  ],
+  "functions": {
+    "api/snake.js": {
+      "maxDuration": 10,
+      "includeFiles": "{js,shared,action}/**"
+    }
+  }
+}
