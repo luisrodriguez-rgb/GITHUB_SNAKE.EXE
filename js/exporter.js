@@ -78,7 +78,25 @@ class ExporterEngine {
    * Genera y descarga un SVG animado ultra optimizado
    */
   exportAnimatedSvg(grid, username = 'developer', options = {}) {
-    if (!grid || grid.length === 0) return;
+    const svgFinal = this.buildAnimatedSvg(grid, options);
+    if (!svgFinal) return;
+
+    const blob = new Blob([svgFinal], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `github-snake-${username}-${options.theme || 'dark'}-${options.speed || 'normal'}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Construye el SVG animado como texto. Sin dependencias del DOM: lo usa también la GitHub Action.
+   */
+  buildAnimatedSvg(grid, options = {}) {
+    if (!grid || grid.length === 0) return null;
 
     const themeKey = options.theme || 'dark';
     const palette = this.themePalettes[themeKey] || this.themePalettes.dark;
@@ -121,36 +139,33 @@ class ExporterEngine {
       return false;
     };
 
-    // 2. Simulación optimizada de trayectoria
+    // 2. Simulación de trayectoria hasta vaciar la matriz
     const simSnake = new Snake(4, { x: 0, y: 0 });
     const simPathfinder = new SnakePathfinder(cols, rows);
     const history = [];
-    const cellEatenStep = {};
-    const maxSteps = 300;
+    const cellBites = {}; // key -> pasos en los que la serpiente quitó un nivel
+    let totalLevels = 0;
+    for (let x = 0; x < cols; x++) {
+      for (let y = 0; y < rows; y++) totalLevels += simGrid[x][y].level;
+    }
+    // Margen amplio: cada nivel exige volver a pisar la celda
+    const maxSteps = Math.min(8000, 400 + totalLevels * 30);
 
     let step = 0;
+    history.push(simSnake.body.map(seg => ({ x: seg.x, y: seg.y })));
     while (hasRemainingCommits() && step < maxSteps) {
-      const segments = simSnake.body.map(seg => ({ x: seg.x, y: seg.y }));
-      history.push(segments);
-
       const next = simPathfinder.findNextStep(simSnake, simGrid);
       if (!next) break;
 
+      step++;
       const key = `${next.x}_${next.y}`;
-      if (simGrid[next.x] && simGrid[next.x][next.y].level > 0) {
-        if (cellEatenStep[key] === undefined) {
-          cellEatenStep[key] = step;
-        }
+      if (simGrid[next.x][next.y].level > 0) {
+        (cellBites[key] = cellBites[key] || []).push(step);
       }
 
       simSnake.moveTo(next, simGrid);
-      step++;
+      history.push(simSnake.body.map(seg => ({ x: seg.x, y: seg.y })));
     }
-
-    // 1 paso rápido de cierre
-    const segments = simSnake.body.map(seg => ({ x: seg.x, y: seg.y }));
-    history.push(segments);
-    step++;
 
     const totalSteps = history.length;
 
@@ -165,7 +180,9 @@ class ExporterEngine {
     else if (pauseMode === 'none') pauseDuration = 0.0;
 
     const totalDuration = (playDuration + pauseDuration).toFixed(2);
-    const activePercent = ((playDuration / totalDuration) * 100).toFixed(1);
+    const activePercent = (playDuration / totalDuration) * 100;
+    // Con miles de pasos, un decimal no basta para separar fotogramas consecutivos
+    const pctOf = (s) => +((s / totalSteps) * activePercent).toFixed(3);
 
     // 3. Generación ultra compacta de celdas SVG
     let gridSvg = '';
@@ -179,88 +196,80 @@ class ExporterEngine {
         const py = Math.round(padding + y * stepSize);
         const key = `${x}_${y}`;
         const origLevel = cell.originalLevel || 0;
+        const bites = cellBites[key];
 
-        if (origLevel > 0 && cellEatenStep[key] !== undefined) {
-          const eatenPercent = ((cellEatenStep[key] / totalSteps) * activePercent).toFixed(1);
+        if (origLevel > 0 && bites) {
           const animClass = `c${x}_${y}`;
+          let frames = `0%{fill:${colorVars[origLevel]}}`;
+          bites.forEach((biteStep, i) => {
+            frames += `${pctOf(biteStep)}%{fill:${colorVars[Math.max(0, origLevel - i - 1)]}}`;
+          });
+          // Al terminar el recorrido la matriz se restaura y la pausa la muestra completa
+          frames += `${+activePercent.toFixed(3)}%,100%{fill:${colorVars[origLevel]}}`;
 
           gridSvg += `<rect class="${animClass}" x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${colorVars[origLevel]}"/>`;
-
-          cellKeyframes += `.${animClass}{animation:${animClass} ${totalDuration}s infinite steps(1)}@keyframes ${animClass}{0%,${Math.max(0, eatenPercent - 0.2).toFixed(1)}%{fill:${colorVars[origLevel]}}${eatenPercent}%,${activePercent}%{fill:${palette.empty}}${(parseFloat(activePercent) + 0.1).toFixed(1)}%,100%{fill:${colorVars[origLevel]}}}`;
+          cellKeyframes += `.${animClass}{animation:${animClass} ${totalDuration}s infinite steps(1,end)}@keyframes ${animClass}{${frames}}`;
         } else {
           gridSvg += `<rect x="${px}" y="${py}" width="${cellSize}" height="${cellSize}" rx="2.5" fill="${colorVars[origLevel] || colorVars[0]}"/>`;
         }
       }
     }
 
-    // 4. Generación compacta de keyframes de la serpiente (sin saltos cruzados)
-    let snakeKeyframes = '';
-    const snakeLen = Math.min(4, history[0].length);
+    // 4. Keyframes de la serpiente: una sola trayectoria (la de la cabeza) y cada segmento la sigue
+    // con un retraso de N pasos. Solo se emiten los giros: la animación lineal interpola los tramos rectos.
+    const snakeLen = history.reduce((max, h) => Math.max(max, h.length), 0);
+    const toPx = (seg) => `${Math.round(padding + seg.x * stepSize)}px,${Math.round(padding + seg.y * stepSize)}px`;
+    const positions = history.map(h => h[0]);
+    let kfContent = '';
 
-    for (let segIdx = 0; segIdx < snakeLen; segIdx++) {
-      const animName = `s${segIdx}`;
-      let kfContent = '';
-
-      for (let s = 0; s < totalSteps; s++) {
-        const pct = ((s / totalSteps) * activePercent).toFixed(1);
-        const curr = history[s][segIdx] || history[s][history[s].length - 1];
-        const px = Math.round(padding + curr.x * stepSize);
-        const py = Math.round(padding + curr.y * stepSize);
-
-        if (s > 0) {
-          const prev = history[s - 1][segIdx] || history[s - 1][history[s - 1].length - 1];
-          if (Math.abs(curr.x - prev.x) > 1 || Math.abs(curr.y - prev.y) > 1) {
-            const prePct = (((s - 0.02) / totalSteps) * activePercent).toFixed(1);
-            const prevPx = Math.round(padding + prev.x * stepSize);
-            const prevPy = Math.round(padding + prev.y * stepSize);
-            kfContent += `${prePct}%{transform:translate(${prevPx}px,${prevPy}px);opacity:0}`;
-            kfContent += `${pct}%{transform:translate(${px}px,${py}px);opacity:1}`;
-            continue;
-          }
-        }
-
-        kfContent += `${pct}%{transform:translate(${px}px,${py}px);opacity:1}`;
+    for (let s = 0; s < totalSteps; s++) {
+      const curr = positions[s];
+      const prev = positions[s - 1];
+      const next = positions[s + 1];
+      const isEdge = !prev || !next;
+      const turns = !isEdge && ((curr.x - prev.x) !== (next.x - curr.x) || (curr.y - prev.y) !== (next.y - curr.y));
+      if (isEdge || turns) {
+        kfContent += `${pctOf(s)}%{transform:translate(${toPx(curr)})}`;
       }
+    }
 
-      const firstSeg = history[0][segIdx];
-      kfContent += `${activePercent}%,100%{transform:translate(${Math.round(padding + firstSeg.x * stepSize)}px,${Math.round(padding + firstSeg.y * stepSize)}px);opacity:1}`;
+    kfContent += `${+activePercent.toFixed(3)}%{transform:translate(${toPx(positions[totalSteps - 1])})}`;
+    // Salto instantáneo al inicio para que no cruce el tablero durante la pausa
+    kfContent += `${+(activePercent + 0.001).toFixed(3)}%,100%{transform:translate(${toPx(positions[0])})}`;
 
-      snakeKeyframes += `.snk-${segIdx}{animation:${animName} ${totalDuration}s infinite linear}@keyframes ${animName}{${kfContent}}`;
+    let snakeKeyframes = `.snk{animation:s ${totalDuration}s infinite linear}@keyframes s{${kfContent}}`;
+    for (let segIdx = 1; segIdx < snakeLen; segIdx++) {
+      // Retraso negativo equivalente a ir segIdx pasos por detrás de la cabeza dentro del bucle
+      snakeKeyframes += `.snk-${segIdx}{animation-delay:-${(totalDuration - segIdx * stepDuration).toFixed(2)}s}`;
     }
 
     // 5. Elementos de la serpiente
     let snakeElements = '';
-    for (let segIdx = 0; segIdx < snakeLen; segIdx++) {
+    // De la cola a la cabeza, para que la cabeza quede dibujada encima
+    for (let segIdx = snakeLen - 1; segIdx >= 0; segIdx--) {
       const isHead = (segIdx === 0);
       const fill = isHead ? palette.head : palette.body;
       const size = isHead ? cellSize : cellSize * 0.9;
       const offset = isHead ? 0 : (cellSize - size) / 2;
       const rx = morphMode === 'retro' ? 0 : (morphMode === 'capsule' ? size * 0.45 : 3);
 
-      snakeElements += `<g class="snk-${segIdx}"><rect x="${offset - 1}" y="${offset - 1}" width="${size + 2}" height="${size + 2}" rx="${rx}" fill="#000"/><rect x="${offset}" y="${offset}" width="${size}" height="${size}" rx="${rx}" fill="${fill}"/>${!isHead && morphMode === 'matrix_viper' ? `<rect x="${offset + (size - size * 0.4) / 2}" y="${offset + (size - size * 0.4) / 2}" width="${size * 0.4}" height="${size * 0.4}" rx="1" fill="${palette.spine}"/>` : ''}</g>`;
+      snakeElements += `<g class="snk snk-${segIdx}"><rect x="${offset - 1}" y="${offset - 1}" width="${size + 2}" height="${size + 2}" rx="${rx}" fill="#000"/><rect x="${offset}" y="${offset}" width="${size}" height="${size}" rx="${rx}" fill="${fill}"/>${!isHead && morphMode === 'matrix_viper' ? `<rect x="${offset + (size - size * 0.4) / 2}" y="${offset + (size - size * 0.4) / 2}" width="${size * 0.4}" height="${size * 0.4}" rx="1" fill="${palette.spine}"/>` : ''}</g>`;
     }
 
     // 6. SVG Minificado Final
     const svgFinal = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"><defs><filter id="g" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><style>svg{background:${palette.bg};border-radius:12px;border:1px solid ${palette.border}}${cellKeyframes}${snakeKeyframes}</style><g>${gridSvg}</g><g filter="url(#g)">${snakeElements}</g></svg>`;
 
-    // Descarga directa
-    const blob = new Blob([svgFinal], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `github-snake-${username}-${themeKey}-${speedMode}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    return svgFinal;
   }
 
   generateWorkflowYaml(username = 'USUARIO') {
-    return `name: Generate Snake Animation
+    return `name: GitHub Snake
 
 on:
+  # Se regenera cada dia a medianoche (UTC)
   schedule:
     - cron: "0 0 * * *"
+  # Permite ejecutarlo a mano desde la pestana Actions
   workflow_dispatch:
   push:
     branches:
@@ -275,17 +284,15 @@ jobs:
 
     steps:
       - name: Generate Snake SVG
-        uses: Platane/snk/svg-only@v3
+        uses: luisrodriguez-rgb/GITHUB_SNAKE.EXE@main
         with:
           github_user_name: ${username}
           outputs: |
-            dist/github-contribution-grid-snake.svg
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
-        env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+            dist/github-snake.svg?theme=light
+            dist/github-snake-dark.svg?theme=dark
 
       - name: Deploy to Output Branch
-        uses: crazy-max/ghaction-github-pages@v3.1.0
+        uses: crazy-max/ghaction-github-pages@v4
         with:
           target_branch: output
           build_dir: dist
@@ -295,9 +302,9 @@ jobs:
 
   generateReadmeSnippet(username = 'USUARIO') {
     return `<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake.svg">
-  <img alt="Snake Contribution Grid" src="https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-snake-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-snake.svg">
+  <img alt="GITHUB_SNAKE.EXE contribution animation" src="https://raw.githubusercontent.com/${username}/${username}/output/github-snake.svg">
 </picture>`;
   }
 }

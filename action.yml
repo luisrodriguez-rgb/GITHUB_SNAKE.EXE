@@ -1,0 +1,27 @@
+name: GITHUB_SNAKE.EXE
+description: Genera un SVG animado donde una serpiente con IA (BFS + Flood Fill) devora tu grafico de contribuciones.
+author: luisrodriguez-rgb
+branding:
+  icon: activity
+  color: green
+
+inputs:
+  github_user_name:
+    description: Usuario de GitHub cuyo grafico de contribuciones se anima.
+    required: true
+  outputs:
+    description: |
+      Una ruta .svg por linea, con opciones en formato query string. Ejemplo:
+        dist/snake.svg?theme=light
+        dist/snake-dark.svg?theme=dark&speed=fast
+      Opciones: theme (dark, light, cyberpunk, neon_cyan, amber_terminal),
+      speed (normal, fast, relaxed), morph (matrix_viper, capsule, retro), pause (fast, medium, none).
+    required: true
+  github_token:
+    description: Token para leer el calendario con la API GraphQL oficial. Vacio = API publica de terceros.
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: node24
+  main: action/index.js

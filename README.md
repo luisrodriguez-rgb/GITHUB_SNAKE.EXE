@@ -45,7 +45,7 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 [ 1. ENGINE & AI ]              [ 2. COMMIT ART CREATOR ]         [ 3. DEVELOPER ECOSYSTEM ]
 • Render LERP 60 FPS Sub-pixel  • Rasterizador tipográfico 53x7   • Web Component <github-snake>
 • Pathfinding BFS + Lookahead   • Fuentes Bitmap A-Z / 0-9        • Exportador SVG Optimizado
-• Modo Duelo (IA vs Jugador)    • Generador Bash Scripts (.sh)    • Workflow GitHub Actions
+• Modo Duelo (IA vs Jugador)    • Generador Bash Scripts (.sh)    • GitHub Action propia
 • Síntesis Web Audio API        • Commits con fechas calculadas   • Seguridad Edge (_headers)
 ```
 
@@ -58,9 +58,9 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
   * Interpolación lineal continua (LERP) a nivel de sub-píxel:
     $$\vec{P}(t) = \vec{P}_{\text{prev}} + (\vec{P}_{\text{curr}} - \vec{P}_{\text{prev}}) \cdot \text{progress}$$
   * Contornos de alto contraste y columna vertebral láser blanca para evitar que la serpiente se mimetice con las celdas verdes de fondo.
-  * Geometría toroidal continua con *Ghost Segments* al cruzar los bordes laterales y verticales sin cortes en pantalla.
+  * En los modos manual y duelo los bordes son toroidales, con *Ghost Segments* al cruzarlos sin cortes en pantalla. La IA no cruza bordes.
 * **Toma de Decisiones de la IA (BFS + Flood Fill)**:
-  * **BFS (Búsqueda en Anchura)**: Localiza la ruta más corta hacia las celdas con commits de mayor intensidad.
+  * **BFS (Búsqueda en Anchura)**: Busca la ruta más corta hacia la celda con commits más cercana (a igual distancia, la de mayor intensidad).
   * **Lookahead de Seguridad (Flood Fill)**: Antes de ejecutar un movimiento, proyecta la posición de la cabeza y evalúa si el área libre restante es suficiente para el cuerpo de la serpiente, evitando encierros y colisiones.
 * **Modos de Juego**:
   * **IA Autónoma**: Simulación automática auto-optimizada.
@@ -77,7 +77,8 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 * **Variación Orgánica de Contribuciones**:
   * Cada celda del dibujo recibe intensidades variables (niveles 2, 3 y 4) y conteos aleatorios realistas ($14\text{ a }55+\text{ commits}$).
 * **Generador de Scripts Git (`.sh`)**:
-  * Produce scripts ejecutables que manipulan `GIT_AUTHOR_DATE` y `GIT_COMMITTER_DATE` con cálculo de fechas exactas para pintar ese dibujo en el perfil real de GitHub.
+  * Produce scripts ejecutables que fijan `GIT_AUTHOR_DATE` y `GIT_COMMITTER_DATE` con la fecha exacta de cada celda de la cuadrícula de GitHub (53 semanas, domingo a sábado) para pintar ese dibujo en el perfil real.
+  * Son commits vacíos y decorativos. Para que GitHub los cuente, el email de git debe estar verificado en tu cuenta y los commits deben subirse a la rama por defecto.
 
 <p align="center">
   <img src="assets/commit_art.png" alt="Creador de Commit Art" width="95%" style="border-radius: 10px; border: 1px solid rgba(255,0,127,0.3);" />
@@ -111,11 +112,11 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 
 | Métrica / Módulo | Complejidad / Medición | Impacto Técnico |
 | :--- | :--- | :--- |
-| **Pathfinding BFS** | $\mathcal{O}(V + E)$ sobre 371 nodos | $< 0.08\text{ ms}$ por tick ($< 0.5\%$ del frame budget de $16.6\text{ ms}$) |
+| **Pathfinding BFS** | $\mathcal{O}(V + E)$ sobre 371 nodos | Mediana $0.04\text{ ms}$ y p95 $0.2\text{ ms}$ por tick (Node.js, 12.000 ticks sobre 4 matrices) |
 | **Renderizado LERP** | 60 FPS estables | $0\text{ jank}$, interpolación matemática continua |
-| **Peso SVG Exportado** | $\approx 12 - 20\text{ KB}$ | Carga instantánea en perfiles de GitHub |
+| **Peso SVG Exportado** | $\approx 65 - 95\text{ KB}$ | Barrido completo de la matriz, una sola trayectoria compartida por todos los segmentos |
 | **Audio Procedural** | Web Audio API nativo | $0\text{ KB}$ en archivos de audio externos (sintetizado en tiempo real) |
-| **Caché en Edge** | Stale-While-Revalidate (1h TTL) | Respuesta en $< 5\text{ ms}$, bypass del rate limit de 60 req/h |
+| **Caché en Edge** (opcional) | Cache API de Cloudflare (1h TTL) | Una sola consulta a la API por perfil y hora |
 
 ---
 
@@ -156,7 +157,7 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 |                       EXPORTACIÓN Y AUTOMATIZACIÓN                      |
 |   • Exportador SVG minificado con keyframes CSS optimizados             |
 |   • Grabador de video WebM a 60 FPS (MediaRecorder nativo)              |
-|   • Generador de scripts Git (.sh) y workflows de GitHub Actions        |
+|   • Generador de scripts Git (.sh) y GitHub Action con el mismo motor   |
 +-------------------------------------------------------------------------+
 ```
 
@@ -170,6 +171,9 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 ├── style.css             # Design tokens, paletas de color, efectos glassmorphism
 ├── favicon.svg           # Favicon y logo vectorial SVG oficial de alta resolución
 ├── embed.js              # Web Component autónomo <github-snake> para portafolios
+├── action.yml            # GitHub Action: genera los SVG animados en tu perfil
+├── action/               # Punto de entrada de la Action (Node.js, sin dependencias)
+├── tests/                # Tests de la Action (node --test tests/*.test.js)
 ├── _headers              # Cabeceras de seguridad HTTP, HSTS, CSP y caché para producción
 ├── assets/               # Capturas de pantalla, previews y recursos visuales
 │   ├── logo.svg          # Logo vectorial oficial del proyecto
@@ -180,10 +184,11 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 ├── docs/
 │   └── production_guide.md # Guía de arquitectura, seguridad, proxies y analíticas
 ├── server/
-│   └── edge_proxy_worker.js # Proxy Edge con caché Stale-While-Revalidate y bypass de rate limit
+│   └── edge_proxy_worker.js # Proxy Edge opcional con caché de 1 hora
 ├── js/
 │   ├── achievements.js   # Sistema de medallas, persistencia y eventos
 │   ├── audio.js          # Sintetizador procedural Web Audio API
+│   ├── calendar.js       # Geometría de la cuadrícula (fecha de cada celda)
 │   ├── exporter.js       # Exportador SVG con barrido 100% y generador YAML
 │   ├── github.js         # API Fetcher, cálculo de fechas y ranking de devs
 │   ├── pathfinding.js    # Algoritmo BFS y evaluación de seguridad Flood Fill
@@ -219,20 +224,21 @@ Para que la acción automatizada pueda guardar el archivo SVG generado en tu rep
 6. Haz clic en **Save**.
 
 ### Paso 3: Crear el Workflow Automatizado (`snake.yml`)
-1. Dentro de tu repositorio especial, crea el archivo en la siguiente ruta:  
-   `.github/workflows/snake.yml`
-2. Copia y pega la siguiente configuración (reemplaza `TU_USUARIO` por tu usuario de GitHub):
+
+El repositorio incluye una GitHub Action propia ([`action.yml`](action.yml)) que ejecuta el mismo motor de la web: IA BFS + Flood Fill, barrido del 100% de la matriz y los mismos temas. Lee tu calendario con la API GraphQL oficial de GitHub, así que la cuadrícula coincide con la de tu perfil.
+
+1. Dentro de tu repositorio especial, crea el archivo `.github/workflows/snake.yml`.
+2. Copia esta configuración (reemplaza `TU_USUARIO` por tu usuario de GitHub). También puedes generarla ya rellenada con el botón **Generar Workflow YAML** de la web.
 
 ```yaml
-name: Generate Snake Contribution Animation
+name: GitHub Snake
 
 on:
-  # Se ejecuta automáticamente cada 24 horas a medianoche
+  # Se regenera cada dia a medianoche (UTC)
   schedule:
     - cron: "0 0 * * *"
-  # Permite disparar la ejecución manualmente en cualquier momento
+  # Permite ejecutarlo a mano desde la pestana Actions
   workflow_dispatch:
-  # Se ejecuta al hacer push a la rama principal
   push:
     branches:
       - main
@@ -246,17 +252,15 @@ jobs:
 
     steps:
       - name: Generate Snake SVG
-        uses: Platane/snk/svg-only@v3
+        uses: luisrodriguez-rgb/GITHUB_SNAKE.EXE@main
         with:
           github_user_name: TU_USUARIO
           outputs: |
-            dist/github-contribution-grid-snake.svg
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            dist/github-snake.svg?theme=light
+            dist/github-snake-dark.svg?theme=dark
 
-      - name: Deploy SVG to Output Branch
-        uses: crazy-max/ghaction-github-pages@v3.1.0
+      - name: Deploy to Output Branch
+        uses: crazy-max/ghaction-github-pages@v4
         with:
           target_branch: output
           build_dir: dist
@@ -264,11 +268,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+**Opciones de cada salida** (formato query string tras la ruta `.svg`):
+
+| Opción | Valores | Por defecto |
+| :--- | :--- | :--- |
+| `theme` | `dark`, `light`, `cyberpunk`, `neon_cyan`, `amber_terminal` | `dark` |
+| `speed` | `normal`, `fast`, `relaxed` | `normal` |
+| `morph` | `matrix_viper`, `capsule`, `retro` | `matrix_viper` |
+| `pause` | `fast`, `medium`, `none` | `fast` |
+
+Ejemplo: `dist/snake-neon.svg?theme=neon_cyan&speed=fast&morph=capsule`.
+
 ### Paso 4: Ejecutar el Workflow por Primera Vez
 1. Ve a la pestaña **Actions** de tu repositorio.
-2. En el menú izquierdo, selecciona **Generate Snake Contribution Animation**.
+2. En el menú izquierdo, selecciona **GitHub Snake**.
 3. Haz clic en el botón desplegable **Run workflow** -> **Run workflow**.
-4. Una vez completado en verde, se habrá creado automáticamente la rama `output` con los gráficos generados.
+4. Una vez completado en verde, se habrá creado automáticamente la rama `output` con los SVG generados.
 
 ### Paso 5: Mostrar la Animación en tu Portada
 Edita tu `README.md` principal y agrega este bloque para soporte automático en modo oscuro y claro:
@@ -277,9 +292,9 @@ Edita tu `README.md` principal y agrega este bloque para soporte automático en 
 ### Mi Matriz de Contribuciones
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake.svg">
-  <img alt="Snake Contribution Animation" src="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-snake-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-snake.svg">
+  <img alt="GITHUB_SNAKE.EXE contribution animation" src="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-snake.svg">
 </picture>
 ```
 
