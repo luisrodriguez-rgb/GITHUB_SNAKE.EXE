@@ -14,6 +14,8 @@ class ProfileDuel {
     this.onFinish = onFinish || (() => {});
     this.players = [];
     this.frameId = null;
+    // La app lo pone a false cuando el duelo no está en pantalla: los ticks siguen, el dibujo no
+    this.visible = true;
     this.renderers = canvases.map(c => new SnakeRenderer(c));
     // Jugador 1 con los colores del tema, jugador 2 en cian para distinguirlos
     this.renderers[1].snakePalette = { snakeHead: '#ffffff', snakeBody: '#00f2fe', snakeGlow: 'rgba(0, 242, 254, 0.95)' };
@@ -103,7 +105,7 @@ class ProfileDuel {
     }
     if (caughtUp === 40) this.lastTickTime = now;
 
-    this.renderFrame(Math.min(1, (now - this.lastTickTime) / interval));
+    if (this.visible) this.renderFrame(Math.min(1, (now - this.lastTickTime) / interval));
     this.onUpdate(this.getState());
 
     if (this.isOver()) {

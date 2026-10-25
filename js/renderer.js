@@ -89,6 +89,15 @@ class SnakeRenderer {
   }
 
   getThemeColors() {
+    // getComputedStyle fuerza un recálculo de estilos: se consulta solo cuando cambia el tema
+    const theme = document.body.getAttribute('data-theme');
+    if (this.themeColorsKey === theme && this.themeColors) return this.themeColors;
+    this.themeColorsKey = theme;
+    this.themeColors = this.readThemeColors();
+    return this.themeColors;
+  }
+
+  readThemeColors() {
     const style = getComputedStyle(document.body);
     return {
       empty: style.getPropertyValue('--cell-empty').trim() || '#0a140e',
@@ -143,7 +152,51 @@ class SnakeRenderer {
     }
   }
 
+  /**
+   * La cuadrícula solo cambia en los ticks (unas pocas veces por segundo), pero sus brillos con shadowBlur
+   * eran lo más caro de cada frame. Se dibuja en una capa aparte y se reutiliza mientras no cambie.
+   */
   drawGrid(grid, colors) {
+    let signature = grid.length;
+    for (let x = 0; x < grid.length; x++) {
+      for (let y = 0; y < grid[x].length; y++) {
+        signature = (signature * 31 + grid[x][y].level + 1) | 0;
+      }
+    }
+    const colorKey = `${colors.empty}|${colors.l1}|${colors.l2}|${colors.l3}|${colors.l4}|${colors.matrixGreen}`;
+
+    if (!this.gridLayer) {
+      this.gridLayer = document.createElement('canvas');
+      this.gridLayerCtx = this.gridLayer.getContext('2d');
+    }
+    const layer = this.gridLayer;
+    const dirty = layer.width !== this.canvas.width || layer.height !== this.canvas.height ||
+      this.gridLayerGrid !== grid || this.gridLayerSignature !== signature || this.gridLayerColors !== colorKey;
+
+    if (dirty) {
+      if (layer.width !== this.canvas.width || layer.height !== this.canvas.height) {
+        layer.width = this.canvas.width;
+        layer.height = this.canvas.height;
+      }
+      const dpr = window.devicePixelRatio || 1;
+      const mainCtx = this.ctx;
+      this.ctx = this.gridLayerCtx;
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this.ctx.clearRect(0, 0, layer.width, layer.height);
+      this.paintGridCells(grid, colors);
+      this.ctx = mainCtx;
+      this.gridLayerGrid = grid;
+      this.gridLayerSignature = signature;
+      this.gridLayerColors = colorKey;
+    }
+
+    this.ctx.save();
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.drawImage(layer, 0, 0);
+    this.ctx.restore();
+  }
+
+  paintGridCells(grid, colors) {
     const colorMap = [
       colors.empty,
       colors.l1,
@@ -168,13 +221,10 @@ class SnakeRenderer {
           this.drawRoundedRect(px, py, this.cellSize, this.cellSize, this.cellRadius, true);
         }
 
+        // Reflejo superior sin shadowBlur: la capa se repinta en cada tick y en el duelo son dos tableros
         if (cell.level >= 2) {
-          this.ctx.save();
-          this.ctx.shadowColor = colors.matrixGreen;
-          this.ctx.shadowBlur = cell.level === 4 ? 8 : 4;
-          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+          this.ctx.fillStyle = cell.level === 4 ? 'rgba(255, 255, 255, 0.28)' : 'rgba(255, 255, 255, 0.18)';
           this.drawRoundedRect(px + 1.5, py + 1.5, this.cellSize - 3, 2, 1);
-          this.ctx.restore();
         }
       }
     }
@@ -198,13 +248,16 @@ class SnakeRenderer {
     this.ctx.save();
     for (const sw of this.shockwaves) {
       this.ctx.globalAlpha = Math.max(0, sw.alpha);
-      this.ctx.strokeStyle = sw.intensity >= 4 ? '#ffffff' : colors.matrixGreen;
-      this.ctx.lineWidth = 2;
-      this.ctx.shadowColor = colors.matrixGreen;
-      this.ctx.shadowBlur = 12;
-
+      // Halo con un trazo ancho translúcido: shadowBlur en cada onda era de lo más caro del duelo
       this.ctx.beginPath();
       this.ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+      this.ctx.strokeStyle = colors.matrixGreen;
+      this.ctx.lineWidth = 7;
+      this.ctx.globalAlpha = Math.max(0, sw.alpha) * 0.22;
+      this.ctx.stroke();
+      this.ctx.strokeStyle = sw.intensity >= 4 ? '#ffffff' : colors.matrixGreen;
+      this.ctx.lineWidth = 2;
+      this.ctx.globalAlpha = Math.max(0, sw.alpha);
       this.ctx.stroke();
     }
     this.ctx.restore();
@@ -310,23 +363,26 @@ class SnakeRenderer {
         // 1. Silueta de Alto Contraste (Borde oscuro para separar de las celdas verdes de fondo)
         this.ctx.save();
         this.ctx.fillStyle = '#020905';
-        this.ctx.shadowColor = '#000000';
-        this.ctx.shadowBlur = 6;
         this.drawRoundedRect(x + offset - 1.5, y + offset - 1.5, size + 3, size + 3, size * 0.38);
-        this.ctx.restore();
 
-        // 2. Núcleo Vibrante con Halo Luminiscente
-        this.ctx.save();
-        this.ctx.shadowColor = colors.snakeGlow;
-        this.ctx.shadowBlur = isHead ? 20 : 12 * pulse;
+        // 2. Halo luminiscente: shadowBlur real solo en la cabeza; en el cuerpo un halo translúcido
+        //    (42 desenfoques por serpiente y frame hundían los FPS del duelo)
+        if (isHead) {
+          this.ctx.shadowColor = colors.snakeGlow;
+          this.ctx.shadowBlur = 20;
+        } else {
+          this.ctx.fillStyle = colors.snakeGlow;
+          this.ctx.globalAlpha = 0.35 * pulse;
+          this.drawRoundedRect(x + offset - 3, y + offset - 3, size + 6, size + 6, size * 0.45);
+          this.ctx.globalAlpha = 1;
+        }
         this.ctx.fillStyle = isHead ? '#ffffff' : colors.snakeBody;
         this.drawRoundedRect(x + offset, y + offset, size, size, size * 0.35);
+        this.ctx.shadowBlur = 0;
 
         // 3. Columna Vertebral Láser Ultra Brillante (Línea central blanca de alto impacto)
         if (!isHead) {
           this.ctx.fillStyle = '#ffffff';
-          this.ctx.shadowColor = '#ffffff';
-          this.ctx.shadowBlur = 4;
           const innerSize = size * 0.38;
           const innerOffset = (this.cellSize - innerSize) / 2;
           this.drawRoundedRect(x + innerOffset, y + innerOffset, innerSize, innerSize, 1.5);
@@ -551,13 +607,17 @@ class SnakeRenderer {
 
       this.ctx.globalAlpha = Math.max(0, p.alpha);
       this.ctx.fillStyle = colors.matrixGreen;
-      this.ctx.shadowColor = colors.matrixGreen;
-      this.ctx.shadowBlur = 8;
 
+      // Sin shadowBlur por partícula (decenas por segundo en cada tablero): el brillo es un círculo translúcido
       if (p.isDigit) {
         this.ctx.font = 'bold 10px JetBrains Mono';
         this.ctx.fillText(p.char, px, py);
       } else {
+        this.ctx.globalAlpha = Math.max(0, p.alpha) * 0.3;
+        this.ctx.beginPath();
+        this.ctx.arc(px, py, p.size * 2.2, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.globalAlpha = Math.max(0, p.alpha);
         this.ctx.beginPath();
         this.ctx.arc(px, py, p.size, 0, Math.PI * 2);
         this.ctx.fill();

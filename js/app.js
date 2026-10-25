@@ -516,6 +516,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  let mainCanvasVisible = true;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(entries => {
+      mainCanvasVisible = entries[0].isIntersecting;
+    }).observe(canvas);
+  }
+
   function gameLoop(now) {
     drawMatrixRain();
 
@@ -536,7 +543,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isDuelMode && snake2) snake2.updateParticles();
 
     renderer.updateShockwaves();
-    renderer.render(grid, snake, progress, isDuelMode ? snake2 : null);
+    // Fuera de pantalla la lógica sigue, pero no se pinta (ahorra GPU mientras se ve el duelo)
+    if (mainCanvasVisible) {
+      renderer.render(grid, snake, progress, isDuelMode ? snake2 : null);
+    }
 
     animationFrameId = requestAnimationFrame(gameLoop);
   }
@@ -1201,6 +1211,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     onUpdate: renderDuelState,
     onFinish: showDuelResult
   });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(entries => {
+      profileDuel.visible = entries[0].isIntersecting;
+    }).observe(duelArena);
+  }
 
   function duelUrl(a, b) {
     const url = new URL(profileUrl(a));

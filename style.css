@@ -4,7 +4,7 @@
   /* Matrix x GitHub Cyber Core Palette (Dark default) */
   --bg-primary: #040806;
   --bg-secondary: #08100c;
-  --bg-card: rgba(8, 18, 14, 0.78);
+  --bg-card: rgba(8, 18, 14, 0.92);
   --bg-card-hover: rgba(12, 26, 20, 0.88);
   
   --matrix-green: #00ff66;
@@ -242,7 +242,7 @@ body[data-theme="dark"] {
 body[data-theme="cyberpunk"] {
   --bg-primary: #090614;
   --bg-secondary: #120b24;
-  --bg-card: rgba(18, 11, 36, 0.8);
+  --bg-card: rgba(18, 11, 36, 0.92);
   --cell-empty: #170d2b;
   --cell-l1: #3b1059;
   --cell-l2: #72128a;
@@ -526,8 +526,8 @@ body[data-theme="light"] .star-badge {
 /* Cyber Glass Panel */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  /* Sin backdrop-filter: con la lluvia Matrix animada detrás, el desenfoque se recalculaba en cada frame
+     y bajaba el juego de ~54 a ~24 FPS en un móvil medio. El fondo casi opaco da el mismo aspecto. */
   border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 1.5rem;
