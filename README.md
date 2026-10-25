@@ -323,6 +323,8 @@ Edita tu `README.md` principal y agrega este bloque para soporte automático en 
 3. **Abrir en el navegador**:
    Visita `http://localhost:3000` en tu navegador.
 
+4. **Al publicar cambios de CSS o JS**: cambia el valor de `?v=` en `index.html` (el mismo en todas las etiquetas). GitHub Pages deja que el navegador reutilice esos archivos durante 10 minutos; sin cambiar la versión, un visitante puede recibir el HTML nuevo con CSS/JS viejos. `node --test tests/*.test.js` comprueba que todas las etiquetas lleven la misma versión.
+
 ---
 
 ## Licencia
