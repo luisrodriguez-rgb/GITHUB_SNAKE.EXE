@@ -3,6 +3,10 @@
  * Procesa perfiles completos, avatares, fechas calculadas y gestiona el Ranking de Desarrolladores.
  */
 
+// En la GitHub Action no existe la capa de i18n: se usa el texto en español
+const trText = (key, fallback) => (typeof window.t === 'function' ? window.t(key) : fallback);
+const isEnglish = () => typeof window.I18n === 'object' && window.I18n.lang === 'en';
+
 class GitHubFetcher {
   constructor() {
     this.cols = 53;
@@ -17,7 +21,9 @@ class GitHubFetcher {
         username: 'antfu',
         avatar: 'https://github.com/antfu.png?size=100',
         role: 'Vue / Vite / Nuxt Core',
-        location: 'Tokio, Japon'
+        location: 'Tokio, Japon',
+        roleEn: 'Vue / Vite / Nuxt Core',
+        locationEn: 'Tokyo, Japan'
       },
       {
         rank: 2,
@@ -25,7 +31,9 @@ class GitHubFetcher {
         username: 'sindresorhus',
         avatar: 'https://github.com/sindresorhus.png?size=100',
         role: 'Open Source Maintainer',
-        location: 'Suecia'
+        location: 'Suecia',
+        roleEn: 'Open Source Maintainer',
+        locationEn: 'Sweden'
       },
       {
         rank: 3,
@@ -33,7 +41,9 @@ class GitHubFetcher {
         username: 'yyx990803',
         avatar: 'https://github.com/yyx990803.png?size=100',
         role: 'Creador de Vue.js & Vite',
-        location: 'Singapur'
+        location: 'Singapur',
+        roleEn: 'Creator of Vue.js & Vite',
+        locationEn: 'Singapore'
       },
       {
         rank: 4,
@@ -41,7 +51,9 @@ class GitHubFetcher {
         username: 'torvalds',
         avatar: 'https://github.com/torvalds.png?size=100',
         role: 'Creador de Linux & Git',
-        location: 'Portland, EE.UU.'
+        location: 'Portland, EE.UU.',
+        roleEn: 'Creator of Linux & Git',
+        locationEn: 'Portland, USA'
       },
       {
         rank: 5,
@@ -49,7 +61,9 @@ class GitHubFetcher {
         username: 'midudev',
         avatar: 'https://github.com/midudev.png?size=100',
         role: 'FullStack & Open Source',
-        location: 'Espana'
+        location: 'Espana',
+        roleEn: 'FullStack & Open Source',
+        locationEn: 'Spain'
       },
       {
         rank: 6,
@@ -57,7 +71,9 @@ class GitHubFetcher {
         username: 'gaearon',
         avatar: 'https://github.com/gaearon.png?size=100',
         role: 'Creador de Redux',
-        location: 'Londres, Reino Unido'
+        location: 'Londres, Reino Unido',
+        roleEn: 'Creator of Redux',
+        locationEn: 'London, UK'
       }
     ];
   }
@@ -93,8 +109,8 @@ class GitHubFetcher {
           username: data.login,
           name: data.name || data.login,
           avatar: data.avatar_url || `https://github.com/${cleanUser}.png?size=100`,
-          bio: data.bio || (matched ? matched.role : 'Desarrollador de software'),
-          location: data.location || (matched ? matched.location : 'En la red'),
+          bio: data.bio || (matched ? (isEnglish() ? matched.roleEn : matched.role) : trText('profile.defaultBio', 'Desarrollador de software')),
+          location: data.location || (matched ? (isEnglish() ? matched.locationEn : matched.location) : trText('profile.defaultLocation', 'En la red')),
           repos: data.public_repos || 0,
           followers: data.followers || 0
         };
@@ -105,8 +121,8 @@ class GitHubFetcher {
       username: cleanUser,
       name: matched ? matched.name : cleanUser.charAt(0).toUpperCase() + cleanUser.slice(1),
       avatar: `https://github.com/${cleanUser}.png?size=100`,
-      bio: matched ? matched.role : 'Desarrollador en GitHub',
-      location: matched ? matched.location : 'Comunidad Global',
+      bio: matched ? (isEnglish() ? matched.roleEn : matched.role) : trText('profile.fallbackBio', 'Desarrollador en GitHub'),
+      location: matched ? (isEnglish() ? matched.locationEn : matched.location) : trText('profile.fallbackLocation', 'Comunidad Global'),
       repos: null,
       followers: null,
       isFallback: true

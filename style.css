@@ -1721,6 +1721,30 @@ body[data-theme="light"] .modal-card {
   background: #ffffff;
 }
 
+/* Selector de idioma */
+.lang-switch {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.lang-btn {
+  background: transparent;
+  border: 0;
+  padding: 0.45rem 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.lang-btn[aria-pressed="true"] {
+  background: var(--matrix-green);
+  color: #04110a;
+}
+
 /* Las clases con display (p. ej. .btn) anulaban el atributo hidden */
 [hidden] {
   display: none !important;

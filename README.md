@@ -4,6 +4,8 @@
 
 # GITHUB_SNAKE.EXE — Interactive GitHub Contribution Engine
 
+<p align="center"><a href="README.en.md">English</a> · <b>Español</b></p>
+
 > **Plataforma interactiva sobre Canvas 2D que transforma el historial de contribuciones de GitHub en una simulación a 60 FPS con IA (BFS + Flood Fill), generador de Commit Art y herramientas de exportación para desarrolladores.**
 
 <p align="center">
