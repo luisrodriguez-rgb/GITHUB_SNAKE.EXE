@@ -543,8 +543,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isDuelMode && snake2) snake2.updateParticles();
 
     renderer.updateShockwaves();
-    // Fuera de pantalla la lógica sigue, pero no se pinta (ahorra GPU mientras se ve el duelo)
-    if (mainCanvasVisible) {
+    // Fuera de pantalla la lógica sigue, pero no se pinta (ahorra GPU mientras se ve el duelo).
+    // Grabando se pinta siempre: la captura del canvas se congelaría
+    if (mainCanvasVisible || recorder.isRecording) {
       renderer.render(grid, snake, progress, isDuelMode ? snake2 : null);
     }
 
