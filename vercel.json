@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/:path((?!api/).*)",
+      "destination": "https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/:path",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     { "source": "/api/:user.svg", "destination": "/api/snake?user=:user" }
   ],

@@ -136,3 +136,19 @@ test('con endpoint configurado, el README apunta a /api/<usuario>.svg con las op
   assert.match(snippet, /srcset="https:\/\/snake\.example\.dev\/api\/octocat\.svg\?theme=cyberpunk&morph=capsule"/);
   assert.match(snippet, /src="https:\/\/snake\.example\.dev\/api\/octocat\.svg\?theme=light&morph=capsule"/);
 });
+
+test('la simulación se reutiliza entre estilos y se recalcula si cambia la matriz', () => {
+  const engine = loadEngine();
+  const exporter = new engine.ExporterEngine();
+  const grid = weeksToGrid(fakeWeeks());
+  exporter.buildAnimatedSvg(grid, { theme: 'dark' });
+  exporter.buildAnimatedSvg(grid, { theme: 'light', morph: 'retro', speed: 'fast' });
+  assert.strictEqual(exporter.simulationCache.size, 1);
+
+  // Pintar una celda (modo pintar de la web) cambia originalLevel: nueva simulación, no la vieja
+  const cell = grid.flat().find(c => c.originalLevel === 0);
+  cell.originalLevel = 4;
+  const svg = exporter.buildAnimatedSvg(grid, { theme: 'dark' });
+  assert.strictEqual(exporter.simulationCache.size, 2);
+  assert.ok(svg.includes(`c${cell.x}_${cell.y}`), 'la celda pintada se anima');
+});

@@ -114,59 +114,8 @@ class ExporterEngine {
     const width = (cols * stepSize) + (padding * 2) - cellGap;
     const height = (rows * stepSize) + (padding * 2) - cellGap;
 
-    // 1. Clonar matriz
-    const simGrid = [];
-    for (let x = 0; x < cols; x++) {
-      const col = [];
-      for (let y = 0; y < rows; y++) {
-        const c = grid[x] && grid[x][y];
-        col.push({
-          x: x,
-          y: y,
-          // Se parte de la matriz original: en la web la partida en curso ya se ha comido celdas
-          level: c ? c.originalLevel : 0,
-          originalLevel: c ? c.originalLevel : 0
-        });
-      }
-      simGrid.push(col);
-    }
-
-    const hasRemainingCommits = () => {
-      for (let x = 0; x < cols; x++) {
-        for (let y = 0; y < rows; y++) {
-          if (simGrid[x][y].level > 0) return true;
-        }
-      }
-      return false;
-    };
-
-    // 2. Simulación de trayectoria hasta vaciar la matriz
-    const simSnake = new Snake(4, { x: 0, y: 0 });
-    const simPathfinder = new SnakePathfinder(cols, rows);
-    const history = [];
-    const cellBites = {}; // key -> pasos en los que la serpiente quitó un nivel
-    let totalLevels = 0;
-    for (let x = 0; x < cols; x++) {
-      for (let y = 0; y < rows; y++) totalLevels += simGrid[x][y].level;
-    }
-    // Margen amplio: cada nivel exige volver a pisar la celda
-    const maxSteps = Math.min(8000, 400 + totalLevels * 30);
-
-    let step = 0;
-    history.push(simSnake.body.map(seg => ({ x: seg.x, y: seg.y })));
-    while (hasRemainingCommits() && step < maxSteps) {
-      const next = simPathfinder.findNextStep(simSnake, simGrid);
-      if (!next) break;
-
-      step++;
-      const key = `${next.x}_${next.y}`;
-      if (simGrid[next.x][next.y].level > 0) {
-        (cellBites[key] = cellBites[key] || []).push(step);
-      }
-
-      simSnake.moveTo(next, simGrid);
-      history.push(simSnake.body.map(seg => ({ x: seg.x, y: seg.y })));
-    }
+    // 1-2. Simulación (solo depende de la matriz: se reutiliza entre temas, velocidades y formas)
+    const { simGrid, history, cellBites } = this.simulate(grid, cols, rows);
 
     const totalSteps = history.length;
 
@@ -286,6 +235,71 @@ class ExporterEngine {
       { file: 'github-snake.svg', query: query(style.lightTheme || 'light') },
       { file: 'github-snake-dark.svg', query: query(darkTheme) }
     ];
+  }
+
+  /**
+   * Recorrido completo de la serpiente sobre la matriz original. El resultado no depende de las opciones del SVG,
+   * así que se memoriza por contenido de la matriz: la versión clara y la oscura de un perfil simulan una sola vez.
+   * Quien lo use solo debe leerlo.
+   */
+  simulate(grid, cols = 53, rows = 7) {
+    let signature = '';
+    for (let x = 0; x < cols; x++) {
+      for (let y = 0; y < rows; y++) {
+        const c = grid[x] && grid[x][y];
+        signature += c ? c.originalLevel : 0;
+      }
+    }
+    this.simulationCache = this.simulationCache || new Map();
+    const cached = this.simulationCache.get(signature);
+    if (cached) return cached;
+
+    // Se parte de la matriz original: en la web la partida en curso ya se ha comido celdas
+    const simGrid = [];
+    let remainingLevels = 0;
+    for (let x = 0; x < cols; x++) {
+      const col = [];
+      for (let y = 0; y < rows; y++) {
+        const c = grid[x] && grid[x][y];
+        const level = c ? c.originalLevel : 0;
+        remainingLevels += level;
+        col.push({ x, y, level, originalLevel: level });
+      }
+      simGrid.push(col);
+    }
+
+    const simSnake = new Snake(4, { x: 0, y: 0 });
+    simSnake.effects = false;
+    const simPathfinder = new SnakePathfinder(cols, rows);
+    const history = [];
+    const cellBites = {}; // key -> pasos en los que la serpiente quitó un nivel
+    // Margen amplio: cada nivel exige volver a pisar la celda
+    const maxSteps = Math.min(8000, 400 + remainingLevels * 30);
+
+    let step = 0;
+    history.push(simSnake.body.map(seg => ({ x: seg.x, y: seg.y })));
+    while (remainingLevels > 0 && step < maxSteps) {
+      const next = simPathfinder.findNextStep(simSnake, simGrid);
+      if (!next) break;
+
+      step++;
+      if (simGrid[next.x][next.y].level > 0) {
+        const key = `${next.x}_${next.y}`;
+        (cellBites[key] = cellBites[key] || []).push(step);
+        remainingLevels--;
+      }
+
+      simSnake.moveTo(next, simGrid);
+      history.push(simSnake.body.map(seg => ({ x: seg.x, y: seg.y })));
+    }
+
+    const result = { simGrid, history, cellBites };
+    this.simulationCache.set(signature, result);
+    // Pocas entradas: el endpoint y la web solo alternan entre unas pocas matrices
+    if (this.simulationCache.size > 20) {
+      this.simulationCache.delete(this.simulationCache.keys().next().value);
+    }
+    return result;
   }
 
   generateWorkflowYaml(username = 'USUARIO', style = {}) {

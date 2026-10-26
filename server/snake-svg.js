@@ -1,17 +1,42 @@
 /**
  * Endpoint SVG sin configuración: GET /api/<usuario>.svg?theme=...&speed=...&morph=...&pause=...
  * Mismo motor que la web y la GitHub Action. Pensado para una función serverless de Node (Vercel):
- * generar un SVG cuesta ~70-200 ms de CPU, más de lo que permite el plan gratuito de Cloudflare Workers.
+ * generar un SVG cuesta ~25-50 ms de CPU, más de lo que permite el plan gratuito de Cloudflare Workers (10 ms).
  */
 
+const zlib = require('zlib');
 const { loadEngine } = require('../action/lib');
 
 const USER_RE = /^[a-z\d](?:[a-z\d-]{0,38})$/i;
 // GitHub actualiza el calendario a lo largo del día: 6 h de caché en la CDN y 1 día sirviendo la copia vieja mientras se regenera
-const CACHE_OK = 'public, max-age=3600, s-maxage=21600, stale-while-revalidate=86400';
+// max-age de 4 h para el proxy de imágenes de GitHub (camo): cada recarga del README no llega a Vercel
+const CACHE_OK = 'public, max-age=14400, s-maxage=21600, stale-while-revalidate=86400';
 const CACHE_ERROR = 'public, max-age=300, s-maxage=300';
 
 const engine = loadEngine();
+// Una sola instancia: memoriza la simulación por matriz, así cada estilo extra de un perfil cuesta solo el SVG
+const exporter = new engine.ExporterEngine();
+
+// Las instancias calientes se reutilizan entre peticiones: el calendario de cada usuario se guarda 30 min en memoria.
+// Así las versiones clara y oscura (o varios estilos) del mismo perfil cuestan una sola consulta a GitHub.
+const CALENDAR_TTL_MS = 30 * 60 * 1000;
+const CALENDAR_CACHE_MAX = 500;
+const calendarCache = new Map();
+
+function getCalendarWeeks(user, token, fetchImpl) {
+  const key = user.toLowerCase();
+  const hit = calendarCache.get(key);
+  if (hit && Date.now() - hit.time < CALENDAR_TTL_MS) return hit.promise;
+
+  // Se guarda la promesa: peticiones simultáneas del mismo usuario comparten la consulta en curso
+  const promise = engine.SnakeCore.fetchCalendarWeeks(user, token, fetchImpl);
+  calendarCache.set(key, { time: Date.now(), promise });
+  promise.catch(() => calendarCache.delete(key));
+  if (calendarCache.size > CALENDAR_CACHE_MAX) {
+    calendarCache.delete(calendarCache.keys().next().value);
+  }
+  return promise;
+}
 
 function escapeXml(text) {
   return String(text).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
@@ -60,7 +85,7 @@ async function renderSnakeSvg({ user, query = '', token, fetchImpl = fetch }) {
 
   let weeks;
   try {
-    weeks = await engine.SnakeCore.fetchCalendarWeeks(user, token, fetchImpl);
+    weeks = await getCalendarWeeks(user, token, fetchImpl);
   } catch (err) {
     if (err.code === 'NOT_FOUND') {
       return svgResponse(404, messageSvg(`no existe el usuario ${user}`), CACHE_ERROR);
@@ -71,7 +96,7 @@ async function renderSnakeSvg({ user, query = '', token, fetchImpl = fetch }) {
     return svgResponse(502, messageSvg('GitHub no respondió, inténtalo más tarde'), 'no-store');
   }
 
-  const svg = new engine.ExporterEngine().buildAnimatedSvg(engine.SnakeCore.weeksToGrid(weeks), options);
+  const svg = exporter.buildAnimatedSvg(engine.SnakeCore.weeksToGrid(weeks), options);
   return svgResponse(200, svg, CACHE_OK);
 }
 
@@ -83,7 +108,20 @@ async function handler(req, res) {
   const result = await renderSnakeSvg({ user, query: url.search, token: process.env.GITHUB_TOKEN });
   res.statusCode = result.status;
   for (const [name, value] of Object.entries(result.headers)) res.setHeader(name, value);
-  res.end(req.method === 'HEAD' ? undefined : result.body);
+
+  // El SVG se comprime ~10x (92 KB -> ~10 KB); brotli calidad 5 cuesta ~2 ms
+  let body = Buffer.from(result.body);
+  const accepted = String(req.headers && req.headers['accept-encoding'] || '');
+  res.setHeader('Vary', 'Accept-Encoding');
+  if (/\bbr\b/.test(accepted)) {
+    body = zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 } });
+    res.setHeader('Content-Encoding', 'br');
+  } else if (/\bgzip\b/.test(accepted)) {
+    body = zlib.gzipSync(body);
+    res.setHeader('Content-Encoding', 'gzip');
+  }
+  res.setHeader('Content-Length', body.length);
+  res.end(req.method === 'HEAD' ? undefined : body);
 }
 
-module.exports = { renderSnakeSvg, handler, messageSvg };
+module.exports = { renderSnakeSvg, handler, messageSvg, calendarCache };

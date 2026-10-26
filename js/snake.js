@@ -70,7 +70,10 @@ class Snake {
         this.length++;
       }
 
-      this.spawnParticles(nextPos.x, nextPos.y, targetCell.originalLevel);
+      // Las simulaciones sin pantalla (exportar SVG) desactivan los efectos: nadie los ve y se acumulaban en memoria
+      if (this.effects !== false) {
+        this.spawnParticles(nextPos.x, nextPos.y, targetCell.originalLevel);
+      }
 
       if (onEatCallback) {
         onEatCallback(targetCell);
