@@ -95,7 +95,8 @@ Each line of `outputs` is a `.svg` path followed by optional query-string option
 | `theme` | `dark`, `light`, `cyberpunk`, `neon_cyan`, `amber_terminal` | `dark` |
 | `speed` | `normal`, `fast`, `relaxed` | `normal` |
 | `morph` | `matrix_viper`, `capsule`, `retro` | `matrix_viper` |
-| `pause` | `fast`, `medium`, `none` | `fast` |
+| `pause` | `fast` (1.5 s celebration), `medium` (2.5 s), `none` (no celebration) | `fast` |
+| `lang` | `en`, `es` (header text) | `en` |
 
 Example: `dist/snake-neon.svg?theme=neon_cyan&speed=fast&morph=capsule`.
 
@@ -109,7 +110,7 @@ The repo ships a serverless function ([`server/snake-svg.js`](server/snake-svg.j
 <img src="https://github-snake-ebon.vercel.app/api/YOUR_USER.svg?theme=cyberpunk&morph=capsule" width="100%">
 ```
 
-It takes the same options as the Action (`theme`, `speed`, `morph`, `pause`). On errors it returns an SVG that says what went wrong (unknown user, invalid option...) instead of a broken image.
+It takes the same options as the Action (`theme`, `speed`, `morph`, `pause`). The same deployment also serves `/api/calendar/<user>.json` (official GitHub data, CDN-cached), which the site uses instead of the third-party API, falling back to it if needed. On errors it returns an SVG that says what went wrong (unknown user, invalid option...) instead of a broken image.
 
 **Deploy your own instance on Vercel (free Hobby plan):**
 1. Import this repository at [vercel.com/new](https://vercel.com/new) (framework: *Other*, no build command).
@@ -126,6 +127,7 @@ Each SVG is cached for 6 hours on the CDN (4 hours in GitHub's image proxy) per 
 
 * **Pathfinding**: BFS to the nearest commit cell (ties go to the highest intensity), plus a Flood Fill lookahead that rejects moves leaving less free space than the snake needs. Measured at a 0.006 ms median and 0.02 ms p95 per tick (Node.js, 12,000 ticks over 4 grids), using numeric cell indices and typed arrays.
 * **Rendering**: logic ticks (1–9 per second) are decoupled from the 60 FPS render loop and interpolated with LERP.
+* **SVG look**: a header with your username, yearly contributions and a progress bar that fills as the snake eats; a continuous tapered body with a head that turns and looks where it goes; shockwaves when an intense cell is cleared; a "100% DEVOURED" celebration and a left-to-right wave that refills the grid before the loop restarts. The snake starts next to your first active week instead of crossing empty months.
 * **SVG export**: the same simulation runs until the grid is empty; cells fade level by level and every snake segment shares a single keyframe path with a per-segment delay, keeping files around 45–120 KB (3–10 KB with brotli) and ~25–50 ms of CPU to render.
 * **Grid geometry**: 53 Sunday-start weeks × 7 days in local time, with the current week in the last column — the same layout as GitHub.
 

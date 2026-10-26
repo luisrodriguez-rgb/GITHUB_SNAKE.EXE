@@ -276,6 +276,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+**Qué muestra el SVG:** una cabecera con tu usuario, tus contribuciones del último año y una barra de progreso que se llena mientras la serpiente come; un cuerpo continuo que se estrecha hacia la cola y una cabeza que gira y mira hacia donde avanza; ondas expansivas al vaciar una celda intensa; y al final un "100% DEVORADO" mientras la matriz vuelve a llenarse en ola. La serpiente empieza junto a tu primera semana con actividad.
+
 **Opciones de cada salida** (formato query string tras la ruta `.svg`):
 
 | Opción | Valores | Por defecto |
@@ -283,7 +285,8 @@ jobs:
 | `theme` | `dark`, `light`, `cyberpunk`, `neon_cyan`, `amber_terminal` | `dark` |
 | `speed` | `normal`, `fast`, `relaxed` | `normal` |
 | `morph` | `matrix_viper`, `capsule`, `retro` | `matrix_viper` |
-| `pause` | `fast`, `medium`, `none` | `fast` |
+| `pause` | `fast` (1,5 s de celebración), `medium` (2,5 s), `none` (sin celebración) | `fast` |
+| `lang` | `en`, `es` (textos de la cabecera) | `en` |
 
 Ejemplo: `dist/snake-neon.svg?theme=neon_cyan&speed=fast&morph=capsule`.
 
@@ -314,7 +317,7 @@ El repositorio incluye una función serverless ([`server/snake-svg.js`](server/s
 <img src="https://github-snake-ebon.vercel.app/api/TU_USUARIO.svg?theme=cyberpunk&morph=capsule" width="100%">
 ```
 
-Acepta las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`). Si algo falla, devuelve un SVG con el motivo (usuario inexistente, opción no válida...) en lugar de una imagen rota.
+Acepta las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`). La misma instancia sirve también `/api/calendar/<usuario>.json` (datos oficiales de GitHub con caché en CDN), que la web usa en lugar de la API de terceros; si no responde, la web vuelve a la de terceros. Si algo falla, devuelve un SVG con el motivo (usuario inexistente, opción no válida...) en lugar de una imagen rota.
 
 **Desplegar tu propia instancia en Vercel (plan Hobby gratuito):**
 1. Importa este repositorio en [vercel.com/new](https://vercel.com/new) (framework: *Other*, sin comando de build).

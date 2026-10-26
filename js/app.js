@@ -148,6 +148,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isMouseDown = false;
   let currentUsername = 'torvalds';
   let dataIsSimulated = false;
+  // Dueño de la matriz en pantalla: vacío si es aleatoria, Commit Art o plantilla (la cabecera del SVG no muestra usuario)
+  let gridOwner = '';
+
+  /** Usuario e idioma para la cabecera de los SVG exportados y las vistas previas */
+  function svgIdentity() {
+    return { user: gridOwner, lang: I18n.lang };
+  }
 
   function formatSpeedLabel(speed) {
     if (speed <= 3) return t('speed.relaxed', { speed });
@@ -335,6 +342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       grid = await fetcher.getContributions(username);
       dataIsSimulated = fetcher.lastSource !== 'api';
+      gridOwner = username;
       totalCommitsInitial = countRemainingCommits();
       totalPointsInitial = countTotalCommitPoints();
       snake.reset();
@@ -730,6 +738,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     gameCompleted = false;
     grid = fetcher.generateRandomGrid();
     dataIsSimulated = false;
+    gridOwner = '';
     totalCommitsInitial = countRemainingCommits();
     totalPointsInitial = countTotalCommitPoints();
     snake.reset();
@@ -820,6 +829,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       gameCompleted = false;
       grid = artEngine.generateGridFromText(text);
       dataIsSimulated = false;
+      gridOwner = '';
       totalCommitsInitial = countRemainingCommits();
       totalPointsInitial = countTotalCommitPoints();
       snake.reset();
@@ -863,6 +873,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const tplKey = btn.getAttribute('data-tpl');
       grid = artEngine.applyTemplate(tplKey);
       dataIsSimulated = false;
+      gridOwner = '';
       totalCommitsInitial = countRemainingCommits();
       totalPointsInitial = countTotalCommitPoints();
       snake.reset();
@@ -1024,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       pause: exportPauseSelect.value
     };
     analytics.trackEvent('export_svg', options);
-    exporter.exportAnimatedSvg(grid, currentUsername, options);
+    exporter.exportAnimatedSvg(grid, currentUsername, { ...options, ...svgIdentity() });
     modalExportSvg.classList.remove('visible');
   });
 
@@ -1062,6 +1073,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function getWorkflowStyle() {
     return {
+      lang: I18n.lang,
       adaptive: document.querySelector('input[name="wfMode"]:checked').value === 'adaptive',
       darkTheme: wfDarkTheme.value,
       lightTheme: wfLightTheme.value,
@@ -1072,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setPreview(img, key, options) {
-    const svg = exporter.buildAnimatedSvg(grid, options);
+    const svg = exporter.buildAnimatedSvg(grid, { ...options, ...svgIdentity() });
     if (!svg) return;
     if (wfPreviewUrls[key]) URL.revokeObjectURL(wfPreviewUrls[key]);
     wfPreviewUrls[key] = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));

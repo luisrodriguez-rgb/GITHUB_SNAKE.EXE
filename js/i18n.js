@@ -105,9 +105,9 @@ const STATIC_EN = {
   'Morfologia de la Serpiente:': 'Snake Shape:',
   'Cyber Matrix Viper (Alto contraste con núcleo láser)': 'Cyber Matrix Viper (high contrast, laser core)',
   'Pausa de Reinicio (Loop):': 'Loop Pause:',
-  'Corta (0.5s de pausa)': 'Short (0.5s pause)',
-  'Normal (1.2s de pausa)': 'Normal (1.2s pause)',
-  'Sin pausa (Bucle continuo directo)': 'No pause (continuous loop)',
+  'Corta (1.5s de celebracion)': 'Short (1.5s celebration)',
+  'Larga (2.5s de celebracion)': 'Long (2.5s celebration)',
+  'Sin pausa (bucle continuo, sin celebracion)': 'No pause (continuous loop, no celebration)',
   'Descargar Archivo SVG': 'Download SVG File',
 
   // Fin de partida y logros
