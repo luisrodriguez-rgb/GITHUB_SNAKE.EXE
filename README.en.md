@@ -59,7 +59,7 @@ jobs:
 
     steps:
       - name: Generate Snake SVG
-        uses: luisrodriguez-rgb/GITHUB_SNAKE.EXE@v2
+        uses: luisrodriguez-rgb/GITHUB_SNAKE.EXE@v3
         with:
           github_user_name: YOUR_USER
           outputs: |
