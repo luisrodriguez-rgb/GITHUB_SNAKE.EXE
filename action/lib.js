@@ -86,7 +86,7 @@ async function run({ username, outputs, token, cwd = process.cwd(), log = consol
 
   const exporter = new engine.ExporterEngine();
   for (const { file, options } of targets) {
-    const svg = exporter.buildAnimatedSvg(grid, options);
+    const svg = exporter.buildAnimatedSvg(grid, { ...options, user: username });
     const fullPath = path.resolve(cwd, file);
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, svg);

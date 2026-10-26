@@ -152,3 +152,32 @@ test('la simulación se reutiliza entre estilos y se recalcula si cambia la matr
   assert.strictEqual(exporter.simulationCache.size, 2);
   assert.ok(svg.includes(`c${cell.x}_${cell.y}`), 'la celda pintada se anima');
 });
+
+test('cabecera: usuario escapado, contribuciones del año con el formato del idioma y celebración solo si se vacía', () => {
+  const engine = loadEngine();
+  const exporter = new engine.ExporterEngine();
+  const grid = weeksToGrid(fakeWeeks());
+  const total = grid.flat().reduce((sum, c) => sum + (c.originalLevel > 0 ? c.count : 0), 0);
+
+  const en = exporter.buildAnimatedSvg(grid, { user: 'a<b>', lang: 'en' });
+  assert.ok(en.includes('@a&lt;b&gt;'), 'el usuario va escapado');
+  assert.ok(!en.includes('@a<b>'));
+  assert.ok(en.includes(`${total.toLocaleString('en-US')} contributions in the last year`));
+  assert.ok(en.includes('100% DEVOURED'));
+
+  const es = exporter.buildAnimatedSvg(grid, { lang: 'es' });
+  assert.ok(es.includes(`${total.toLocaleString('de-DE')} contribuciones en el último año`), 'separador de miles con punto');
+  assert.ok(es.includes('100% DEVORADO'));
+  assert.ok(!es.includes('">@'), 'sin usuario no hay @ en la cabecera');
+
+  // Sin pausa no hay celebración
+  assert.ok(!exporter.buildAnimatedSvg(grid, { pause: 'none' }).includes('DEVOURED'));
+});
+
+test('lang es una opción válida de la Action y el generador de la web la incluye en español', () => {
+  assert.deepStrictEqual(parseOutputs('dist/a.svg?lang=es'), [{ file: 'dist/a.svg', options: { lang: 'es' } }]);
+  assert.throws(() => parseOutputs('dist/a.svg?lang=fr'), /no válido para 'lang'/);
+  const engine = loadEngine();
+  const yaml = new engine.ExporterEngine().generateWorkflowYaml('octocat', { adaptive: false, darkTheme: 'dark', lang: 'es' });
+  assert.match(yaml, /dist\/github-snake\.svg\?theme=dark&lang=es/);
+});

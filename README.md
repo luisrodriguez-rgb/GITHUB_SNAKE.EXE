@@ -276,6 +276,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+**Qué muestra el SVG:** una cabecera con tu usuario, tus contribuciones del último año y una barra de progreso que se llena mientras la serpiente come; un cuerpo continuo que se estrecha hacia la cola y una cabeza que gira y mira hacia donde avanza; ondas expansivas al vaciar una celda intensa; y al final un "100% DEVORADO" mientras la matriz vuelve a llenarse en ola. La serpiente empieza junto a tu primera semana con actividad.
+
 **Opciones de cada salida** (formato query string tras la ruta `.svg`):
 
 | Opción | Valores | Por defecto |
@@ -283,7 +285,8 @@ jobs:
 | `theme` | `dark`, `light`, `cyberpunk`, `neon_cyan`, `amber_terminal` | `dark` |
 | `speed` | `normal`, `fast`, `relaxed` | `normal` |
 | `morph` | `matrix_viper`, `capsule`, `retro` | `matrix_viper` |
-| `pause` | `fast`, `medium`, `none` | `fast` |
+| `pause` | `fast` (1,5 s de celebración), `medium` (2,5 s), `none` (sin celebración) | `fast` |
+| `lang` | `en`, `es` (textos de la cabecera) | `en` |
 
 Ejemplo: `dist/snake-neon.svg?theme=neon_cyan&speed=fast&morph=capsule`.
 

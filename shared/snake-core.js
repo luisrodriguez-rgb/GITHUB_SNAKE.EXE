@@ -11,7 +11,8 @@ const SnakeCore = {
     theme: ['dark', 'light', 'cyberpunk', 'neon_cyan', 'amber_terminal'],
     speed: ['normal', 'fast', 'relaxed'],
     morph: ['matrix_viper', 'capsule', 'retro'],
-    pause: ['fast', 'medium', 'none']
+    pause: ['fast', 'medium', 'none'],
+    lang: ['en', 'es']
   },
 
   CALENDAR_QUERY: `query($login: String!) {
