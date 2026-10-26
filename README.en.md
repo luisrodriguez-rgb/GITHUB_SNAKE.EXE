@@ -59,7 +59,7 @@ jobs:
 
     steps:
       - name: Generate Snake SVG
-        uses: luisrodriguez-rgb/GITHUB_SNAKE.EXE@v1
+        uses: luisrodriguez-rgb/GITHUB_SNAKE.EXE@v2
         with:
           github_user_name: YOUR_USER
           outputs: |
@@ -103,15 +103,15 @@ The Action reads your calendar from GitHub's official GraphQL API, so the grid m
 
 ### Alternative: direct link, no workflow (SVG endpoint)
 
-The repo ships a serverless function ([`server/snake-svg.js`](server/snake-svg.js)) that renders the SVG on the fly with the same engine:
+The repo ships a serverless function ([`server/snake-svg.js`](server/snake-svg.js)) that renders the SVG on the fly with the same engine. A public instance runs at `https://github-snake-ebon.vercel.app`; just paste this into your README:
 
 ```html
-<img src="https://YOUR-ENDPOINT/api/YOUR_USER.svg?theme=cyberpunk&morph=capsule" width="100%">
+<img src="https://github-snake-ebon.vercel.app/api/YOUR_USER.svg?theme=cyberpunk&morph=capsule" width="100%">
 ```
 
 It takes the same options as the Action (`theme`, `speed`, `morph`, `pause`). On errors it returns an SVG that says what went wrong (unknown user, invalid option...) instead of a broken image.
 
-**Deploy it on Vercel (free Hobby plan):**
+**Deploy your own instance on Vercel (free Hobby plan):**
 1. Import this repository at [vercel.com/new](https://vercel.com/new) (framework: *Other*, no build command).
 2. Create a GitHub token: *Settings → Developer settings → Fine-grained tokens*, with **no permissions** (it only reads public data).
 3. In Vercel, add it as the `GITHUB_TOKEN` environment variable and deploy.

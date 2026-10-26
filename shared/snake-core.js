@@ -1,5 +1,5 @@
 /**
- * Núcleo compartido por la GitHub Action (Node) y el worker del endpoint SVG (Cloudflare):
+ * Núcleo compartido por la GitHub Action (Node) y el endpoint SVG (función serverless de Node, ver server/snake-svg.js):
  * opciones válidas del SVG y conversión del calendario GraphQL de GitHub a la matriz 53x7 del motor.
  * Script plano (sin import/export) para cargarse igual que el resto del motor.
  */

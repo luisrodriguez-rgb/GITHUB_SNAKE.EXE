@@ -260,7 +260,7 @@ jobs:
 
     steps:
       - name: Generate Snake SVG
-        uses: luisrodriguez-rgb/GITHUB_SNAKE.EXE@v1
+        uses: luisrodriguez-rgb/GITHUB_SNAKE.EXE@v2
         with:
           github_user_name: TU_USUARIO
           outputs: |
@@ -308,15 +308,15 @@ Edita tu `README.md` principal y agrega este bloque para soporte automático en 
 
 ### Alternativa: enlace directo sin workflow (endpoint SVG)
 
-El repositorio incluye una función serverless ([`server/snake-svg.js`](server/snake-svg.js)) que sirve el SVG al vuelo con el mismo motor:
+El repositorio incluye una función serverless ([`server/snake-svg.js`](server/snake-svg.js)) que sirve el SVG al vuelo con el mismo motor. Hay una instancia pública en `https://github-snake-ebon.vercel.app`; solo pega esto en tu README:
 
 ```html
-<img src="https://TU-ENDPOINT/api/TU_USUARIO.svg?theme=cyberpunk&morph=capsule" width="100%">
+<img src="https://github-snake-ebon.vercel.app/api/TU_USUARIO.svg?theme=cyberpunk&morph=capsule" width="100%">
 ```
 
 Acepta las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`). Si algo falla, devuelve un SVG con el motivo (usuario inexistente, opción no válida...) en lugar de una imagen rota.
 
-**Desplegarlo en Vercel (plan Hobby gratuito):**
+**Desplegar tu propia instancia en Vercel (plan Hobby gratuito):**
 1. Importa este repositorio en [vercel.com/new](https://vercel.com/new) (framework: *Other*, sin comando de build).
 2. Crea un token en GitHub: *Settings → Developer settings → Fine-grained tokens*, **sin ningún permiso** (solo hace falta leer datos públicos).
 3. En Vercel, añade la variable de entorno `GITHUB_TOKEN` con ese token y despliega.
