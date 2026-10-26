@@ -118,15 +118,15 @@ It takes the same options as the Action (`theme`, `speed`, `morph`, `pause`). On
 4. Try `https://YOUR-PROJECT.vercel.app/api/YOUR_USER.svg?theme=dark`.
 5. To offer the **Direct link** option on the site, set that base URL in `<meta name="snake-api" content="...">` in `index.html`.
 
-Each SVG is cached on the CDN for 6 hours per user and option set, so the token barely touches its API quota. Cloudflare Workers isn't used because rendering an SVG takes ~70–200 ms of CPU and its free plan allows 10 ms.
+Each SVG is cached for 6 hours on the CDN (4 hours in GitHub's image proxy) per user and option set, served brotli-compressed (~10x smaller), and each user's calendar is reused from memory for 30 minutes, so the token barely touches its API quota. Site visits on the Vercel domain redirect to GitHub Pages so pages don't eat the quota. Cloudflare Workers isn't used because rendering an SVG takes ~25–50 ms of CPU and its free plan allows 10 ms.
 
 ---
 
 ## How it works
 
-* **Pathfinding**: BFS to the nearest commit cell (ties go to the highest intensity), plus a Flood Fill lookahead that rejects moves leaving less free space than the snake needs. Measured at a 0.04 ms median and 0.2 ms p95 per tick (Node.js, 12,000 ticks over 4 grids).
+* **Pathfinding**: BFS to the nearest commit cell (ties go to the highest intensity), plus a Flood Fill lookahead that rejects moves leaving less free space than the snake needs. Measured at a 0.006 ms median and 0.02 ms p95 per tick (Node.js, 12,000 ticks over 4 grids), using numeric cell indices and typed arrays.
 * **Rendering**: logic ticks (1–9 per second) are decoupled from the 60 FPS render loop and interpolated with LERP.
-* **SVG export**: the same simulation runs until the grid is empty; cells fade level by level and every snake segment shares a single keyframe path with a per-segment delay, keeping files around 65–95 KB.
+* **SVG export**: the same simulation runs until the grid is empty; cells fade level by level and every snake segment shares a single keyframe path with a per-segment delay, keeping files around 45–120 KB (3–10 KB with brotli) and ~25–50 ms of CPU to render.
 * **Grid geometry**: 53 Sunday-start weeks × 7 days in local time, with the current week in the last column — the same layout as GitHub.
 
 ---

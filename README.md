@@ -116,9 +116,9 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 
 | Métrica / Módulo | Complejidad / Medición | Impacto Técnico |
 | :--- | :--- | :--- |
-| **Pathfinding BFS** | $\mathcal{O}(V + E)$ sobre 371 nodos | Mediana $0.04\text{ ms}$ y p95 $0.2\text{ ms}$ por tick (Node.js, 12.000 ticks sobre 4 matrices) |
+| **Pathfinding BFS** | $\mathcal{O}(V + E)$ sobre 371 nodos | Mediana $0.006\text{ ms}$ y p95 $0.02\text{ ms}$ por tick (Node.js, 12.000 ticks sobre 4 matrices; índices numéricos y arrays tipados) |
 | **Renderizado LERP** | 60 FPS estables | $0\text{ jank}$, interpolación matemática continua |
-| **Peso SVG Exportado** | $\approx 65 - 95\text{ KB}$ | Barrido completo de la matriz, una sola trayectoria compartida por todos los segmentos |
+| **Peso SVG Exportado** | $\approx 45 - 120\text{ KB}$ ($\approx 3 - 10\text{ KB}$ con brotli) | Barrido completo de la matriz, una sola trayectoria compartida por todos los segmentos; generarlo cuesta $\approx 25 - 50\text{ ms}$ de CPU |
 | **Audio Procedural** | Web Audio API nativo | $0\text{ KB}$ en archivos de audio externos (sintetizado en tiempo real) |
 | **Caché en Edge** (opcional) | Cache API de Cloudflare (1h TTL) | Una sola consulta a la API por perfil y hora |
 
@@ -323,7 +323,7 @@ Acepta las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`). S
 4. Prueba `https://TU-PROYECTO.vercel.app/api/TU_USUARIO.svg?theme=dark`.
 5. Para que la web ofrezca la opción **Enlace directo**, pon esa URL base en `<meta name="snake-api" content="...">` de `index.html`.
 
-Cada SVG se cachea 6 horas en la CDN por usuario y combinación de opciones, así que el token apenas consume su límite de la API. No se usa Cloudflare Workers porque generar un SVG cuesta ~70-200 ms de CPU y su plan gratuito permite 10 ms.
+Cada SVG se cachea 6 horas en la CDN (4 horas en el proxy de imágenes de GitHub) por usuario y combinación de opciones, se sirve comprimido con brotli (~10 veces más pequeño) y el calendario de cada usuario se reutiliza 30 minutos en memoria, así que el token apenas consume su límite de la API. Las visitas a la web en el dominio de Vercel se redirigen a GitHub Pages para no gastar la cuota en páginas. No se usa Cloudflare Workers porque generar un SVG cuesta ~25-50 ms de CPU y su plan gratuito permite 10 ms.
 
 ---
 

@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { renderSnakeSvg, handler } = require('../server/snake-svg');
+const zlib = require('zlib');
+const { renderSnakeSvg, handler, calendarCache } = require('../server/snake-svg');
 
 const LEVEL_NAMES = ['NONE', 'FIRST_QUARTILE', 'SECOND_QUARTILE', 'THIRD_QUARTILE', 'FOURTH_QUARTILE'];
 
@@ -25,6 +26,7 @@ const okFetch = async () => ({
 });
 
 test('devuelve el SVG animado con el tema pedido y caché de CDN', async () => {
+  calendarCache.clear();
   let sentAuth = null;
   const res = await renderSnakeSvg({
     user: 'octocat',
@@ -52,22 +54,26 @@ test('errores legibles como SVG: usuario inválido, opción mala, sin token, usu
   assert.strictEqual(noToken.status, 500);
   assert.strictEqual(noToken.headers['Cache-Control'], 'no-store');
 
+  calendarCache.clear();
   const missing = await renderSnakeSvg({
     user: 'nadie-aqui', token: 't',
     fetchImpl: async () => ({ ok: true, json: async () => ({ data: { user: null }, errors: [{ type: 'NOT_FOUND', message: 'Could not resolve' }] }) })
   });
   assert.strictEqual(missing.status, 404);
 
+  calendarCache.clear();
   const rateLimited = await renderSnakeSvg({
     user: 'octocat', token: 't',
     fetchImpl: async () => ({ ok: true, json: async () => ({ data: null, errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] }) })
   });
   assert.strictEqual(rateLimited.status, 502, 'el límite de la API no es "usuario inexistente"');
 
+  calendarCache.clear();
   const badToken = await renderSnakeSvg({ user: 'octocat', token: 'x', fetchImpl: async () => ({ ok: false, status: 401, statusText: 'Unauthorized' }) });
   assert.strictEqual(badToken.status, 500);
   assert.match(badToken.body, /GITHUB_TOKEN/);
 
+  calendarCache.clear();
   const down = await renderSnakeSvg({ user: 'octocat', token: 't', fetchImpl: async () => ({ ok: false, status: 503, statusText: 'Unavailable' }) });
   assert.strictEqual(down.status, 502);
   assert.strictEqual(down.headers['Cache-Control'], 'no-store');
@@ -78,14 +84,36 @@ test('el adaptador HTTP lee el usuario de la ruta /api/<usuario>.svg', async () 
   const realToken = process.env.GITHUB_TOKEN;
   global.fetch = okFetch;
   process.env.GITHUB_TOKEN = 'tkn';
+  calendarCache.clear();
   const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, end(body) { this.body = body; } };
+  const brRes = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, end(body) { this.body = body; } };
   try {
-    await handler({ url: '/api/octocat.svg?theme=light', method: 'GET' }, res);
+    await handler({ url: '/api/octocat.svg?theme=light', method: 'GET', headers: {} }, res);
+    await handler({ url: '/api/octocat.svg?theme=light', method: 'GET', headers: { 'accept-encoding': 'gzip, deflate, br' } }, brRes);
   } finally {
     global.fetch = realFetch;
     if (realToken === undefined) delete process.env.GITHUB_TOKEN; else process.env.GITHUB_TOKEN = realToken;
   }
   assert.strictEqual(res.statusCode, 200);
-  assert.ok(res.body.startsWith('<svg'));
-  assert.ok(res.body.includes('#ffffff'), 'usa la paleta light');
+  const plain = res.body.toString();
+  assert.ok(plain.startsWith('<svg'));
+  assert.ok(plain.includes('#ffffff'), 'usa la paleta light');
+
+  // Con brotli aceptado se comprime y se descomprime al mismo SVG
+  assert.strictEqual(brRes.headers['Content-Encoding'], 'br');
+  assert.strictEqual(brRes.headers.Vary, 'Accept-Encoding');
+  assert.ok(brRes.body.length < plain.length / 4, 'al menos 4 veces más pequeño');
+  assert.strictEqual(zlib.brotliDecompressSync(brRes.body).toString(), plain);
+});
+
+test('el calendario de un usuario se consulta una sola vez para varios estilos', async () => {
+  calendarCache.clear();
+  let calls = 0;
+  const countingFetch = async () => { calls++; return okFetch(); };
+  await Promise.all([
+    renderSnakeSvg({ user: 'Octocat', query: 'theme=dark', token: 't', fetchImpl: countingFetch }),
+    renderSnakeSvg({ user: 'octocat', query: 'theme=light', token: 't', fetchImpl: countingFetch }),
+    renderSnakeSvg({ user: 'octocat', query: 'theme=cyberpunk&morph=retro', token: 't', fetchImpl: countingFetch })
+  ]);
+  assert.strictEqual(calls, 1);
 });
