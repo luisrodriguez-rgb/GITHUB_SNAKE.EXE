@@ -314,7 +314,7 @@ El repositorio incluye una función serverless ([`server/snake-svg.js`](server/s
 <img src="https://github-snake-ebon.vercel.app/api/TU_USUARIO.svg?theme=cyberpunk&morph=capsule" width="100%">
 ```
 
-Acepta las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`). Si algo falla, devuelve un SVG con el motivo (usuario inexistente, opción no válida...) en lugar de una imagen rota.
+Acepta las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`). La misma instancia sirve también `/api/calendar/<usuario>.json` (datos oficiales de GitHub con caché en CDN), que la web usa en lugar de la API de terceros; si no responde, la web vuelve a la de terceros. Si algo falla, devuelve un SVG con el motivo (usuario inexistente, opción no válida...) en lugar de una imagen rota.
 
 **Desplegar tu propia instancia en Vercel (plan Hobby gratuito):**
 1. Importa este repositorio en [vercel.com/new](https://vercel.com/new) (framework: *Other*, sin comando de build).

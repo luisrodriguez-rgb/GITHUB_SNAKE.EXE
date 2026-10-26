@@ -7,10 +7,21 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/:user.svg", "destination": "/api/snake?user=:user" }
+    {
+      "source": "/api/calendar/:user.json",
+      "destination": "/api/calendar?user=:user"
+    },
+    {
+      "source": "/api/:user.svg",
+      "destination": "/api/snake?user=:user"
+    }
   ],
   "functions": {
     "api/snake.js": {
+      "maxDuration": 10,
+      "includeFiles": "{js,shared,action}/**"
+    },
+    "api/calendar.js": {
       "maxDuration": 10,
       "includeFiles": "{js,shared,action}/**"
     }

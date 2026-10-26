@@ -13,6 +13,10 @@ class GitHubFetcher {
     this.rows = 7;
     // 'api' | 'mock': origen de la última matriz cargada, para avisar en la UI cuando es simulada
     this.lastSource = 'mock';
+    // Endpoint propio (meta snake-api en index.html): API oficial de GitHub con caché en CDN.
+    // En la GitHub Action no hay document y no se usa
+    const meta = typeof document !== 'undefined' ? document.querySelector('meta[name="snake-api"]') : null;
+    this.calendarApiBase = ((meta && meta.content) || '').trim().replace(/\/$/, '');
 
     this.topDevelopers = [
       {
@@ -141,24 +145,28 @@ class GitHubFetcher {
       return this.generateDenseGrid();
     }
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+    // Fuentes en orden: endpoint propio (datos oficiales) y, si falla, la API pública de terceros
+    const sources = [];
+    if (this.calendarApiBase) sources.push(`${this.calendarApiBase}/api/calendar/${username}.json`);
+    sources.push(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`);
 
-      const response = await fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+    for (const url of sources) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.contributions && data.contributions.length > 0) {
-          this.lastSource = 'api';
-          return this.parseApiContributions(data.contributions);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.contributions && data.contributions.length > 0) {
+            this.lastSource = 'api';
+            return this.parseApiContributions(data.contributions);
+          }
         }
+      } catch (err) {
+        console.warn(`[GitHubFetcher] ${url} no respondió:`, err.message);
       }
-    } catch (err) {
-      console.warn(`[GitHubFetcher] Usando generador simulado para '${username}':`, err.message);
     }
 
     return this.generateRealisticMock(username);

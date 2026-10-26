@@ -109,7 +109,7 @@ The repo ships a serverless function ([`server/snake-svg.js`](server/snake-svg.j
 <img src="https://github-snake-ebon.vercel.app/api/YOUR_USER.svg?theme=cyberpunk&morph=capsule" width="100%">
 ```
 
-It takes the same options as the Action (`theme`, `speed`, `morph`, `pause`). On errors it returns an SVG that says what went wrong (unknown user, invalid option...) instead of a broken image.
+It takes the same options as the Action (`theme`, `speed`, `morph`, `pause`). The same deployment also serves `/api/calendar/<user>.json` (official GitHub data, CDN-cached), which the site uses instead of the third-party API, falling back to it if needed. On errors it returns an SVG that says what went wrong (unknown user, invalid option...) instead of a broken image.
 
 **Deploy your own instance on Vercel (free Hobby plan):**
 1. Import this repository at [vercel.com/new](https://vercel.com/new) (framework: *Other*, no build command).
