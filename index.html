@@ -15,7 +15,7 @@
   <meta name="twitter:description" content="Simulación jugable en Canvas 2D a 60 FPS con IA (BFS + Flood Fill) y generador de Commit Art.">
   <meta name="twitter:image" content="https://raw.githubusercontent.com/luisrodriguez-rgb/GITHUB_SNAKE.EXE/main/assets/hero_preview.png">
   <!-- ?v= obliga al navegador a descargar CSS/JS nuevos tras cada despliegue: cambiar el valor en cada release -->
-  <link rel="stylesheet" href="style.css?v=20261027-video">
+  <link rel="stylesheet" href="style.css?v=20261027-duelvideo">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
   <!-- URL base del endpoint SVG (server/snake-svg.js desplegado en Vercel), p. ej. https://github-snake.vercel.app. Vacío = no se ofrece -->
@@ -320,6 +320,7 @@
           <button type="button" id="duelRematchBtn" class="btn btn-cyber-secondary" hidden>Revancha</button>
           <button type="button" id="duelShareBtn" class="btn btn-cyber-primary" hidden>Compartir en X</button>
           <button type="button" id="duelCopyBtn" class="btn btn-cyber-secondary" hidden>Copiar enlace</button>
+          <button type="button" id="duelVideoBtn" class="btn btn-cyber-primary" hidden>Video del duelo</button>
         </div>
       </div>
     </section>
@@ -637,6 +638,11 @@
       <div class="modal-body">
         <p class="wf-step">MP4 listo para X, LinkedIn, Instagram, TikTok o YouTube Shorts. Se genera en tu navegador.</p>
 
+        <div class="wf-mode" role="radiogroup" aria-label="Contenido">
+          <label><input type="radio" name="vsContent" value="profile" checked> Mi perfil</label>
+          <label><input type="radio" name="vsContent" value="duel" id="vsContentDuel" disabled> Último duelo</label>
+        </div>
+
         <div class="vs-formats" role="radiogroup" aria-label="Formato">
           <label class="vs-format"><input type="radio" name="vsFormat" value="landscape" checked><span class="vs-shape vs-shape-landscape"></span><strong>Horizontal 16:9</strong><small>X, LinkedIn</small></label>
           <label class="vs-format"><input type="radio" name="vsFormat" value="square"><span class="vs-shape vs-shape-square"></span><strong>Cuadrado 1:1</strong><small>X, LinkedIn, Instagram</small></label>
@@ -738,21 +744,21 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/i18n.js?v=20261027-video"></script>
-  <script src="js/calendar.js?v=20261027-video"></script>
-  <script src="js/analytics.js?v=20261027-video"></script>
-  <script src="js/audio.js?v=20261027-video"></script>
-  <script src="js/recorder.js?v=20261027-video"></script>
-  <script src="js/templates.js?v=20261027-video"></script>
-  <script src="js/achievements.js?v=20261027-video"></script>
-  <script src="js/exporter.js?v=20261027-video"></script>
-  <script src="js/github.js?v=20261027-video"></script>
-  <script src="js/pathfinding.js?v=20261027-video"></script>
-  <script src="js/snake.js?v=20261027-video"></script>
-  <script src="js/renderer.js?v=20261027-video"></script>
-  <script src="js/duel.js?v=20261027-video"></script>
-  <script src="js/video-studio.js?v=20261027-video"></script>
-  <script src="js/app.js?v=20261027-video"></script>
+  <script src="js/i18n.js?v=20261027-duelvideo"></script>
+  <script src="js/calendar.js?v=20261027-duelvideo"></script>
+  <script src="js/analytics.js?v=20261027-duelvideo"></script>
+  <script src="js/audio.js?v=20261027-duelvideo"></script>
+  <script src="js/recorder.js?v=20261027-duelvideo"></script>
+  <script src="js/templates.js?v=20261027-duelvideo"></script>
+  <script src="js/achievements.js?v=20261027-duelvideo"></script>
+  <script src="js/exporter.js?v=20261027-duelvideo"></script>
+  <script src="js/github.js?v=20261027-duelvideo"></script>
+  <script src="js/pathfinding.js?v=20261027-duelvideo"></script>
+  <script src="js/snake.js?v=20261027-duelvideo"></script>
+  <script src="js/renderer.js?v=20261027-duelvideo"></script>
+  <script src="js/duel.js?v=20261027-duelvideo"></script>
+  <script src="js/video-studio.js?v=20261027-duelvideo"></script>
+  <script src="js/app.js?v=20261027-duelvideo"></script>
   <!-- Cloudflare Web Analytics -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3e77b1cd85dc43deb7ca6f16ca8c9fef"}'></script>
   <!-- End Cloudflare Web Analytics -->

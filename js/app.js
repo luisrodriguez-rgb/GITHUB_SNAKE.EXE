@@ -1257,6 +1257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setDuelFinishedUi(finished) {
+    document.getElementById('duelVideoBtn').hidden = !finished;
     duelSkipBtn.hidden = finished;
     duelRematchBtn.hidden = !finished;
     duelShareBtn.hidden = !finished;
@@ -1411,9 +1412,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /** Avatar utilizable en el canvas: si GitHub no permite leerlo (CORS) el video sale sin él */
-  function loadAvatarForVideo() {
-    const src = activeAvatar && activeAvatar.src;
-    if (!gridOwner || !src) return Promise.resolve(null);
+  function loadAvatarForVideo(src = gridOwner && activeAvatar ? activeAvatar.src : '') {
+    if (!src) return Promise.resolve(null);
     return new Promise(resolve => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -1436,7 +1436,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     return user ? profileUrl(user) : window.location.origin + window.location.pathname;
   }
 
+  function selectedVideoContent() {
+    return document.querySelector('input[name="vsContent"]:checked').value;
+  }
+
   function videoPostText() {
+    if (selectedVideoContent() === 'duel' && duelResult) {
+      const [a, b] = duelResult.players;
+      const link = duelUrl(a.username, b.username);
+      return duelResult.winner
+        ? t('video.duelPostText', { a: a.username, b: b.username, winner: duelResult.winner.username, aScore: a.score, bScore: b.score, link })
+        : t('video.duelPostTie', { a: a.username, b: b.username, link });
+    }
     const stats = videoStudio.computeStats(grid);
     const link = shareLinkFor(gridOwner);
     return gridOwner
@@ -1444,9 +1455,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       : t('video.postTextGeneric', { link });
   }
 
+  /** Abre el estudio; content 'duel' preselecciona el último duelo en vertical (el formato de Reels y TikTok) */
+  function openVideoStudio(content = 'profile') {
+    const duelReady = Boolean(duelResult && profileDuel.finished);
+    document.getElementById('vsContentDuel').disabled = !duelReady;
+    const choice = content === 'duel' && duelReady ? 'duel' : 'profile';
+    document.querySelector(`input[name="vsContent"][value="${choice}"]`).checked = true;
+    if (choice === 'duel') document.querySelector('input[name="vsFormat"][value="vertical"]').checked = true;
+    modalVideoStudio.classList.add('visible');
+  }
+
   videoStudioBtn.addEventListener('click', () => {
     sound.playClick();
-    modalVideoStudio.classList.add('visible');
+    openVideoStudio('profile');
   });
   document.getElementById('closeVideoStudioBtn').addEventListener('click', () => {
     modalVideoStudio.classList.remove('visible');
@@ -1455,6 +1476,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   vsGenerateBtn.addEventListener('click', async () => {
     sound.playClick();
     const format = document.querySelector('input[name="vsFormat"]:checked').value;
+    const content = selectedVideoContent();
+    // Un video con datos inventados no debe acabar publicado como si fuera el perfil real
+    const simulated = content === 'duel'
+      ? duelResult.players.some(p => p.simulated)
+      : Boolean(gridOwner) && dataIsSimulated;
+    if (simulated) {
+      vsStatus.textContent = t('video.simulatedBlocked');
+      return;
+    }
     vsGenerateBtn.disabled = true;
     vsResult.hidden = true;
     vsProgress.hidden = false;
@@ -1462,14 +1492,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     vsStatus.textContent = t('video.generating');
     try {
       await loadMp4Muxer().catch(() => {});
-      const avatar = await loadAvatarForVideo();
-      const link = shareLinkFor(gridOwner).replace(/^https?:\/\//, '');
-      const out = await videoStudio.render({
-        grid, user: gridOwner, lang: I18n.lang, theme: vsTheme.value, format, shareUrl: link, avatar,
-        onProgress: (p) => { vsProgressFill.style.width = `${Math.round(p * 100)}%`; }
-      });
+      const onProgress = (p) => { vsProgressFill.style.width = `${Math.round(p * 100)}%`; };
+      let out;
+      let fileOwner;
+      if (content === 'duel') {
+        const players = await Promise.all(profileDuel.players.map(async p => ({
+          grid: p.grid, user: p.username, avatar: await loadAvatarForVideo(p.profile && p.profile.avatar)
+        })));
+        const link = duelUrl(players[0].user, players[1].user).replace(/^https?:\/\//, '').replace(/#.*$/, '');
+        fileOwner = `${players[0].user}-vs-${players[1].user}`;
+        out = await videoStudio.render({ duel: players, lang: I18n.lang, theme: vsTheme.value, format, shareUrl: link, onProgress });
+      } else {
+        const avatar = await loadAvatarForVideo();
+        const link = shareLinkFor(gridOwner).replace(/^https?:\/\//, '');
+        fileOwner = gridOwner || 'grid';
+        out = await videoStudio.render({ grid, user: gridOwner, lang: I18n.lang, theme: vsTheme.value, format, shareUrl: link, avatar, onProgress });
+      }
       if (vsVideo) URL.revokeObjectURL(vsVideo.url);
-      const name = `github-snake-${gridOwner || 'grid'}-${format}.${out.extension}`;
+      const name = `github-snake-${fileOwner}-${format}.${out.extension}`;
       vsVideo = { ...out, url: URL.createObjectURL(out.blob), file: new File([out.blob], name, { type: out.mimeType.split(';')[0] }) };
       vsPreview.src = vsVideo.url;
       vsPreview.play().catch(() => {});
@@ -1480,7 +1520,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       vsStatus.textContent = out.extension === 'mp4'
         ? t('video.ready', { mb: (out.blob.size / 1048576).toFixed(1) })
         : t('video.readyWebm');
-      analytics.trackEvent('video_render', { format, method: out.method });
+      analytics.trackEvent('video_render', { format, content, method: out.method });
     } catch (err) {
       console.error(err);
       vsStatus.textContent = t('video.error');
@@ -1525,6 +1565,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       vsCopyTextBtn.textContent = t('btn.copyFailed');
     }
     setTimeout(() => { vsCopyTextBtn.textContent = t('video.copyText'); }, 2000);
+  });
+
+  document.getElementById('duelVideoBtn').addEventListener('click', () => {
+    sound.playClick();
+    openVideoStudio('duel');
   });
 
   // --- Cambio de idioma: i18n traduce el HTML estático y la app repinta lo que genera ella ---
