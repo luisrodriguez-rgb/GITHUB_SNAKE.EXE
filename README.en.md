@@ -27,6 +27,7 @@
 | **Watch the AI eat your graph** | Type any GitHub username. A breadth-first-search snake hunts your real commits, with a Flood Fill check so it never traps itself. Sub-pixel interpolation keeps it smooth at 60 FPS. |
 | **Put it on your profile** | A GitHub Action runs the same engine every day and publishes an animated SVG. Pick the theme (Matrix, Light, Cyberpunk, Cyan, Amber), snake shape and speed with a live preview on the site. |
 | **Profile Duel** | Two real profiles, the same AI and 60 seconds. The GitHub that feeds its snake the most points wins. Results depend only on the tick count, so a shared link (`?u=you&vs=rival`) gives the same winner on any machine. |
+| **Video for social** | One click renders a ~16 s MP4 (H.264) for X, LinkedIn, Instagram, TikTok or Shorts in 16:9, 1:1 or 9:16: intro with your username, the snake eating your year, a stats celebration and a call to action with your link. Frames are drawn and encoded with WebCodecs, so it is smooth and faster than real time; on mobile, **Share** opens X, Instagram or TikTok with the video attached. |
 | **Play it yourself** | Manual mode (WASD / arrows / touch D-pad) and a local duel against the AI. |
 | **Commit Art** | Type a word and download a Git script that backdates empty commits so the word appears on your contribution graph. |
 

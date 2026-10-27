@@ -15,7 +15,7 @@
   <meta name="twitter:description" content="Simulación jugable en Canvas 2D a 60 FPS con IA (BFS + Flood Fill) y generador de Commit Art.">
   <meta name="twitter:image" content="https://raw.githubusercontent.com/luisrodriguez-rgb/GITHUB_SNAKE.EXE/main/assets/hero_preview.png">
   <!-- ?v= obliga al navegador a descargar CSS/JS nuevos tras cada despliegue: cambiar el valor en cada release -->
-  <link rel="stylesheet" href="style.css?v=20261026-action-v3">
+  <link rel="stylesheet" href="style.css?v=20261027-video">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
   <!-- URL base del endpoint SVG (server/snake-svg.js desplegado en Vercel), p. ej. https://github-snake.vercel.app. Vacío = no se ofrece -->
@@ -206,6 +206,10 @@
         <button id="recordBtn" class="btn btn-cyber-secondary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
           <span id="recordBtnText">Grabar Video (Pantalla / Tablero)</span>
+        </button>
+        <button id="videoStudioBtn" class="btn btn-cyber-primary tool-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="15" height="14" rx="2"/><path d="m17 10 5-3v10l-5-3z"/></svg>
+          Video para redes
         </button>
         <button id="exportSvgBtn" class="btn btn-cyber-secondary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -623,6 +627,48 @@
     </div>
   </div>
 
+  <!-- Modal Estudio de Video para redes -->
+  <div id="modalVideoStudio" class="modal-backdrop">
+    <div class="modal-card wf-card">
+      <div class="modal-header">
+        <h3>Video para redes</h3>
+        <button id="closeVideoStudioBtn" class="modal-close-btn" aria-label="Cerrar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="wf-step">MP4 listo para X, LinkedIn, Instagram, TikTok o YouTube Shorts. Se genera en tu navegador.</p>
+
+        <div class="vs-formats" role="radiogroup" aria-label="Formato">
+          <label class="vs-format"><input type="radio" name="vsFormat" value="landscape" checked><span class="vs-shape vs-shape-landscape"></span><strong>Horizontal 16:9</strong><small>X, LinkedIn</small></label>
+          <label class="vs-format"><input type="radio" name="vsFormat" value="square"><span class="vs-shape vs-shape-square"></span><strong>Cuadrado 1:1</strong><small>X, LinkedIn, Instagram</small></label>
+          <label class="vs-format"><input type="radio" name="vsFormat" value="vertical"><span class="vs-shape vs-shape-vertical"></span><strong>Vertical 9:16</strong><small>Reels, TikTok, Shorts</small></label>
+        </div>
+
+        <div class="wf-grid">
+          <div>
+            <label class="wf-label" for="vsTheme">Tema</label>
+            <select id="vsTheme" class="cyber-select"></select>
+          </div>
+        </div>
+
+        <button id="vsGenerateBtn" class="btn btn-cyber-primary" style="width: 100%;">Generar video</button>
+        <div id="vsProgress" class="vs-progress" hidden><div id="vsProgressFill" class="vs-progress-fill"></div></div>
+        <p id="vsStatus" class="duel-status" role="status"></p>
+
+        <div id="vsResult" hidden>
+          <video id="vsPreview" class="vs-preview" controls loop muted playsinline></video>
+          <div class="duel-actions">
+            <button type="button" id="vsShareBtn" class="btn btn-cyber-primary">Compartir</button>
+            <button type="button" id="vsDownloadBtn" class="btn btn-cyber-secondary">Descargar MP4</button>
+            <button type="button" id="vsOpenXBtn" class="btn btn-cyber-secondary">Abrir X con el texto</button>
+          </div>
+          <p class="wf-step" style="margin-top: 1rem;">Texto sugerido para el post:</p>
+          <textarea id="vsPostText" class="code-box" style="height: 90px;"></textarea>
+          <button type="button" id="vsCopyTextBtn" class="btn btn-cyber-secondary" style="width: 100%;">Copiar texto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal GitHub Actions Workflow -->
   <div id="modalWorkflow" class="modal-backdrop">
     <div class="modal-card wf-card">
@@ -692,20 +738,21 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/i18n.js?v=20261026-action-v3"></script>
-  <script src="js/calendar.js?v=20261026-action-v3"></script>
-  <script src="js/analytics.js?v=20261026-action-v3"></script>
-  <script src="js/audio.js?v=20261026-action-v3"></script>
-  <script src="js/recorder.js?v=20261026-action-v3"></script>
-  <script src="js/templates.js?v=20261026-action-v3"></script>
-  <script src="js/achievements.js?v=20261026-action-v3"></script>
-  <script src="js/exporter.js?v=20261026-action-v3"></script>
-  <script src="js/github.js?v=20261026-action-v3"></script>
-  <script src="js/pathfinding.js?v=20261026-action-v3"></script>
-  <script src="js/snake.js?v=20261026-action-v3"></script>
-  <script src="js/renderer.js?v=20261026-action-v3"></script>
-  <script src="js/duel.js?v=20261026-action-v3"></script>
-  <script src="js/app.js?v=20261026-action-v3"></script>
+  <script src="js/i18n.js?v=20261027-video"></script>
+  <script src="js/calendar.js?v=20261027-video"></script>
+  <script src="js/analytics.js?v=20261027-video"></script>
+  <script src="js/audio.js?v=20261027-video"></script>
+  <script src="js/recorder.js?v=20261027-video"></script>
+  <script src="js/templates.js?v=20261027-video"></script>
+  <script src="js/achievements.js?v=20261027-video"></script>
+  <script src="js/exporter.js?v=20261027-video"></script>
+  <script src="js/github.js?v=20261027-video"></script>
+  <script src="js/pathfinding.js?v=20261027-video"></script>
+  <script src="js/snake.js?v=20261027-video"></script>
+  <script src="js/renderer.js?v=20261027-video"></script>
+  <script src="js/duel.js?v=20261027-video"></script>
+  <script src="js/video-studio.js?v=20261027-video"></script>
+  <script src="js/app.js?v=20261027-video"></script>
   <!-- Cloudflare Web Analytics -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3e77b1cd85dc43deb7ca6f16ca8c9fef"}'></script>
   <!-- End Cloudflare Web Analytics -->

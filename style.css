@@ -1884,6 +1884,82 @@ canvas.duel-canvas {
   justify-content: center;
 }
 
+/* Estudio de video */
+.vs-formats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.vs-format {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.8rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+.vs-format input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vs-format:has(input:checked) {
+  border-color: var(--matrix-green);
+  box-shadow: 0 0 14px var(--matrix-glow);
+}
+
+.vs-format:has(input:focus-visible) {
+  outline: 2px solid var(--matrix-green);
+  outline-offset: 2px;
+}
+
+.vs-format small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.vs-shape {
+  display: block;
+  border: 2px solid var(--matrix-green);
+  border-radius: 4px;
+}
+
+.vs-shape-landscape { width: 48px; height: 27px; }
+.vs-shape-square { width: 36px; height: 36px; }
+.vs-shape-vertical { width: 24px; height: 42px; }
+
+.vs-progress {
+  height: 8px;
+  margin-top: 0.8rem;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.2);
+  overflow: hidden;
+}
+
+.vs-progress-fill {
+  height: 100%;
+  width: 0;
+  background: var(--matrix-green);
+}
+
+.vs-preview {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  margin: 0.8rem 0;
+  border-radius: 10px;
+  background: #000;
+}
+
 /* Modal del workflow: selector de estilo y vista previa */
 .wf-card {
   max-height: 92vh;
@@ -2041,7 +2117,7 @@ footer {
   .tools-group:first-child .tool-btn:nth-child(5) {
     grid-column: span 2;
   }
-  .tools-group:last-child .tool-btn:nth-child(3) {
+  .tools-group:last-child .tool-btn:nth-child(5) {
     grid-column: span 2;
   }
 
