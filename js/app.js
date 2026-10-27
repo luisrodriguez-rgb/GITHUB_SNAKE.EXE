@@ -1372,6 +1372,161 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => { duelCopyBtn.textContent = t('btn.copyLink'); }, 2000);
   });
 
+  // --- Estudio de video para redes (MP4 generado en el navegador) ---
+  const videoStudioBtn = document.getElementById('videoStudioBtn');
+  const modalVideoStudio = document.getElementById('modalVideoStudio');
+  const vsTheme = document.getElementById('vsTheme');
+  const vsGenerateBtn = document.getElementById('vsGenerateBtn');
+  const vsProgress = document.getElementById('vsProgress');
+  const vsProgressFill = document.getElementById('vsProgressFill');
+  const vsStatus = document.getElementById('vsStatus');
+  const vsResult = document.getElementById('vsResult');
+  const vsPreview = document.getElementById('vsPreview');
+  const vsShareBtn = document.getElementById('vsShareBtn');
+  const vsDownloadBtn = document.getElementById('vsDownloadBtn');
+  const vsOpenXBtn = document.getElementById('vsOpenXBtn');
+  const vsPostText = document.getElementById('vsPostText');
+  const vsCopyTextBtn = document.getElementById('vsCopyTextBtn');
+  const videoStudio = new VideoStudio(exporter);
+  let vsVideo = null; // { blob, url, file, extension }
+  vsTheme.innerHTML = exportThemeSelect.innerHTML;
+  vsTheme.value = 'dark';
+
+  /** El empaquetador MP4 (74 KB) solo se descarga al generar el primer video */
+  let muxerLoading = null;
+  function loadMp4Muxer() {
+    if (window.Mp4Muxer) return Promise.resolve();
+    if (!muxerLoading) {
+      muxerLoading = new Promise((resolve, reject) => {
+        const appScript = document.querySelector('script[src*="js/app.js"]');
+        const version = appScript ? new URL(appScript.src).searchParams.get('v') : '';
+        const script = document.createElement('script');
+        script.src = `js/vendor/mp4-muxer.js${version ? `?v=${version}` : ''}`;
+        script.onload = resolve;
+        script.onerror = () => { muxerLoading = null; reject(new Error('mp4-muxer')); };
+        document.head.appendChild(script);
+      });
+    }
+    return muxerLoading;
+  }
+
+  /** Avatar utilizable en el canvas: si GitHub no permite leerlo (CORS) el video sale sin él */
+  function loadAvatarForVideo() {
+    const src = activeAvatar && activeAvatar.src;
+    if (!gridOwner || !src) return Promise.resolve(null);
+    return new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const probe = document.createElement('canvas').getContext('2d');
+          probe.drawImage(img, 0, 0, 1, 1);
+          probe.getImageData(0, 0, 1, 1);
+          resolve(img);
+        } catch (e) {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  function shareLinkFor(user) {
+    return user ? profileUrl(user) : window.location.origin + window.location.pathname;
+  }
+
+  function videoPostText() {
+    const stats = videoStudio.computeStats(grid);
+    const link = shareLinkFor(gridOwner);
+    return gridOwner
+      ? t('video.postText', { total: videoStudio.formatNumber(stats.total, I18n.lang), days: stats.activeDays, link })
+      : t('video.postTextGeneric', { link });
+  }
+
+  videoStudioBtn.addEventListener('click', () => {
+    sound.playClick();
+    modalVideoStudio.classList.add('visible');
+  });
+  document.getElementById('closeVideoStudioBtn').addEventListener('click', () => {
+    modalVideoStudio.classList.remove('visible');
+  });
+
+  vsGenerateBtn.addEventListener('click', async () => {
+    sound.playClick();
+    const format = document.querySelector('input[name="vsFormat"]:checked').value;
+    vsGenerateBtn.disabled = true;
+    vsResult.hidden = true;
+    vsProgress.hidden = false;
+    vsProgressFill.style.width = '0%';
+    vsStatus.textContent = t('video.generating');
+    try {
+      await loadMp4Muxer().catch(() => {});
+      const avatar = await loadAvatarForVideo();
+      const link = shareLinkFor(gridOwner).replace(/^https?:\/\//, '');
+      const out = await videoStudio.render({
+        grid, user: gridOwner, lang: I18n.lang, theme: vsTheme.value, format, shareUrl: link, avatar,
+        onProgress: (p) => { vsProgressFill.style.width = `${Math.round(p * 100)}%`; }
+      });
+      if (vsVideo) URL.revokeObjectURL(vsVideo.url);
+      const name = `github-snake-${gridOwner || 'grid'}-${format}.${out.extension}`;
+      vsVideo = { ...out, url: URL.createObjectURL(out.blob), file: new File([out.blob], name, { type: out.mimeType.split(';')[0] }) };
+      vsPreview.src = vsVideo.url;
+      vsPreview.play().catch(() => {});
+      vsPostText.value = videoPostText();
+      const canShareFile = Boolean(navigator.canShare && navigator.canShare({ files: [vsVideo.file] }));
+      vsShareBtn.hidden = !canShareFile;
+      vsResult.hidden = false;
+      vsStatus.textContent = out.extension === 'mp4'
+        ? t('video.ready', { mb: (out.blob.size / 1048576).toFixed(1) })
+        : t('video.readyWebm');
+      analytics.trackEvent('video_render', { format, method: out.method });
+    } catch (err) {
+      console.error(err);
+      vsStatus.textContent = t('video.error');
+    } finally {
+      vsGenerateBtn.disabled = false;
+      vsProgress.hidden = true;
+    }
+  });
+
+  vsShareBtn.addEventListener('click', async () => {
+    if (!vsVideo) return;
+    try {
+      await navigator.share({ files: [vsVideo.file], text: vsPostText.value });
+      analytics.trackEvent('video_share', {});
+    } catch (err) {
+      // Cancelar la hoja de compartir no es un error que mostrar
+      if (err && err.name !== 'AbortError') vsStatus.textContent = t('video.shareFailed');
+    }
+  });
+
+  vsDownloadBtn.addEventListener('click', () => {
+    if (!vsVideo) return;
+    const a = document.createElement('a');
+    a.href = vsVideo.url;
+    a.download = vsVideo.file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+
+  vsOpenXBtn.addEventListener('click', () => {
+    // X no permite adjuntar archivos desde un enlace: se abre con el texto y el video se arrastra a mano
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(vsPostText.value)}`, '_blank', 'noopener,noreferrer');
+    vsStatus.textContent = t('video.attachHint');
+  });
+
+  vsCopyTextBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(vsPostText.value);
+      vsCopyTextBtn.textContent = t('btn.copied');
+    } catch (e) {
+      vsCopyTextBtn.textContent = t('btn.copyFailed');
+    }
+    setTimeout(() => { vsCopyTextBtn.textContent = t('video.copyText'); }, 2000);
+  });
+
   // --- Cambio de idioma: i18n traduce el HTML estático y la app repinta lo que genera ella ---
   window.addEventListener('languagechange-app', () => {
     updateAchievementsBadge();
@@ -1388,6 +1543,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (modalWorkflow.classList.contains('visible')) updateWorkflowModal();
     if (duelResult && profileDuel.finished) renderDuelResultText(duelResult);
     if (dataIsSimulated) statState.textContent = t('state.simulatedProfile', { user: currentUsername });
+    if (vsVideo) vsPostText.value = videoPostText();
   });
 
   // ?u=usuario abre directamente ese perfil (enlaces compartidos)
