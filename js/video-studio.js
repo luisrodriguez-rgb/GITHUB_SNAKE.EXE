@@ -23,7 +23,11 @@ const VIDEO_TEXT = {
     streak: 'longest streak',
     days: 'days',
     cta: 'Can your GitHub beat mine?',
-    ctaSub: 'Put the snake on your profile with one line'
+    ctaSub: 'Put the snake on your profile with one line',
+    wins: 'WINS',
+    tie: "IT'S A TIE",
+    duelCta: 'Can your GitHub beat ours?',
+    duelSub: 'Challenge any profile: same AI, 60 seconds'
   },
   es: {
     contributions: 'contribuciones en el último año',
@@ -34,7 +38,11 @@ const VIDEO_TEXT = {
     streak: 'racha más larga',
     days: 'días',
     cta: '¿Tu GitHub le gana al mío?',
-    ctaSub: 'Pon la serpiente en tu perfil con una línea'
+    ctaSub: 'Pon la serpiente en tu perfil con una línea',
+    wins: 'GANA',
+    tie: 'EMPATE',
+    duelCta: '¿Tu GitHub nos gana?',
+    duelSub: 'Reta a cualquier perfil: misma IA, 60 segundos'
   }
 };
 
@@ -129,10 +137,73 @@ class VideoStudio {
     };
   }
 
+  /** Colores de la serpiente del rival: cian, o fucsia si el tema ya es cian; azul en el tema claro */
+  rivalColors(theme) {
+    if (theme === 'light') return { body: '#0969da', head: '#0550ae', glow: 'rgba(9, 105, 218, 0.35)' };
+    if (theme === 'neon_cyan') return { body: '#ff007f', head: '#ffffff', glow: 'rgba(255, 0, 127, 0.85)' };
+    return { body: '#00f2fe', head: '#ffffff', glow: 'rgba(0, 242, 254, 0.85)' };
+  }
+
+  /**
+   * Escena del duelo: misma simulación que el duelo de la web (DuelSimulator), así el video y el enlace dan
+   * el mismo ganador. players: [{ grid, user, avatar }, { ... }]
+   */
+  buildDuelScene({ players, lang, theme, format, shareUrl }) {
+    const size = VIDEO_FORMATS[format] || VIDEO_FORMATS.landscape;
+    const palette = this.exporter.themePalettes[theme] || this.exporter.themePalettes.dark;
+    const result = DuelSimulator.run(players.map(p => p.grid));
+    const timing = { intro: 1.6, play: Math.min(11, Math.max(5, result.ticks * 0.022)), finale: 2.8, outro: 2.4 };
+    timing.total = timing.intro + timing.play + timing.finale + timing.outro;
+
+    const unit = format === 'vertical' ? size.width / 560 : Math.min(size.width, size.height) / 720;
+    const margin = Math.round(size.width * 0.05);
+    const bands = format === 'vertical' ? 2 : 1;
+    const perBand = Math.ceil(53 / bands);
+    const step = (size.width - margin * 2) / perBand;
+    const cell = step * 0.8;
+    const bandGap = step * 0.9;
+    const boardWidth = step * perBand;
+    const boardHeight = step * 7 * bands + bandGap * (bands - 1);
+    const boardLeft = (size.width - boardWidth) / 2;
+    const labelHeight = 42 * unit;
+
+    // Cabecera, y por jugador: etiqueta (avatar, usuario, puntos) y su rejilla
+    let y = format === 'vertical' ? size.height * 0.13 : size.height * 0.15;
+    const layouts = [0, 1].map(() => {
+      const labelY = y + 12 * unit;
+      const boardY = labelY + labelHeight;
+      y = boardY + boardHeight + 18 * unit;
+      return { unit, margin, boardLeft, step, cell, bands, perBand, bandGap, boardWidth, boardHeight, boardX: boardLeft + (step - cell) / 2, boardY, labelY };
+    });
+
+    const sides = result.players.map((r, i) => {
+      // Pasos en que cada celda pierde un nivel, y la última mordida de las celdas intensas (ondas)
+      const bitesByCell = {};
+      for (const bite of r.biteLog) (bitesByCell[`${bite.x}_${bite.y}`] = bitesByCell[`${bite.x}_${bite.y}`] || []).push(bite.tick);
+      const bursts = Object.entries(bitesByCell)
+        .map(([key, ticks]) => { const [bx, by] = key.split('_').map(Number); return { x: bx, y: by, step: ticks[ticks.length - 1], level: r.grid[bx][by].originalLevel }; })
+        .filter(b => b.level >= 3);
+      return {
+        ...r, bitesByCell, bursts, user: players[i].user, avatar: players[i].avatar,
+        colors: i === 0 ? { body: palette.body, head: palette.head, glow: palette.glow } : this.rivalColors(theme),
+        layout: layouts[i]
+      };
+    });
+
+    return {
+      kind: 'duel', ...size, format, palette, lang, shareUrl, timing, unit, margin,
+      text: VIDEO_TEXT[lang] || VIDEO_TEXT.en,
+      ticks: result.ticks, winner: result.winner, sides, resultY: y
+    };
+  }
+
   /** Posición interpolada de la cabeza en el paso fraccionario s */
   headAt(scene, s) {
-    const positions = scene.sim.history;
-    const clamped = Math.max(0, Math.min(scene.totalSteps - 1, s));
+    return this.headAtHistory(scene.sim.history, s);
+  }
+
+  headAtHistory(positions, s) {
+    const clamped = Math.max(0, Math.min(positions.length - 1, s));
     const i = Math.floor(clamped);
     const a = positions[i][0];
     const b = (positions[i + 1] || positions[i])[0];
@@ -293,61 +364,7 @@ class VideoStudio {
     // --- Serpiente: cuerpo continuo (un círculo cada medio paso) y cabeza con ojos ---
     const snakeAlpha = t < playStart ? this.ease((t - T.intro * 0.6) / (T.intro * 0.4)) : 1 - this.ease((t - playEnd) / 0.4);
     if (snakeAlpha > 0) {
-      ctx.globalAlpha = snakeAlpha;
-      const snakeLen = scene.sim.history.reduce((m, h) => Math.max(m, h.length), 0);
-      const bodyCount = (snakeLen - 1) * 2;
-      const center = (pos) => {
-        const origin = this.cellOrigin(L, pos.x, pos.y);
-        return { x: origin.x + L.cell / 2, y: origin.y + L.cell / 2 };
-      };
-      const points = [];
-      for (let k = bodyCount; k >= 0; k--) points.push({ k, ...center(this.headAt(scene, step - k * 0.5)) });
-
-      for (const pass of ['outline', 'body']) {
-        for (const p of points) {
-          if (p.k === 0) continue;
-          const tt = p.k / bodyCount;
-          const r = (L.cell * 0.62 - L.cell * 0.28 * tt) * (pass === 'outline' ? 1.18 : 1);
-          ctx.fillStyle = pass === 'outline' ? 'rgba(0,0,0,0.55)' : P.body;
-          ctx.globalAlpha = snakeAlpha * (pass === 'outline' ? 1 : 1 - 0.45 * tt);
-          if (pass === 'body' && p.k === 1) {
-            ctx.shadowColor = P.glow;
-            ctx.shadowBlur = 18 * unit;
-          }
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        }
-      }
-
-      const head = center(this.headAt(scene, step));
-      const ahead = center(this.headAt(scene, step + 0.35));
-      const behind = center(this.headAt(scene, step - 0.35));
-      const angle = Math.atan2(ahead.y - behind.y, ahead.x - behind.x) || 0;
-      const hs = L.cell * 1.3;
-      ctx.globalAlpha = snakeAlpha;
-      ctx.save();
-      ctx.translate(head.x, head.y);
-      ctx.rotate(angle);
-      ctx.shadowColor = P.head;
-      ctx.shadowBlur = 22 * unit;
-      ctx.fillStyle = P.head;
-      this.roundRect(ctx, -hs / 2, -hs / 2, hs, hs, hs * 0.32);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      for (const side of [-1, 1]) {
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(hs * 0.14, side * hs * 0.22, hs * 0.16, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(hs * 0.2, side * hs * 0.22, hs * 0.08, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-      ctx.globalAlpha = 1;
+      this.drawSnake(ctx, L, scene.sim.history, step, P, snakeAlpha);
     }
 
     // --- Celebración: texto grande y tarjetas con datos ---
@@ -425,6 +442,246 @@ class VideoStudio {
     ctx.globalAlpha = 1;
   }
 
+  /**
+   * Serpiente en el paso fraccionario `step` de su historial: cuerpo continuo (un círculo cada medio paso,
+   * primero todos los contornos y luego todos los cuerpos) y cabeza con ojos orientada hacia donde avanza.
+   * colors: { body, head, glow }
+   */
+  drawSnake(ctx, L, history, step, colors, alpha) {
+    const unit = L.unit;
+    const snakeLen = history.reduce((m, h) => Math.max(m, h.length), 0);
+    const bodyCount = (snakeLen - 1) * 2;
+    const center = (pos) => {
+      const origin = this.cellOrigin(L, pos.x, pos.y);
+      return { x: origin.x + L.cell / 2, y: origin.y + L.cell / 2 };
+    };
+    const points = [];
+    for (let k = bodyCount; k >= 1; k--) points.push({ k, ...center(this.headAtHistory(history, step - k * 0.5)) });
+
+    for (const pass of ['outline', 'body']) {
+      for (const p of points) {
+        const tt = p.k / bodyCount;
+        const r = (L.cell * 0.62 - L.cell * 0.28 * tt) * (pass === 'outline' ? 1.18 : 1);
+        ctx.fillStyle = pass === 'outline' ? 'rgba(0,0,0,0.55)' : colors.body;
+        ctx.globalAlpha = alpha * (pass === 'outline' ? 1 : 1 - 0.45 * tt);
+        if (pass === 'body' && p.k === 1) {
+          ctx.shadowColor = colors.glow;
+          ctx.shadowBlur = 18 * unit;
+        }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    const head = center(this.headAtHistory(history, step));
+    const ahead = center(this.headAtHistory(history, step + 0.35));
+    const behind = center(this.headAtHistory(history, step - 0.35));
+    const angle = Math.atan2(ahead.y - behind.y, ahead.x - behind.x) || 0;
+    const hs = L.cell * 1.3;
+    ctx.globalAlpha = alpha;
+    ctx.save();
+    ctx.translate(head.x, head.y);
+    ctx.rotate(angle);
+    ctx.shadowColor = colors.head;
+    ctx.shadowBlur = 22 * unit;
+    ctx.fillStyle = colors.head;
+    this.roundRect(ctx, -hs / 2, -hs / 2, hs, hs, hs * 0.32);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(hs * 0.14, side * hs * 0.22, hs * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(hs * 0.2, side * hs * 0.22, hs * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  drawScene(ctx, scene, t) {
+    if (scene.kind === 'duel') this.drawDuelFrame(ctx, scene, t);
+    else this.drawFrame(ctx, scene, t);
+  }
+
+  drawAvatar(ctx, image, x, y, size, ring) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(image, x, y, size, size);
+    ctx.restore();
+    ctx.strokeStyle = ring;
+    ctx.lineWidth = Math.max(2, size * 0.05);
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  drawDuelFrame(ctx, scene, t) {
+    const { width: W, height: H, palette: P, timing: T, text, unit } = scene;
+    const font = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    const playStart = T.intro;
+    const playEnd = T.intro + T.play;
+    const finaleEnd = playEnd + T.finale;
+    const tick = t < playStart ? 0 : t > playEnd ? scene.ticks : ((t - playStart) / T.play) * scene.ticks;
+    const colors = [P.empty, P.l1, P.l2, P.l3, P.l4];
+    const introP = this.ease(t / T.intro);
+
+    ctx.fillStyle = P.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Título: @a VS @b
+    ctx.globalAlpha = introP;
+    ctx.textAlign = 'center';
+    const [a, b] = scene.sides;
+    const title = `@${a.user}  VS  @${b.user}`;
+    const titleSize = this.fitFont(ctx, title, 900, 38 * unit, W - scene.margin * 2, font);
+    const titleY = (scene.format === 'vertical' ? H * 0.08 : H * 0.09) + titleSize * 0.35;
+    const widthA = ctx.measureText(`@${a.user}  `).width;
+    const widthVs = ctx.measureText('VS').width;
+    const left = W / 2 - ctx.measureText(title).width / 2;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = a.colors.body;
+    ctx.fillText(`@${a.user}`, left, titleY);
+    ctx.fillStyle = P.text;
+    ctx.fillText('VS', left + widthA, titleY);
+    ctx.fillStyle = b.colors.body;
+    ctx.fillText(`@${b.user}`, left + widthA + widthVs + ctx.measureText('  ').width, titleY);
+    ctx.globalAlpha = 1;
+
+    scene.sides.forEach((side, i) => {
+      const L = side.layout;
+      const isWinner = scene.winner === i;
+      const decided = t >= playEnd;
+      const dim = decided && scene.winner !== -1 && !isWinner ? 0.45 : 1;
+      const tickIndex = Math.min(side.scores.length - 1, Math.floor(tick));
+      const eaten = side.biteLog.filter(bite => bite.tick <= tick).length;
+      const percent = side.totalLevels ? Math.round((eaten / side.totalLevels) * 100) : 100;
+
+      // Etiqueta: avatar, usuario y marcador
+      ctx.globalAlpha = introP * dim;
+      const avatarSize = L.boardHeight > 300 * unit ? 40 * unit : 34 * unit;
+      let textX = L.boardLeft;
+      if (side.avatar) {
+        this.drawAvatar(ctx, side.avatar, L.boardLeft, L.labelY, avatarSize, side.colors.body);
+        textX += avatarSize + 12 * unit;
+      }
+      ctx.textAlign = 'left';
+      ctx.fillStyle = side.colors.body;
+      this.fitFont(ctx, `@${side.user}`, 800, 22 * unit, L.boardWidth * 0.5, font);
+      ctx.fillText(`@${side.user}`, textX, L.labelY + avatarSize * 0.68);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = P.text;
+      ctx.font = `800 ${24 * unit}px ${font}`;
+      ctx.fillText(`${this.formatNumber(side.scores[tickIndex], scene.lang)} pts · ${percent}%`, L.boardLeft + L.boardWidth, L.labelY + avatarSize * 0.68);
+      ctx.textAlign = 'left';
+
+      // Marco del ganador
+      if (decided && isWinner) {
+        const glow = this.ease((t - playEnd) / 0.5);
+        ctx.globalAlpha = glow;
+        ctx.strokeStyle = side.colors.body;
+        ctx.lineWidth = 4 * unit;
+        ctx.shadowColor = side.colors.glow;
+        ctx.shadowBlur = 24 * unit;
+        this.roundRect(ctx, L.boardLeft - 10 * unit, L.labelY - 8 * unit, L.boardWidth + 20 * unit, L.boardY - L.labelY + L.boardHeight + 18 * unit, 14 * unit);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // Rejilla
+      for (let x = 0; x < 53; x++) {
+        const appear = this.ease((t - 0.15 - (x / 52) * 0.9) / 0.35);
+        for (let y = 0; y < 7; y++) {
+          const bites = side.bitesByCell[`${x}_${y}`];
+          let level = side.grid[x][y].originalLevel;
+          if (bites) for (const bt of bites) if (bt <= tick) level--;
+          const origin = this.cellOrigin(L, x, y);
+          ctx.globalAlpha = appear * dim;
+          ctx.fillStyle = colors[Math.max(0, level)] || P.empty;
+          this.roundRect(ctx, origin.x, origin.y, L.cell, L.cell, L.cell * 0.2);
+          ctx.fill();
+        }
+      }
+
+      // Ondas
+      for (const burst of side.bursts) {
+        const age = tick - burst.step;
+        if (age < 0 || age > 4 || t > playEnd) continue;
+        const p = age / 4;
+        const origin = this.cellOrigin(L, burst.x, burst.y);
+        ctx.globalAlpha = 1 - p;
+        ctx.strokeStyle = side.colors.head;
+        ctx.lineWidth = 3 * unit;
+        ctx.beginPath();
+        ctx.arc(origin.x + L.cell / 2, origin.y + L.cell / 2, L.cell * (0.4 + p * 1.8), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Serpiente
+      const snakeAlpha = (t < playStart ? this.ease((t - T.intro * 0.6) / (T.intro * 0.4)) : 1 - this.ease((t - playEnd) / 0.4)) * dim;
+      if (snakeAlpha > 0) this.drawSnake(ctx, L, side.history, tick, side.colors, snakeAlpha);
+      ctx.globalAlpha = 1;
+    });
+
+    // Resultado
+    if (t >= playEnd) {
+      const p = this.ease((t - playEnd) / 0.5);
+      const fade = t > finaleEnd ? 1 - this.ease((t - finaleEnd) / 0.4) : 1;
+      ctx.globalAlpha = p * fade;
+      ctx.textAlign = 'center';
+      const winnerSide = scene.sides[scene.winner];
+      const headline = winnerSide ? `${text.wins} @${winnerSide.user}` : text.tie;
+      ctx.fillStyle = winnerSide ? winnerSide.colors.body : P.head;
+      ctx.shadowColor = winnerSide ? winnerSide.colors.glow : P.glow;
+      ctx.shadowBlur = 24 * unit;
+      this.fitFont(ctx, headline, 900, 50 * unit * (0.8 + 0.2 * p), W - scene.margin * 2, font);
+      const resultY = Math.min(H - 90 * unit, scene.resultY + 60 * unit);
+      ctx.fillText(headline, W / 2, resultY);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = P.text;
+      ctx.font = `700 ${22 * unit}px ${font}`;
+      ctx.fillText(`${this.formatNumber(a.score, scene.lang)} pts  vs  ${this.formatNumber(b.score, scene.lang)} pts`, W / 2, resultY + 42 * unit);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'left';
+    }
+
+    // Llamada a la acción
+    if (t >= finaleEnd) {
+      const p = this.ease((t - finaleEnd) / 0.45);
+      ctx.globalAlpha = p;
+      // Más opaco que en el video individual: el marco brillante del ganador se transparentaba sobre el texto
+      ctx.fillStyle = 'rgba(0,0,0,0.92)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = P.text;
+      this.fitFont(ctx, text.duelCta, 900, 50 * unit, W - scene.margin * 2, font);
+      ctx.fillText(text.duelCta, W / 2, H * 0.46);
+      ctx.fillStyle = P.l4;
+      this.fitFont(ctx, text.duelSub, 600, 24 * unit, W - scene.margin * 2, font);
+      ctx.fillText(text.duelSub, W / 2, H * 0.46 + 62 * unit);
+      ctx.fillStyle = P.head;
+      this.fitFont(ctx, scene.shareUrl, 700, 22 * unit, W - scene.margin * 2, font);
+      ctx.fillText(scene.shareUrl, W / 2, H * 0.46 + 120 * unit);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'left';
+    }
+
+    ctx.font = `700 ${14 * unit}px ${font}`;
+    ctx.fillStyle = P.text;
+    ctx.globalAlpha = 0.55;
+    ctx.textAlign = 'right';
+    ctx.fillText('GITHUB_SNAKE.EXE', W - scene.margin, scene.margin * 0.7);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+
   async pickCodec(width, height) {
     if (typeof VideoEncoder === 'undefined') return null;
     for (const codec of H264_CODECS) {
@@ -439,8 +696,11 @@ class VideoStudio {
   /**
    * Genera el video. onProgress(0..1). Devuelve { blob, mimeType, extension, method }.
    */
-  async render({ grid, user = '', lang = 'en', theme = 'dark', format = 'landscape', shareUrl = '', avatar = null, fps = 30, onProgress = () => {} }) {
-    const scene = this.buildScene({ grid, user, lang, theme, format, shareUrl, avatar });
+  async render({ grid, user = '', lang = 'en', theme = 'dark', format = 'landscape', shareUrl = '', avatar = null, duel = null, fps = 30, onProgress = () => {} }) {
+    // duel: [{ grid, user, avatar }, { grid, user, avatar }] genera el video del duelo
+    const scene = duel
+      ? this.buildDuelScene({ players: duel, lang, theme, format, shareUrl })
+      : this.buildScene({ grid, user, lang, theme, format, shareUrl, avatar });
     const canvas = document.createElement('canvas');
     canvas.width = scene.width;
     canvas.height = scene.height;
@@ -470,7 +730,7 @@ class VideoStudio {
     const frameDuration = 1e6 / fps;
     for (let i = 0; i < frameCount; i++) {
       if (failure) throw failure;
-      this.drawFrame(ctx, scene, i / fps);
+      this.drawScene(ctx, scene, i / fps);
       const frame = new VideoFrame(canvas, { timestamp: Math.round(i * frameDuration), duration: Math.round(frameDuration) });
       encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
       frame.close();
@@ -511,7 +771,7 @@ class VideoStudio {
       recorder.start(250);
       const tick = () => {
         const t = (performance.now() - start) / 1000;
-        this.drawFrame(ctx, scene, Math.min(t, scene.timing.total));
+        this.drawScene(ctx, scene, Math.min(t, scene.timing.total));
         onProgress(Math.min(1, t / scene.timing.total));
         if (t < scene.timing.total) requestAnimationFrame(tick);
         else recorder.stop();

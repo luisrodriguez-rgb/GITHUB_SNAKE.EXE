@@ -71,6 +71,7 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
   * **Duelo de Perfiles**: dos usuarios reales de GitHub, la misma IA y 60 segundos. Gana el perfil cuya serpiente devora más puntos. El resultado depende solo de los ticks (es reproducible en cualquier equipo) y se comparte con un enlace: `?u=tu_usuario&vs=rival`.
   * **Enlaces directos**: `?u=usuario` abre la web con la cuadrícula de ese perfil.
   * **Video para redes**: genera en el navegador un MP4 (H.264) de ~16 s listo para X, LinkedIn, Instagram, TikTok o Shorts, en horizontal 16:9, cuadrado 1:1 o vertical 9:16: intro con tu usuario, la serpiente comiéndose tu año, celebración con datos (días activos, mejor día, racha) y llamada a la acción con tu enlace. Se dibuja fotograma a fotograma con WebCodecs (más rápido que verlo y sin tirones); en el móvil, el botón **Compartir** abre directamente X, Instagram o TikTok con el video adjunto.
+  * **Video del duelo**: al terminar un Duelo de Perfiles, el botón **Video del duelo** genera el clip (vertical por defecto) con las dos serpientes compitiendo, sus marcadores, el ganador destacado y el enlace para retarte. Usa la misma simulación que el duelo de la web, así que el video y el enlace dan el mismo ganador. No se generan videos de perfiles cuyos datos no se pudieron leer.
 
 ---
 

@@ -4,8 +4,76 @@
  * El resultado depende solo de los ticks, no de los FPS: el mismo enlace da el mismo ganador en cualquier equipo.
  */
 
+const DUEL_POINTS = [0, 10, 25, 50, 100];
+const DUEL_MAX_TICKS = 60 * 8; // 60 s a 8 ticks/s
+
+/**
+ * Reglas del duelo sin dibujo: las usan el duelo de la web y el video del duelo, así ambos dan el mismo ganador.
+ */
+const DuelSimulator = {
+  /** Estado inicial de un jugador sobre su matriz (se reinician los niveles a los originales) */
+  createPlayer(grid) {
+    let totalLevels = 0;
+    grid.forEach(col => col.forEach(c => {
+      c.level = c.originalLevel;
+      totalLevels += c.originalLevel;
+    }));
+    return { grid, snake: new Snake(4, { x: 0, y: 0 }), pathfinder: new SnakePathfinder(), bites: 0, totalLevels };
+  },
+
+  isCleared(player) {
+    return player.bites >= player.totalLevels;
+  },
+
+  /** Un tick de un jugador. onBite(cell) se llama por cada nivel comido */
+  stepPlayer(player, onBite) {
+    if (this.isCleared(player)) return;
+    const next = player.pathfinder.findNextStep(player.snake, player.grid);
+    if (!next) return;
+    player.snake.moveTo(next, player.grid, (cell) => {
+      player.bites++;
+      player.snake.score += DUEL_POINTS[cell.originalLevel] || 10;
+      if (onBite) onBite(cell);
+    });
+  },
+
+  /**
+   * Duelo completo sin pantalla (para el video): copia las matrices, juega hasta el final y devuelve por jugador
+   * el cuerpo en cada tick, los mordiscos y la puntuación acumulada.
+   */
+  run(grids, maxTicks = DUEL_MAX_TICKS) {
+    const players = grids.map(grid => {
+      const copy = grid.map(col => col.map(c => ({ x: c.x, y: c.y, level: c.originalLevel, originalLevel: c.originalLevel, count: c.count, date: c.date })));
+      const player = this.createPlayer(copy);
+      player.snake.effects = false;
+      player.history = [player.snake.body.map(seg => ({ x: seg.x, y: seg.y }))];
+      player.biteLog = [];
+      player.scores = [0];
+      return player;
+    });
+
+    let ticks = 0;
+    while (ticks < maxTicks && !players.every(p => this.isCleared(p))) {
+      ticks++;
+      for (const p of players) {
+        this.stepPlayer(p, (cell) => p.biteLog.push({ tick: ticks, x: cell.x, y: cell.y, level: cell.originalLevel }));
+        p.history.push(p.snake.body.map(seg => ({ x: seg.x, y: seg.y })));
+        p.scores.push(p.snake.score);
+      }
+    }
+
+    const results = players.map(p => ({
+      grid: p.grid, history: p.history, biteLog: p.biteLog, scores: p.scores,
+      totalLevels: p.totalLevels, bites: p.bites, score: p.snake.score,
+      percent: p.totalLevels ? Math.round((p.bites / p.totalLevels) * 100) : 100
+    }));
+    const [a, b] = results;
+    return { ticks, players: results, winner: a.score === b.score ? -1 : (a.score > b.score ? 0 : 1) };
+  }
+};
+
 class ProfileDuel {
-  constructor({ canvases, fetcher, durationSec = 60, ticksPerSecond = 8, onUpdate, onFinish }) {
+  constructor({ canvases, fetcher, durationSec = DUEL_MAX_TICKS / 8, ticksPerSecond = 8, onUpdate, onFinish }) {
     this.canvases = canvases;
     this.fetcher = fetcher;
     this.ticksPerSecond = ticksPerSecond;
@@ -42,12 +110,7 @@ class ProfileDuel {
   reset() {
     this.ticks = 0;
     this.finished = false;
-    this.players.forEach(p => {
-      p.grid.forEach(col => col.forEach(c => { c.level = c.originalLevel; }));
-      p.snake = new Snake(4, { x: 0, y: 0 });
-      p.pathfinder = new SnakePathfinder();
-      p.bites = 0;
-    });
+    this.players.forEach(p => Object.assign(p, DuelSimulator.createPlayer(p.grid)));
   }
 
   start() {
@@ -74,23 +137,17 @@ class ProfileDuel {
   }
 
   isOver() {
-    return this.ticks >= this.maxTicks || this.players.every(p => p.bites >= p.totalLevels);
+    return this.ticks >= this.maxTicks || this.players.every(p => DuelSimulator.isCleared(p));
   }
 
   tick() {
-    const points = [0, 10, 25, 50, 100];
-    for (const p of this.players) {
-      if (p.bites >= p.totalLevels) continue; // ya limpió su matriz
-      const next = p.pathfinder.findNextStep(p.snake, p.grid);
-      if (!next) continue;
-      p.snake.moveTo(next, p.grid, (cell) => {
-        p.bites++;
-        p.snake.score += points[cell.originalLevel] || 10;
+    this.players.forEach((p, i) => {
+      DuelSimulator.stepPlayer(p, (cell) => {
         if (cell.originalLevel >= 3 && !this.skipping) {
-          this.renderers[this.players.indexOf(p)].addShockwave(cell.x, cell.y, cell.originalLevel);
+          this.renderers[i].addShockwave(cell.x, cell.y, cell.originalLevel);
         }
       });
-    }
+    });
     this.ticks++;
   }
 
@@ -153,3 +210,4 @@ class ProfileDuel {
 }
 
 window.ProfileDuel = ProfileDuel;
+window.DuelSimulator = DuelSimulator;

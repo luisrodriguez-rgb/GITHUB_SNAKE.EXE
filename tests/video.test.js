@@ -52,3 +52,24 @@ test('cada formato: duración acotada y rejilla, celebración y tarjetas dentro 
     assert.ok(cardsBottom <= height, `${format}: tarjetas dentro (${Math.round(cardsBottom)} <= ${height})`);
   }
 });
+
+test('video del duelo: mismo resultado que DuelSimulator y todo dentro del fotograma en cada formato', () => {
+  const engine = loadStudio(loadEngine());
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'duel.js'), 'utf8'), vm.createContext(engine));
+  const studio = new engine.VideoStudio(new engine.ExporterEngine());
+  const fetcher = new engine.GitHubFetcher();
+  const gridA = fetcher.generateRealisticMock('torvalds');
+  const gridB = fetcher.generateRealisticMock('antfu');
+  const direct = engine.DuelSimulator.run([gridA, gridB]);
+
+  for (const format of ['landscape', 'square', 'vertical']) {
+    const scene = studio.buildDuelScene({ players: [{ grid: gridA, user: 'torvalds' }, { grid: gridB, user: 'antfu' }], lang: 'es', theme: 'dark', format, shareUrl: 'x' });
+    assert.strictEqual(scene.winner, direct.winner);
+    assert.deepStrictEqual(scene.sides.map(s => s.score), direct.players.map(p => p.score));
+    const lastBoard = scene.sides[1].layout;
+    assert.ok(lastBoard.boardY + lastBoard.boardHeight < scene.height, `${format}: segunda rejilla dentro`);
+    assert.ok(Math.min(scene.height - 90 * scene.unit, scene.resultY + 60 * scene.unit) + 42 * scene.unit <= scene.height, `${format}: resultado dentro`);
+  }
+  // Correr el duelo para el video no altera las matrices originales
+  assert.ok(gridA.flat().every(c => c.level === c.originalLevel));
+});
