@@ -42,7 +42,7 @@ The line people copy:
 <img alt="snake eating @YOUR_USER contributions by GITHUB_SNAKE.EXE" src="https://github-snake-ebon.vercel.app/api/YOUR_USER.svg?theme=cyberpunk&morph=capsule&speed=fast" width="100%">
 ```
 
-On the [site](https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?lang=en), **Add to my profile** fills that in. Animated examples for ten well-known profiles are in `assets/showcase/`. To keep the file in your own repo instead:
+On the [site](https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?lang=en), **Add to my profile** fills that in. The videos are in the [Spanish README](README.md). To keep the file in your own repo instead:
 
 1. Create a public repository named exactly like your username (`your-user/your-user`) with a README.
 2. Add `.github/workflows/snake.yml`:

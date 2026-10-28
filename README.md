@@ -9,7 +9,7 @@
 > **Plataforma interactiva sobre Canvas 2D que transforma el historial de contribuciones de GitHub en una simulación a 60 FPS con IA (BFS + Flood Fill), generador de Commit Art y herramientas de exportación para desarrolladores.**
 
 <p align="center">
-  <img src="assets/hero_preview.png" alt="GitHub Snake Matrix Engine Preview" width="100%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,255,102,0.25);" />
+  <img src="assets/showcase/yyx990803.svg" alt="snake eating @yyx990803 contributions by GITHUB_SNAKE.EXE" width="100%" />
 </p>
 
 <p align="center">
@@ -32,6 +32,80 @@
 > **Acceso Directo a la Demo Desplegada**:  
 > Puedes interactuar con la simulación, competir en modo duelo y generar scripts de Commit Art en:  
 > **https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/**
+
+---
+
+## Videos
+
+Cada bloque de abajo es la animación que se pega en un perfil. El clip para X, Reels o TikTok se genera en la web: unos 10 segundos, y en el duelo sale vertical, comiendo desde el primer frame.
+
+<p align="center">
+  <img src="assets/showcase/yyx990803.svg" alt="snake eating @yyx990803 contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=yyx990803">@yyx990803</a> · Cyberpunk · capsule
+</p>
+<p align="center">
+  <img src="assets/showcase/sindresorhus.svg" alt="snake eating @sindresorhus contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=sindresorhus">@sindresorhus</a> · Cyan · capsule
+</p>
+<p align="center">
+  <img src="assets/showcase/addyosmani.svg" alt="snake eating @addyosmani contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=addyosmani">@addyosmani</a> · Amber · capsule
+</p>
+<p align="center">
+  <img src="assets/showcase/ThePrimeagen.svg" alt="snake eating @ThePrimeagen contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=ThePrimeagen">@ThePrimeagen</a> · Cyberpunk · viper
+</p>
+<p align="center">
+  <img src="assets/showcase/midudev.svg" alt="snake eating @midudev contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=midudev">@midudev</a> · Cyan · viper
+</p>
+<p align="center">
+  <img src="assets/showcase/wesbos.svg" alt="snake eating @wesbos contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=wesbos">@wesbos</a> · Amber · viper
+</p>
+<p align="center">
+  <img src="assets/showcase/kentcdodds.svg" alt="snake eating @kentcdodds contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=kentcdodds">@kentcdodds</a> · Cyberpunk · capsule
+</p>
+<p align="center">
+  <img src="assets/showcase/dhh.svg" alt="snake eating @dhh contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=dhh">@dhh</a> · Cyan · capsule
+</p>
+<p align="center">
+  <img src="assets/showcase/mrdoob.svg" alt="snake eating @mrdoob contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=mrdoob">@mrdoob</a> · Amber · capsule
+</p>
+<p align="center">
+  <img src="assets/showcase/ggerganov.svg" alt="snake eating @ggerganov contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=ggerganov">@ggerganov</a> · Cyberpunk · viper
+</p>
+
+<p align="center">
+  <img src="assets/showcase/yyx990803.svg" alt="snake eating @yyx990803 contributions by GITHUB_SNAKE.EXE" width="48%" />
+  <img src="assets/showcase/sindresorhus.svg" alt="snake eating @sindresorhus contributions by GITHUB_SNAKE.EXE" width="48%" /><br>
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=yyx990803&vs=sindresorhus">Video del duelo</a>
+</p>
+
+### Estilos
+
+El mismo año, cuatro looks. El YAML de abajo publica el claro con capsule y el cyberpunk con capsule.
+
+<p align="center">
+  <img src="assets/showcase/style-dark.svg" alt="snake eating @yyx990803 contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  Dark · viper · <code>?theme=dark&amp;morph=matrix_viper&amp;speed=fast</code>
+</p>
+<p align="center">
+  <img src="assets/showcase/yyx990803.svg" alt="snake eating @yyx990803 contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  Cyberpunk · capsule · <code>?theme=cyberpunk&amp;morph=capsule&amp;speed=fast</code>
+</p>
+<p align="center">
+  <img src="assets/showcase/style-cyan.svg" alt="snake eating @yyx990803 contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  Cyan · capsule · <code>?theme=neon_cyan&amp;morph=capsule&amp;speed=fast</code>
+</p>
+<p align="center">
+  <img src="assets/showcase/style-amber.svg" alt="snake eating @yyx990803 contributions by GITHUB_SNAKE.EXE" width="100%" /><br>
+  Amber · viper · <code>?theme=amber_terminal&amp;morph=matrix_viper&amp;speed=fast</code>
+</p>
 
 ---
 
@@ -109,7 +183,10 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
   * Captura fluida a 60 FPS directamente desde el canvas con la API nativa de `MediaRecorder`.
 
 <p align="center">
-  <img src="assets/duel_mode.png" alt="Modo Duelo" width="95%" style="border-radius: 10px; border: 1px solid rgba(0,242,254,0.3);" />
+  <a href="https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?u=yyx990803&vs=sindresorhus">
+    <img src="assets/showcase/yyx990803.svg" alt="snake eating @yyx990803 contributions by GITHUB_SNAKE.EXE" width="48%" />
+    <img src="assets/showcase/sindresorhus.svg" alt="snake eating @sindresorhus contributions by GITHUB_SNAKE.EXE" width="48%" />
+  </a>
 </p>
 
 ---
@@ -215,7 +292,13 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
 
 ## Guía Detallada: Cómo Integrar la Serpiente en tu Perfil de GitHub
 
-GitHub cuenta con una funcionalidad especial donde el archivo `README.md` de un repositorio con tu mismo nombre de usuario se convierte en la portada principal de tu perfil.
+La línea que se copia. En la web, **Poner en mi perfil** la rellena con tu usuario:
+
+```html
+<img alt="snake eating @TU_USUARIO contributions by GITHUB_SNAKE.EXE" src="https://github-snake-ebon.vercel.app/api/TU_USUARIO.svg?theme=cyberpunk&morph=capsule&speed=fast" width="100%">
+```
+
+Los pasos siguientes son para dejar el SVG dentro de tu repositorio `usuario/usuario`, regenerado cada día.
 
 ### Paso 1: Crear tu Repositorio Especial
 1. Ve a [github.com/new](https://github.com/new).
@@ -266,8 +349,8 @@ jobs:
         with:
           github_user_name: TU_USUARIO
           outputs: |
-            dist/github-snake.svg?theme=light
-            dist/github-snake-dark.svg?theme=dark
+            dist/github-snake.svg?theme=light&morph=capsule&speed=fast
+            dist/github-snake-dark.svg?theme=cyberpunk&morph=capsule&speed=fast
 
       - name: Deploy to Output Branch
         uses: crazy-max/ghaction-github-pages@v4
@@ -311,15 +394,9 @@ Edita tu `README.md` principal y agrega este bloque para soporte automático en 
 </picture>
 ```
 
-### Alternativa: enlace directo sin workflow (endpoint SVG)
+### El endpoint de esa línea
 
-El repositorio incluye una función serverless ([`server/snake-svg.js`](server/snake-svg.js)) que sirve el SVG al vuelo con el mismo motor. Hay una instancia pública en `https://github-snake-ebon.vercel.app`; solo pega esto en tu README:
-
-```html
-<img src="https://github-snake-ebon.vercel.app/api/TU_USUARIO.svg?theme=cyberpunk&morph=capsule" width="100%">
-```
-
-Acepta las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`). La misma instancia sirve también `/api/calendar/<usuario>.json` (datos oficiales de GitHub con caché en CDN), que la web usa en lugar de la API de terceros; si no responde, la web vuelve a la de terceros. Si algo falla, devuelve un SVG con el motivo (usuario inexistente, opción no válida...) en lugar de una imagen rota.
+Lo sirve [`server/snake-svg.js`](server/snake-svg.js) en `https://github-snake-ebon.vercel.app`, con las mismas opciones que la Action (`theme`, `speed`, `morph`, `pause`, `lang`). También está `/api/calendar/<usuario>.json`. Si algo falla, el SVG dice el motivo en lugar de salir roto.
 
 **Desplegar tu propia instancia en Vercel (plan Hobby gratuito):**
 1. Importa este repositorio en [vercel.com/new](https://vercel.com/new) (framework: *Other*, sin comando de build).
