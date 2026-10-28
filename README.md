@@ -70,8 +70,8 @@ El proyecto está diseñado bajo una arquitectura modular desacoplada en tres co
   * **Modo Duelo**: Serpiente Verde (IA) vs Serpiente Cian (Jugador) con barra de progreso dual en tiempo real y pantalla de victoria/game over.
   * **Duelo de Perfiles**: dos usuarios reales de GitHub, la misma IA y 60 segundos. Gana el perfil cuya serpiente devora más puntos. El resultado depende solo de los ticks (es reproducible en cualquier equipo) y se comparte con un enlace: `?u=tu_usuario&vs=rival`.
   * **Enlaces directos**: `?u=usuario` abre la web con la cuadrícula de ese perfil.
-  * **Video para redes**: genera en el navegador un MP4 (H.264) de ~16 s listo para X, LinkedIn, Instagram, TikTok o Shorts, en horizontal 16:9, cuadrado 1:1 o vertical 9:16: intro con tu usuario, la serpiente comiéndose tu año, celebración con datos (días activos, mejor día, racha) y llamada a la acción con tu enlace. Se dibuja fotograma a fotograma con WebCodecs (más rápido que verlo y sin tirones); en el móvil, el botón **Compartir** abre directamente X, Instagram o TikTok con el video adjunto.
-  * **Video del duelo**: al terminar un Duelo de Perfiles, el botón **Video del duelo** genera el clip (vertical por defecto) con las dos serpientes compitiendo, sus marcadores, el ganador destacado y el enlace para retarte. Usa la misma simulación que el duelo de la web, así que el video y el enlace dan el mismo ganador. No se generan videos de perfiles cuyos datos no se pudieron leer.
+  * **Video para redes**: genera en el navegador un MP4 (H.264) de unos 10 s. La serpiente ya está comiendo en el primer frame, con tu usuario visible todo el clip. Horizontal 16:9, cuadrado 1:1 o vertical 9:16. En el móvil, **Compartir** abre X, Instagram o TikTok con el archivo.
+  * **Video del duelo**: al terminar, un solo botón genera el vertical 9:16, sin elegir formato. Mismas serpientes, mismos puntos y el mismo ganador que el enlace. No se genera video si algún perfil salió simulado.
 
 ---
 
@@ -238,7 +238,7 @@ Para que la acción automatizada pueda guardar el archivo SVG generado en tu rep
 El repositorio incluye una GitHub Action propia ([`action.yml`](action.yml)) que ejecuta el mismo motor de la web: IA BFS + Flood Fill, barrido del 100% de la matriz y los mismos temas. Lee tu calendario con la API GraphQL oficial de GitHub, así que la cuadrícula coincide con la de tu perfil.
 
 1. Dentro de tu repositorio especial, crea el archivo `.github/workflows/snake.yml`.
-2. Copia esta configuración (reemplaza `TU_USUARIO` por tu usuario de GitHub). También puedes generarla ya rellenada con el botón **Poner en mi perfil (Workflow)** de la web, donde eliges el estilo con vista previa.
+2. Copia esta configuración (reemplaza `TU_USUARIO` por tu usuario de GitHub). El botón **Poner en mi perfil** de la web copia primero la línea del SVG; el YAML está en el mismo cuadro, como segunda opción, ya rellenado y con vista previa.
 
 ```yaml
 name: GitHub Snake
@@ -307,7 +307,7 @@ Edita tu `README.md` principal y agrega este bloque para soporte automático en 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-snake-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-snake.svg">
-  <img alt="GITHUB_SNAKE.EXE contribution animation" src="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-snake.svg">
+  <img alt="snake eating @TU_USUARIO contributions by GITHUB_SNAKE.EXE" src="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-snake.svg">
 </picture>
 ```
 

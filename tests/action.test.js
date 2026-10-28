@@ -118,6 +118,7 @@ test('el workflow que genera la web usa salidas que la Action acepta', () => {
   ]);
   assert.match(exporter.generateReadmeSnippet('octocat', { adaptive: false }), /^<img [^>]*output\/github-snake\.svg/);
   assert.match(exporter.generateReadmeSnippet('octocat', { adaptive: true }), /github-snake-dark\.svg/);
+  assert.match(exporter.generateReadmeSnippet('octocat', { adaptive: false }), /snake eating @octocat contributions by GITHUB_SNAKE\.EXE/);
 });
 
 test('el SVG parte de la matriz original aunque la partida ya haya comido celdas', () => {

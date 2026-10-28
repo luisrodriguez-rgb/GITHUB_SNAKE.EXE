@@ -30,7 +30,7 @@ const STATIC_EN = {
   'Plantillas Art': 'Art Templates',
   'Grabar Video (Pantalla / Tablero)': 'Record Video (Screen / Board)',
   'Exportar SVG Pro': 'Export SVG Pro',
-  'Poner en mi perfil (Workflow)': 'Add to my profile (Workflow)',
+  'Poner en mi perfil': 'Add to my profile',
   'Commits Restantes': 'Commits Left',
   'P1 (IA Verde) Puntos': 'P1 (Green AI) Points',
   'P2 (Jugador Cian) Puntos': 'P2 (Cyan Player) Points',
@@ -171,6 +171,7 @@ const STATIC_EN = {
 
   // Estudio de video
   'Video para redes': 'Video for social',
+  'Clip vertical 9:16. Empieza a comer en el primer segundo.': 'Vertical 9:16 clip. The snake is eating from the first second.',
   'MP4 listo para X, LinkedIn, Instagram, TikTok o YouTube Shorts. Se genera en tu navegador.':
     'MP4 ready for X, LinkedIn, Instagram, TikTok or YouTube Shorts. Rendered in your browser.',
   'Horizontal 16:9': 'Landscape 16:9',

@@ -44,7 +44,8 @@ test('cada formato: duración acotada y rejilla, celebración y tarjetas dentro 
     const scene = studio.buildScene({ grid, user: 'octocat', lang: 'es', theme: 'cyberpunk', format, shareUrl: 'x' });
     const { width, height, layout: L, timing } = scene;
     assert.strictEqual(width, engine.VIDEO_FORMATS[format].width);
-    assert.ok(timing.total >= 10 && timing.total <= 17, `${format}: ${timing.total}s`);
+    assert.ok(timing.total >= 9 && timing.total <= 12, `${format}: ${timing.total}s`);
+    assert.strictEqual(timing.intro, 0, `${format}: la comida empieza en el primer frame`);
     assert.ok(L.boardLeft >= 0 && L.boardLeft + L.boardWidth <= width, `${format}: rejilla dentro en ancho`);
     // Fondo de las tarjetas de la celebración (mismo cálculo que drawFrame)
     const offset = format === 'vertical' ? 80 : format === 'square' ? 72 : 82;

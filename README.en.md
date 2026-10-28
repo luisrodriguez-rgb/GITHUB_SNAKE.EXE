@@ -9,7 +9,7 @@
 > **An AI snake (BFS + Flood Fill) that devours your GitHub contribution graph: playable at 60 FPS in the browser, as an animated SVG on your profile, and as a duel between two real GitHub profiles.**
 
 <p align="center">
-  <img src="assets/hero_preview.png" alt="GITHUB_SNAKE.EXE preview" width="100%" />
+  <img src="assets/showcase/yyx990803.svg" alt="snake eating @yyx990803 contributions by GITHUB_SNAKE.EXE" width="100%" />
 </p>
 
 <p align="center">
@@ -25,10 +25,10 @@
 | | |
 | :--- | :--- |
 | **Watch the AI eat your graph** | Type any GitHub username. A breadth-first-search snake hunts your real commits, with a Flood Fill check so it never traps itself. Sub-pixel interpolation keeps it smooth at 60 FPS. |
-| **Put it on your profile** | A GitHub Action runs the same engine every day and publishes an animated SVG. Pick the theme (Matrix, Light, Cyberpunk, Cyan, Amber), snake shape and speed with a live preview on the site. |
-| **Profile Duel** | Two real profiles, the same AI and 60 seconds. The GitHub that feeds its snake the most points wins. Results depend only on the tick count, so a shared link (`?u=you&vs=rival`) gives the same winner on any machine. |
-| **Video for social** | One click renders a ~16 s MP4 (H.264) for X, LinkedIn, Instagram, TikTok or Shorts in 16:9, 1:1 or 9:16: intro with your username, the snake eating your year, a stats celebration and a call to action with your link. Frames are drawn and encoded with WebCodecs, so it is smooth and faster than real time; on mobile, **Share** opens X, Instagram or TikTok with the video attached. |
-| **Duel video** | After a Profile Duel, **Duel video** renders the clip (vertical by default) with both snakes racing, live scores, the winner highlighted and a link to challenge you. It uses the same simulation as the website duel, so the video and the link agree on the winner. |
+| **Put it on your profile** | One line, no workflow: `https://github-snake-ebon.vercel.app/api/YOUR_USER.svg?theme=cyberpunk&morph=capsule&speed=fast`. The image alt is `snake eating @YOUR_USER contributions by GITHUB_SNAKE.EXE`. On the site, **Add to my profile** copies that line. The Action below is for keeping the SVG in your own repo. |
+| **Profile Duel** | Two real profiles, the same AI and 60 seconds. The GitHub that feeds its snake the most points wins. A shared link (`?u=you&vs=rival`) gives the same winner on any machine. |
+| **Video for social** | The browser renders an ~10 s MP4. The snake is already eating in the first frame, your username stays on screen, then a short celebration and a call to action. 16:9, 1:1 or 9:16. On mobile, **Share** opens X, Instagram or TikTok with the file. |
+| **Duel video** | After a Profile Duel, one button renders the vertical 9:16 clip. No format picker. Same snakes, same scores, same winner as the link. Simulated profiles are refused. |
 | **Play it yourself** | Manual mode (WASD / arrows / touch D-pad) and a local duel against the AI. |
 | **Commit Art** | Type a word and download a Git script that backdates empty commits so the word appears on your contribution graph. |
 
@@ -36,7 +36,13 @@
 
 ## Put the snake on your GitHub profile
 
-The easiest way: open the [site](https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?lang=en), click **Add to my profile (Workflow)**, choose a style and copy the generated files. Or do it by hand:
+The line people copy:
+
+```html
+<img alt="snake eating @YOUR_USER contributions by GITHUB_SNAKE.EXE" src="https://github-snake-ebon.vercel.app/api/YOUR_USER.svg?theme=cyberpunk&morph=capsule&speed=fast" width="100%">
+```
+
+On the [site](https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?lang=en), **Add to my profile** fills that in. Animated examples for ten well-known profiles are in `assets/showcase/`. To keep the file in your own repo instead:
 
 1. Create a public repository named exactly like your username (`your-user/your-user`) with a README.
 2. Add `.github/workflows/snake.yml`:
@@ -65,8 +71,8 @@ jobs:
         with:
           github_user_name: YOUR_USER
           outputs: |
-            dist/github-snake.svg?theme=light
-            dist/github-snake-dark.svg?theme=dark
+            dist/github-snake.svg?theme=light&morph=capsule&speed=fast
+            dist/github-snake-dark.svg?theme=cyberpunk&morph=capsule&speed=fast
 
       - name: Deploy to Output Branch
         uses: crazy-max/ghaction-github-pages@v4
@@ -84,7 +90,7 @@ jobs:
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/YOUR_USER/YOUR_USER/output/github-snake-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/YOUR_USER/YOUR_USER/output/github-snake.svg">
-  <img alt="GITHUB_SNAKE.EXE contribution animation" src="https://raw.githubusercontent.com/YOUR_USER/YOUR_USER/output/github-snake.svg" width="100%">
+  <img alt="snake eating @YOUR_USER contributions by GITHUB_SNAKE.EXE" src="https://raw.githubusercontent.com/YOUR_USER/YOUR_USER/output/github-snake.svg" width="100%">
 </picture>
 ```
 
@@ -104,15 +110,9 @@ Example: `dist/snake-neon.svg?theme=neon_cyan&speed=fast&morph=capsule`.
 
 The Action reads your calendar from GitHub's official GraphQL API, so the grid matches your profile exactly. If it can't read real data it fails with a clear error instead of drawing a fake grid. Invalid options fail the run and list the valid values.
 
-### Alternative: direct link, no workflow (SVG endpoint)
+### That one-line image
 
-The repo ships a serverless function ([`server/snake-svg.js`](server/snake-svg.js)) that renders the SVG on the fly with the same engine. A public instance runs at `https://github-snake-ebon.vercel.app`; just paste this into your README:
-
-```html
-<img src="https://github-snake-ebon.vercel.app/api/YOUR_USER.svg?theme=cyberpunk&morph=capsule" width="100%">
-```
-
-It takes the same options as the Action (`theme`, `speed`, `morph`, `pause`). The same deployment also serves `/api/calendar/<user>.json` (official GitHub data, CDN-cached), which the site uses instead of the third-party API, falling back to it if needed. On errors it returns an SVG that says what went wrong (unknown user, invalid option...) instead of a broken image.
+The repo ships a serverless function ([`server/snake-svg.js`](server/snake-svg.js)) that renders the SVG with the same engine. The public instance is `https://github-snake-ebon.vercel.app`. It takes the same options as the Action (`theme`, `speed`, `morph`, `pause`, `lang`) and also serves `/api/calendar/<user>.json`. On errors it returns an SVG that says what went wrong instead of a broken image.
 
 **Deploy your own instance on Vercel (free Hobby plan):**
 1. Import this repository at [vercel.com/new](https://vercel.com/new) (framework: *Other*, no build command).

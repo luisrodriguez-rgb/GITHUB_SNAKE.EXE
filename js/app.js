@@ -1455,14 +1455,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       : t('video.postTextGeneric', { link });
   }
 
-  /** Abre el estudio; content 'duel' preselecciona el último duelo en vertical (el formato de Reels y TikTok) */
-  function openVideoStudio(content = 'profile') {
+  /**
+   * Abre el estudio. direct: el botón del duelo no pregunta formato;
+   * genera el vertical y deja compartir o descargar.
+   */
+  function openVideoStudio(content = 'profile', direct = false) {
     const duelReady = Boolean(duelResult && profileDuel.finished);
     document.getElementById('vsContentDuel').disabled = !duelReady;
     const choice = content === 'duel' && duelReady ? 'duel' : 'profile';
     document.querySelector(`input[name="vsContent"][value="${choice}"]`).checked = true;
-    if (choice === 'duel') document.querySelector('input[name="vsFormat"][value="vertical"]').checked = true;
+    if (choice === 'duel' || direct) document.querySelector('input[name="vsFormat"][value="vertical"]').checked = true;
+    const pageTheme = document.body.getAttribute('data-theme');
+    if ([...vsTheme.options].some(option => option.value === pageTheme)) vsTheme.value = pageTheme;
+    document.getElementById('vsChooser').hidden = direct;
+    document.getElementById('vsDirectNote').hidden = !direct;
+    vsGenerateBtn.hidden = direct;
     modalVideoStudio.classList.add('visible');
+    if (direct) generateVideo();
   }
 
   videoStudioBtn.addEventListener('click', () => {
@@ -1473,8 +1482,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalVideoStudio.classList.remove('visible');
   });
 
-  vsGenerateBtn.addEventListener('click', async () => {
-    sound.playClick();
+  async function generateVideo() {
     const format = document.querySelector('input[name="vsFormat"]:checked').value;
     const content = selectedVideoContent();
     // Un video con datos inventados no debe acabar publicado como si fuera el perfil real
@@ -1528,6 +1536,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       vsGenerateBtn.disabled = false;
       vsProgress.hidden = true;
     }
+  }
+
+  vsGenerateBtn.addEventListener('click', () => {
+    sound.playClick();
+    generateVideo();
   });
 
   vsShareBtn.addEventListener('click', async () => {
@@ -1569,7 +1582,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('duelVideoBtn').addEventListener('click', () => {
     sound.playClick();
-    openVideoStudio('duel');
+    openVideoStudio('duel', true);
   });
 
   // --- Cambio de idioma: i18n traduce el HTML estático y la app repinta lo que genera ella ---

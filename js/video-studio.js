@@ -4,7 +4,8 @@
  * así la animación sale perfecta a 30 fps y tarda menos que verla. Si el navegador no tiene WebCodecs,
  * reproduce la escena en tiempo real y la graba con MediaRecorder.
  *
- * Guion (~15 s): intro con usuario y contador -> la serpiente se come el año -> celebración con datos -> llamada a la acción.
+ * Guion (~10 s): la serpiente ya está comiendo en el primer frame, con el usuario visible todo el clip,
+ * celebración corta y llamada a la acción. Cabe en un post mudo.
  */
 
 const VIDEO_FORMATS = {
@@ -95,8 +96,8 @@ class VideoStudio {
     const sim = this.exporter.simulate(grid);
     const totalSteps = sim.history.length;
 
-    // La acción dura lo mismo para todos (entre 4 y 10 s): los perfiles muy activos van más rápido
-    const timing = { intro: 1.5, play: Math.min(10, Math.max(4, totalSteps * 0.03)), finale: 2.6, outro: 2.4 };
+    // Sin cartela: el primer frame ya es la comida. El recorrido dura 6-8 s.
+    const timing = { intro: 0, play: Math.min(8, Math.max(6, totalSteps * 0.02)), finale: 1.6, outro: 1.6 };
     timing.total = timing.intro + timing.play + timing.finale + timing.outro;
 
     // Pasos en los que cada celda pierde un nivel y ondas de las celdas intensas
@@ -152,7 +153,7 @@ class VideoStudio {
     const size = VIDEO_FORMATS[format] || VIDEO_FORMATS.landscape;
     const palette = this.exporter.themePalettes[theme] || this.exporter.themePalettes.dark;
     const result = DuelSimulator.run(players.map(p => p.grid));
-    const timing = { intro: 1.6, play: Math.min(11, Math.max(5, result.ticks * 0.022)), finale: 2.8, outro: 2.4 };
+    const timing = { intro: 0, play: Math.min(8, Math.max(6, result.ticks * 0.018)), finale: 1.8, outro: 1.4 };
     timing.total = timing.intro + timing.play + timing.finale + timing.outro;
 
     const unit = format === 'vertical' ? size.width / 560 : Math.min(size.width, size.height) / 720;
@@ -252,6 +253,11 @@ class VideoStudio {
     return 1 - Math.pow(1 - c, 3);
   }
 
+  /** 1 desde el primer frame si no hay intro; si la hay, entra suave */
+  shown(t, intro) {
+    return intro > 0 ? this.ease(t / intro) : 1;
+  }
+
   /** Dibuja el fotograma del segundo t */
   drawFrame(ctx, scene, t) {
     const { width: W, height: H, palette: P, layout: L, timing: T, text } = scene;
@@ -273,7 +279,7 @@ class VideoStudio {
     ctx.fillRect(0, 0, W, H);
 
     // --- Cabecera: avatar, usuario y contador que sube durante la intro ---
-    const introP = this.ease(t / T.intro);
+    const introP = this.shown(t, T.intro);
     const titleY = scene.format === 'vertical' ? H * 0.17 : scene.format === 'square' ? H * 0.12 : H * 0.16;
     ctx.globalAlpha = introP;
     const avatarSize = 70 * unit;
@@ -329,7 +335,7 @@ class VideoStudio {
 
     // --- Rejilla: aparece en ola en la intro, baja de nivel con los mordiscos y se rellena en ola al final ---
     for (let x = 0; x < 53; x++) {
-      const appear = this.ease((t - 0.15 - (x / 52) * 0.9) / 0.35);
+      const appear = 1;
       const refillAt = playEnd + 0.9 + (x / 52) * 0.9;
       for (let y = 0; y < 7; y++) {
         const original = scene.sim.simGrid[x][y].originalLevel;
@@ -531,7 +537,7 @@ class VideoStudio {
     const finaleEnd = playEnd + T.finale;
     const tick = t < playStart ? 0 : t > playEnd ? scene.ticks : ((t - playStart) / T.play) * scene.ticks;
     const colors = [P.empty, P.l1, P.l2, P.l3, P.l4];
-    const introP = this.ease(t / T.intro);
+    const introP = this.shown(t, T.intro);
 
     ctx.fillStyle = P.bg;
     ctx.fillRect(0, 0, W, H);
@@ -597,7 +603,7 @@ class VideoStudio {
 
       // Rejilla
       for (let x = 0; x < 53; x++) {
-        const appear = this.ease((t - 0.15 - (x / 52) * 0.9) / 0.35);
+        const appear = 1;
         for (let y = 0; y < 7; y++) {
           const bites = side.bitesByCell[`${x}_${y}`];
           let level = side.grid[x][y].originalLevel;

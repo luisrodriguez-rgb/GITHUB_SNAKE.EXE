@@ -325,7 +325,10 @@ class ExporterEngine {
     }
 
     // 6. SVG Minificado Final
-    const svgFinal = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"><defs><filter id="g" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><style>svg{background:${palette.bg};border-radius:12px;border:1px solid ${palette.border}}${headerCss}${cellKeyframes}${snakeKeyframes}</style>${headerSvg}<g>${gridSvg}</g><g class="sn" filter="url(#g)">${snakeElements}</g><g filter="url(#g)">${ringElements}</g></svg>`;
+    const credit = username
+      ? `snake eating @${this.escapeXml(username)} contributions by GITHUB_SNAKE.EXE`
+      : 'snake eating a GitHub contribution graph by GITHUB_SNAKE.EXE';
+    const svgFinal = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"><title>${credit}</title><defs><filter id="g" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><style>svg{background:${palette.bg};border-radius:12px;border:1px solid ${palette.border}}${headerCss}${cellKeyframes}${snakeKeyframes}</style>${headerSvg}<g>${gridSvg}</g><g class="sn" filter="url(#g)">${snakeElements}</g><g filter="url(#g)">${ringElements}</g></svg>`;
 
     return svgFinal;
   }
@@ -483,9 +486,10 @@ ${outputs}
    * sin él, a la rama output que publica la Action.
    */
   generateReadmeSnippet(username = 'USUARIO', style = {}, apiBase = '') {
-    const base = `https://raw.githubusercontent.com/${username}/${username}/output`;
-    const alt = 'GITHUB_SNAKE.EXE contribution animation';
-    const urlFor = (output) => (apiBase ? `${apiBase}/api/${username}.svg?${output.query}` : `${base}/${output.file}`);
+    const safeUser = String(username).replace(/[^A-Za-z0-9-]/g, '') || 'user';
+    const base = `https://raw.githubusercontent.com/${safeUser}/${safeUser}/output`;
+    const alt = `snake eating @${safeUser} contributions by GITHUB_SNAKE.EXE`;
+    const urlFor = (output) => (apiBase ? `${apiBase}/api/${safeUser}.svg?${output.query}` : `${base}/${output.file}`);
     const [light, dark] = this.workflowOutputs(style);
 
     if (style.adaptive === false) {

@@ -15,7 +15,7 @@
   <meta name="twitter:description" content="Simulación jugable en Canvas 2D a 60 FPS con IA (BFS + Flood Fill) y generador de Commit Art.">
   <meta name="twitter:image" content="https://raw.githubusercontent.com/luisrodriguez-rgb/GITHUB_SNAKE.EXE/main/assets/hero_preview.png">
   <!-- ?v= obliga al navegador a descargar CSS/JS nuevos tras cada despliegue: cambiar el valor en cada release -->
-  <link rel="stylesheet" href="style.css?v=20261027-duelvideo">
+  <link rel="stylesheet" href="style.css?v=20261028-clip">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
   <!-- URL base del endpoint SVG (server/snake-svg.js desplegado en Vercel), p. ej. https://github-snake.vercel.app. Vacío = no se ofrece -->
@@ -217,7 +217,7 @@
         </button>
         <button id="exportYamlBtn" class="btn btn-cyber-primary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          Poner en mi perfil (Workflow)
+          Poner en mi perfil
         </button>
       </div>
     </section>
@@ -293,7 +293,7 @@
       <div id="duelArena" class="duel-arena" hidden>
         <div class="duel-player" data-player="0">
           <div class="duel-player-head">
-            <img class="duel-avatar" alt="">
+            <img class="duel-avatar" src="assets/logo.svg" alt="">
             <span class="duel-name"></span>
             <span class="duel-sim" hidden>datos simulados</span>
             <span class="duel-score">0 pts</span>
@@ -306,7 +306,7 @@
 
         <div class="duel-player" data-player="1">
           <div class="duel-player-head">
-            <img class="duel-avatar" alt="">
+            <img class="duel-avatar" src="assets/logo.svg" alt="">
             <span class="duel-name"></span>
             <span class="duel-sim" hidden>datos simulados</span>
             <span class="duel-score">0 pts</span>
@@ -638,6 +638,8 @@
       <div class="modal-body">
         <p class="wf-step">MP4 listo para X, LinkedIn, Instagram, TikTok o YouTube Shorts. Se genera en tu navegador.</p>
 
+        <p id="vsDirectNote" class="wf-step" hidden>Clip vertical 9:16. Empieza a comer en el primer segundo.</p>
+        <div id="vsChooser">
         <div class="wf-mode" role="radiogroup" aria-label="Contenido">
           <label><input type="radio" name="vsContent" value="profile" checked> Mi perfil</label>
           <label><input type="radio" name="vsContent" value="duel" id="vsContentDuel" disabled> Último duelo</label>
@@ -654,6 +656,7 @@
             <label class="wf-label" for="vsTheme">Tema</label>
             <select id="vsTheme" class="cyber-select"></select>
           </div>
+        </div>
         </div>
 
         <button id="vsGenerateBtn" class="btn btn-cyber-primary" style="width: 100%;">Generar video</button>
@@ -684,8 +687,8 @@
       </div>
       <div class="modal-body">
         <div id="wfMethod" class="wf-mode" role="radiogroup" aria-label="Metodo" hidden>
-          <label><input type="radio" name="wfMethodChoice" value="action" checked> Workflow en tu repositorio</label>
-          <label><input type="radio" name="wfMethodChoice" value="endpoint"> Enlace directo (sin configurar nada)</label>
+          <label><input type="radio" name="wfMethodChoice" value="endpoint" checked> Enlace directo (sin configurar nada)</label>
+          <label><input type="radio" name="wfMethodChoice" value="action"> Workflow en tu repositorio</label>
         </div>
 
         <p class="wf-step">1. Elige el estilo:</p>
@@ -720,11 +723,11 @@
 
         <div class="wf-preview">
           <figure id="wfPreviewDarkBox">
-            <img id="wfPreviewDark" alt="Vista previa del SVG en modo oscuro">
+            <img id="wfPreviewDark" src="assets/logo.svg" alt="Vista previa del SVG en modo oscuro">
             <figcaption id="wfPreviewDarkCaption">Modo oscuro</figcaption>
           </figure>
           <figure id="wfPreviewLightBox">
-            <img id="wfPreviewLight" alt="Vista previa del SVG en modo claro">
+            <img id="wfPreviewLight" src="assets/logo.svg" alt="Vista previa del SVG en modo claro">
             <figcaption>Modo claro</figcaption>
           </figure>
         </div>
@@ -744,21 +747,21 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/i18n.js?v=20261027-duelvideo"></script>
-  <script src="js/calendar.js?v=20261027-duelvideo"></script>
-  <script src="js/analytics.js?v=20261027-duelvideo"></script>
-  <script src="js/audio.js?v=20261027-duelvideo"></script>
-  <script src="js/recorder.js?v=20261027-duelvideo"></script>
-  <script src="js/templates.js?v=20261027-duelvideo"></script>
-  <script src="js/achievements.js?v=20261027-duelvideo"></script>
-  <script src="js/exporter.js?v=20261027-duelvideo"></script>
-  <script src="js/github.js?v=20261027-duelvideo"></script>
-  <script src="js/pathfinding.js?v=20261027-duelvideo"></script>
-  <script src="js/snake.js?v=20261027-duelvideo"></script>
-  <script src="js/renderer.js?v=20261027-duelvideo"></script>
-  <script src="js/duel.js?v=20261027-duelvideo"></script>
-  <script src="js/video-studio.js?v=20261027-duelvideo"></script>
-  <script src="js/app.js?v=20261027-duelvideo"></script>
+  <script src="js/i18n.js?v=20261028-clip"></script>
+  <script src="js/calendar.js?v=20261028-clip"></script>
+  <script src="js/analytics.js?v=20261028-clip"></script>
+  <script src="js/audio.js?v=20261028-clip"></script>
+  <script src="js/recorder.js?v=20261028-clip"></script>
+  <script src="js/templates.js?v=20261028-clip"></script>
+  <script src="js/achievements.js?v=20261028-clip"></script>
+  <script src="js/exporter.js?v=20261028-clip"></script>
+  <script src="js/github.js?v=20261028-clip"></script>
+  <script src="js/pathfinding.js?v=20261028-clip"></script>
+  <script src="js/snake.js?v=20261028-clip"></script>
+  <script src="js/renderer.js?v=20261028-clip"></script>
+  <script src="js/duel.js?v=20261028-clip"></script>
+  <script src="js/video-studio.js?v=20261028-clip"></script>
+  <script src="js/app.js?v=20261028-clip"></script>
   <!-- Cloudflare Web Analytics -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3e77b1cd85dc43deb7ca6f16ca8c9fef"}'></script>
   <!-- End Cloudflare Web Analytics -->

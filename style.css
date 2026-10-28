@@ -859,15 +859,15 @@ body[data-theme="light"] .progress-track {
 }
 
 .btn-cyber-primary {
-  background: linear-gradient(135deg, #053b1e 0%, #00ff66 100%);
-  color: #030805;
+  background: #00ff66;
+  color: #04140c;
   border: 1px solid #00ff66;
-  box-shadow: 0 0 16px rgba(0, 255, 102, 0.45);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
 .btn-cyber-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 24px rgba(0, 255, 102, 0.65);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.34);
 }
 
 .btn-cyber-secondary {
