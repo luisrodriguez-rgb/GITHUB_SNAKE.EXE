@@ -258,6 +258,9 @@ class CommitArtEngine {
     }
 
     return `#!/usr/bin/env bash
+# WARNING: this script rewrites history.
+# It creates empty commits with GIT_AUTHOR_DATE and GIT_COMMITTER_DATE.
+# Run it only inside a NEW empty repository. Do not run it in a repo whose history you want to keep.
 # Generador de Commit Art en GitHub
 # Repositorio destino recomendado: Crea un repositorio NUEVO y VACIO en tu GitHub
 

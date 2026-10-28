@@ -224,15 +224,12 @@ Para que la acción automatizada pueda guardar el archivo SVG generado en tu rep
 2. Copia y pega la siguiente configuración (reemplaza `TU_USUARIO` por tu usuario de GitHub):
 
 ```yaml
-name: Generate Snake Contribution Animation
+name: Generate Snake Animation
 
 on:
-  # Se ejecuta automáticamente cada 24 horas a medianoche
   schedule:
     - cron: "0 0 * * *"
-  # Permite disparar la ejecución manualmente en cualquier momento
   workflow_dispatch:
-  # Se ejecuta al hacer push a la rama principal
   push:
     branches:
       - main
@@ -245,17 +242,17 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Generate Snake SVG
-        uses: Platane/snk/svg-only@v3
+      - name: Checkout GITHUB_SNAKE.EXE
+        uses: actions/checkout@v4
         with:
-          github_user_name: TU_USUARIO
-          outputs: |
-            dist/github-contribution-grid-snake.svg
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          repository: luisrodriguez-rgb/GITHUB_SNAKE.EXE
+          ref: main
+          path: .snake-engine
 
-      - name: Deploy SVG to Output Branch
+      - name: Render contribution snake SVG
+        run: node .snake-engine/scripts/generate-svg.mjs --user TU_USUARIO --out dist
+
+      - name: Deploy SVG to output branch
         uses: crazy-max/ghaction-github-pages@v3.1.0
         with:
           target_branch: output
@@ -266,7 +263,7 @@ jobs:
 
 ### Paso 4: Ejecutar el Workflow por Primera Vez
 1. Ve a la pestaña **Actions** de tu repositorio.
-2. En el menú izquierdo, selecciona **Generate Snake Contribution Animation**.
+2. En el menú izquierdo, selecciona **Generate Snake Animation**.
 3. Haz clic en el botón desplegable **Run workflow** -> **Run workflow**.
 4. Una vez completado en verde, se habrá creado automáticamente la rama `output` con los gráficos generados.
 
@@ -279,7 +276,7 @@ Edita tu `README.md` principal y agrega este bloque para soporte automático en 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake.svg">
-  <img alt="Snake Contribution Animation" src="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake.svg">
+  <img alt="snake eating @TU_USUARIO contributions by GITHUB_SNAKE.EXE" src="https://raw.githubusercontent.com/TU_USUARIO/TU_USUARIO/output/github-contribution-grid-snake.svg">
 </picture>
 ```
 

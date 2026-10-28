@@ -73,6 +73,59 @@ class VideoRecorderEngine {
   }
 
   /**
+   * Clip de 8s del tablero con el usuario quemado en la imagen.
+   */
+  startBrandedClip(options = {}, onProgress, onComplete) {
+    if (this.isRecording) return;
+    const username = options.username || 'developer';
+    const duration = options.duration || 8;
+    const composite = document.createElement('canvas');
+    composite.width = this.canvas.width;
+    composite.height = this.canvas.height;
+    const ctx = composite.getContext('2d');
+    const paint = () => {
+      ctx.drawImage(this.canvas, 0, 0);
+      const label = `@${username}`;
+      const brand = 'GITHUB_SNAKE.EXE';
+      const fontSize = Math.max(22, Math.round(composite.width / 36));
+      ctx.font = `700 ${fontSize}px ui-monospace, monospace`;
+      const pad = Math.round(fontSize * 0.45);
+      const textW = Math.max(ctx.measureText(label).width, ctx.measureText(brand).width);
+      const boxW = textW + pad * 2;
+      const boxH = Math.round(fontSize * 2.35);
+      const x = composite.width - boxW - pad;
+      const y = composite.height - boxH - pad;
+      ctx.fillStyle = 'rgba(4, 8, 6, 0.88)';
+      ctx.fillRect(x, y, boxW, boxH);
+      ctx.fillStyle = '#00ff66';
+      ctx.fillText(label, x + pad, y + fontSize);
+      ctx.font = `600 ${Math.round(fontSize * 0.62)}px ui-monospace, monospace`;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(brand, x + pad, y + Math.round(fontSize * 1.75));
+      if (this.isRecording) this._clipFrame = requestAnimationFrame(paint);
+    };
+
+    try {
+      const stream = composite.captureStream(30);
+      this.activeStream = stream;
+      this._stopClipPaint = () => {
+        if (this._clipFrame) cancelAnimationFrame(this._clipFrame);
+        this._clipFrame = null;
+      };
+      this.onProgressCallback = onProgress;
+      this.onCompleteCallback = onComplete;
+      this.setupRecorder(stream, {
+        duration,
+        filenamePrefix: options.filenamePrefix || `github-snake-${username}-clip`
+      });
+      paint();
+    } catch (err) {
+      this.cleanup();
+      if (onComplete) onComplete(err);
+    }
+  }
+
+  /**
    * Inicia la grabación exclusiva del Canvas
    */
   startCanvasRecording(options = {}, onProgress, onComplete) {
@@ -173,6 +226,7 @@ class VideoRecorderEngine {
 
   cleanup() {
     this.isRecording = false;
+    if (this._stopClipPaint) this._stopClipPaint();
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
       this.timerInterval = null;

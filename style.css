@@ -760,6 +760,10 @@ body[data-theme="light"] .profile-gh-tag {
   color: var(--text-muted);
 }
 
+.meta-tag[hidden] {
+  display: none;
+}
+
 /* Consumption Progress Bar */
 .consumption-progress-container {
   display: flex;
@@ -859,10 +863,10 @@ body[data-theme="light"] .progress-track {
 }
 
 .btn-cyber-primary {
-  background: linear-gradient(135deg, #053b1e 0%, #00ff66 100%);
-  color: #030805;
+  background: #00ff66;
+  color: #04140c;
   border: 1px solid #00ff66;
-  box-shadow: 0 0 16px rgba(0, 255, 102, 0.45);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
 .btn-cyber-primary:hover {
@@ -1032,6 +1036,39 @@ body[data-theme="light"] .dpad-btn {
 body[data-theme="light"] .dpad-btn:active {
   background: #ebf5ff;
   border-color: #0969da;
+}
+
+.clip-cta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.clip-cta-row p {
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.simulated-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #04140c;
+  background: #fcee0a;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+
+.simulated-badge[hidden] {
+  display: none;
 }
 
 /* Pro Tools Bar */

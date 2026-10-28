@@ -42,7 +42,7 @@
             GITHUB_SNAKE.EXE
             <span class="glitch-tag">v2.0 PRO</span>
           </h1>
-          <p>Zero-Flicker 60 FPS Sub-pixel Contribution Engine & Game</p>
+          <p data-i18n="tagline">El grafico es el nivel.</p>
         </div>
       </div>
       
@@ -55,17 +55,18 @@
             Star
           </span>
         </a>
+        <button id="langToggle" type="button" class="terminal-status-pill tool-btn lang-toggle" style="cursor: pointer; border: 1px solid var(--border-color);">EN</button>
         <button id="achievementsBtn" class="terminal-status-pill tool-btn" style="cursor: pointer; border: 1px solid var(--border-color);">
           <span class="status-dot"></span>
           <span id="achievementsLabel">Logros: 0/7</span>
         </button>
         <div class="theme-selector">
           <select id="themeSelect" class="cyber-select">
-            <option value="dark" selected>Matrix Phosphor (Oscuro)</option>
-            <option value="light">Modo Claro (GitHub Light)</option>
-            <option value="cyberpunk">Cyberpunk Neon (Fucsia)</option>
-            <option value="neon_cyan">Cyber Cyan (Azul)</option>
-            <option value="amber_terminal">Amber CRT (Terminal)</option>
+            <option value="dark" selected data-i18n="theme_dark">Matrix Phosphor (Oscuro)</option>
+            <option value="light" data-i18n="theme_light">Modo Claro (GitHub Light)</option>
+            <option value="cyberpunk" data-i18n="theme_cyber">Cyberpunk Neon (Fucsia)</option>
+            <option value="neon_cyan" data-i18n="theme_cyan">Cyber Cyan (Azul)</option>
+            <option value="amber_terminal" data-i18n="theme_amber">Amber CRT (Terminal)</option>
           </select>
         </div>
       </div>
@@ -75,7 +76,7 @@
     <section class="glass-panel">
       <div class="input-header-label">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span>Ingresa un nombre de usuario o pega el enlace completo de GitHub:</span>
+        <span data-i18n="input_label">Ingresa un nombre de usuario o pega el enlace completo de GitHub:</span>
       </div>
 
       <div class="toolbar-grid">
@@ -88,26 +89,26 @@
         
         <button id="fetchBtn" class="btn btn-cyber-primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-          Ejecutar Caza
+          <span data-i18n="fetch_btn">Ejecutar Caza</span>
         </button>
         
         <button id="randomGridBtn" class="btn btn-cyber-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-          Matriz Aleatoria
+          <span data-i18n="random_btn">Matriz Aleatoria</span>
         </button>
       </div>
 
       <div class="presets-container">
         <span class="presets-label">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          Accesos directos:
+          <span data-i18n="presets_label">Accesos directos:</span>
         </span>
         <button class="preset-pill active" data-user="torvalds">Linus Torvalds</button>
         <button class="preset-pill" data-user="midudev">Midudev</button>
         <button class="preset-pill" data-user="antfu">Anthony Fu</button>
         <button class="preset-pill" data-user="gaearon">Dan Abramov</button>
         <button class="preset-pill" data-user="sindresorhus">Sindre Sorhus</button>
-        <button class="preset-pill" data-user="dense_matrix">Matriz Densa</button>
+        <button class="preset-pill" data-user="dense_matrix" data-i18n="preset_dense">Matriz Densa</button>
       </div>
     </section>
 
@@ -121,6 +122,7 @@
         <div class="profile-details">
           <div class="profile-name-row">
             <h3 id="activeDevName">Linus Torvalds</h3>
+            <span id="simulatedBadge" class="simulated-badge" hidden data-i18n="simulated_badge">Grafico simulado</span>
             <a id="activeDevLink" href="https://github.com/torvalds" target="_blank" rel="noopener noreferrer" class="profile-gh-tag">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
               <span id="activeDevUsername">@torvalds</span>
@@ -128,14 +130,8 @@
           </div>
           <p id="activeDevBio" class="profile-bio-text">Creador de Linux & Git</p>
           <div class="profile-meta-tags">
-            <span id="activeDevLocation" class="meta-tag">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              Portland, EE.UU.
-            </span>
-            <span id="activeDevRepos" class="meta-tag">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-              Repos: 42
-            </span>
+            <span id="activeDevLocation" class="meta-tag" hidden></span>
+            <span id="activeDevRepos" class="meta-tag" hidden></span>
           </div>
         </div>
       </div>
@@ -143,7 +139,7 @@
       <!-- Live Consumption Progress Bar -->
       <div class="consumption-progress-container">
         <div class="progress-info-row">
-          <span id="progressLabelText">Progreso de Devoracion del Mapa:</span>
+          <span id="progressLabelText" data-i18n="progress_label">Progreso de devoracion del mapa:</span>
           <span id="progressPercentText">0%</span>
         </div>
         <div class="progress-track" id="singleProgressTrack">
@@ -177,20 +173,26 @@
 
     <!-- Pro Interaction Tools Bar -->
     <section class="tools-bar">
+      <div class="clip-cta-row">
+        <button id="clipBtn" class="btn btn-cyber-primary tool-btn" type="button">
+          <span data-i18n="clip_cta">Clip 8s</span>
+        </button>
+        <p data-i18n="clip_hint">Ocho segundos con el usuario en la imagen, listo para X.</p>
+      </div>
       <div class="tools-group">
-        <button id="modeBtn" class="btn btn-cyber-secondary tool-btn">
+        <button id="modeBtn" class="btn btn-cyber-secondary tool-btn" data-i18n="mode_ai">
           Control: IA Autonoma
         </button>
-        <button id="duelBtn" class="btn btn-cyber-secondary tool-btn">
+        <button id="duelBtn" class="btn btn-cyber-secondary tool-btn" data-i18n="duel_off">
           Modo Duelo (IA vs Jugador)
         </button>
-        <button id="paintBtn" class="btn btn-cyber-secondary tool-btn">
+        <button id="paintBtn" class="btn btn-cyber-secondary tool-btn" data-i18n="paint_off">
           Pintar: Inactivo
         </button>
-        <button id="templateBtn" class="btn btn-cyber-secondary tool-btn">
+        <button id="templateBtn" class="btn btn-cyber-secondary tool-btn" data-i18n="templates_btn">
           Plantillas Art
         </button>
-        <button id="audioBtn" class="btn btn-cyber-secondary tool-btn">
+        <button id="audioBtn" class="btn btn-cyber-secondary tool-btn" data-i18n="audio_off">
           Audio: OFF
         </button>
       </div>
@@ -198,15 +200,15 @@
       <div class="tools-group">
         <button id="recordBtn" class="btn btn-cyber-secondary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
-          <span id="recordBtnText">Grabar Video (Pantalla / Tablero)</span>
+          <span id="recordBtnText" data-i18n="record_btn">Grabar Video (Pantalla / Tablero)</span>
         </button>
         <button id="exportSvgBtn" class="btn btn-cyber-secondary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Exportar SVG Pro
+          <span data-i18n="export_svg">Exportar SVG Pro</span>
         </button>
         <button id="exportYamlBtn" class="btn btn-cyber-primary tool-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          Generar Workflow YAML
+          <span data-i18n="export_yaml">Generar Workflow YAML</span>
         </button>
       </div>
     </section>
@@ -214,7 +216,7 @@
     <!-- Real-time HUD Stats -->
     <section class="hud-grid">
       <div class="stat-card">
-        <span class="stat-label">Commits Restantes</span>
+        <span class="stat-label" data-i18n="stat_remaining">Commits Restantes</span>
         <div class="stat-value highlight" id="statRemaining">0</div>
       </div>
       <div class="stat-card" id="cardP1">
@@ -226,7 +228,7 @@
         <div class="stat-value" style="color: #00f2fe;" id="statP2Score">0 pts</div>
       </div>
       <div class="stat-card">
-        <span class="stat-label">Estado de la Partida</span>
+        <span class="stat-label" data-i18n="stat_state">Estado de la Partida</span>
         <div class="stat-value" style="font-size: 0.90rem;" id="statState">Escaneando red...</div>
       </div>
     </section>
@@ -237,10 +239,10 @@
         <button id="playPauseBtn" class="btn btn-cyber-primary" style="padding: 0.65rem 1.2rem;">
           <span id="playIcon">Pausar</span>
         </button>
-        <button id="stepBtn" class="btn btn-cyber-secondary" style="padding: 0.65rem 1rem;">
+        <button id="stepBtn" class="btn btn-cyber-secondary" style="padding: 0.65rem 1rem;" data-i18n="step">
           Paso
         </button>
-        <button id="resetBtn" class="btn btn-cyber-secondary" style="padding: 0.65rem 1rem;">
+        <button id="resetBtn" class="btn btn-cyber-secondary" style="padding: 0.65rem 1rem;" data-i18n="reset">
           Reiniciar
         </button>
       </div>
@@ -266,8 +268,8 @@
     <section class="glass-panel">
       <div class="section-title-bar">
         <div>
-          <h2>Ranking de Desarrolladores Destacados</h2>
-          <p>Explora y devora las matrices de contribucion de los creadores mas activos de Open Source.</p>
+          <h2 data-i18n="leader_title">Perfiles para devorar</h2>
+          <p data-i18n="leader_sub">Abre un grafico real. La serpiente se lo come.</p>
         </div>
       </div>
 
@@ -279,27 +281,21 @@
     <!-- Technical Architecture / Documentation -->
     <section class="docs-grid">
       <div class="doc-card">
-        <h3>Renderizado Zero-Flicker a 60 FPS</h3>
-        <p>
-          Calcula la posicion de sub-pixel mediante <span class="code-badge">interpolacion lineal continua (LERP)</span> entre ticks discretos, eliminando cualquier vibracion o salto abrupto en la pantalla.
-        </p>
+        <h3 data-i18n="doc1_title">Renderizado Zero-Flicker a 60 FPS</h3>
+        <p data-i18n="doc1_body">La posicion entre ticks se interpola para que el movimiento no salte.</p>
       </div>
       <div class="doc-card">
-        <h3>Pathfinding BFS + Lookahead</h3>
-        <p>
-          Ejecuta un arbol de busqueda en anchura que localiza los commits mas ricos energeticamente mientras utiliza un algoritmo de <span class="code-badge">Flood Fill de seguridad</span> para jamas quedar atrapada.
-        </p>
+        <h3 data-i18n="doc2_title">Pathfinding BFS + Lookahead</h3>
+        <p data-i18n="doc2_body">La IA busca el commit mas cercano y no se encierra.</p>
       </div>
       <div class="doc-card">
-        <h3>Sincronizacion con GitHub API</h3>
-        <p>
-          Parsea la matriz de 53 semanas x 7 dias en tiempo real y reacciona dinamicamente disipando la intensidad de cada commit devorado con particulas cuanticas.
-        </p>
+        <h3 data-i18n="doc3_title">Sincronizacion con GitHub</h3>
+        <p data-i18n="doc3_body">Lee la matriz de 53 semanas por 7 dias y se la come en pantalla.</p>
       </div>
     </section>
 
     <footer>
-      <p>&copy; GITHUB_SNAKE_MATRIX // CONSTRUIDO CON CANVAS 2D, LERP SUB-PIXEL & VANILLA JS</p>
+      <p data-i18n="footer">GITHUB_SNAKE.EXE // EL GRAFICO ES EL NIVEL</p>
     </footer>
   </div>
 
@@ -416,7 +412,7 @@
   <div id="modalGameOver" class="modal-backdrop">
     <div class="modal-card victory-card">
       <div class="modal-header">
-        <h3 id="victoryTitle">PARTIDA FINALIZADA // MATRIZ 100% PURIFICADA</h3>
+        <h3 id="victoryTitle" data-i18n="victory_title">PARTIDA FINALIZADA</h3>
         <button id="closeGameOverBtn" class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
@@ -441,17 +437,18 @@
         </div>
 
         <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap;">
-          <button id="rematchBtn" class="btn btn-cyber-primary" style="flex: 1.2;">Nueva Partida / Revancha</button>
+          <button id="victoryClipBtn" class="btn btn-cyber-primary" style="flex: 1.2;" type="button" data-i18n="clip_cta">Clip 8s</button>
+          <button id="rematchBtn" class="btn btn-cyber-secondary" style="flex: 1;" data-i18n="rematch">Nueva Partida / Revancha</button>
           <button id="shareTwitterBtn" class="btn btn-cyber-secondary" style="flex: 1; border-color: #1da1f2; color: #1da1f2; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-            Compartir en X
+            <span data-i18n="share_x">Compartir en X</span>
           </button>
-          <button id="victoryExportSvgBtn" class="btn btn-cyber-secondary" style="flex: 1;">Exportar SVG</button>
+          <button id="victoryExportSvgBtn" class="btn btn-cyber-secondary" style="flex: 1;" data-i18n="victory_export">Exportar SVG</button>
         </div>
 
         <div class="star-cta-box" style="margin-top: 1.25rem; padding: 0.85rem 1rem; background: rgba(0, 255, 102, 0.05); border: 1px dashed var(--border-color); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
           <span style="font-size: 0.82rem; color: var(--text-muted); font-family: var(--font-mono);">
-            ¿Te ha gustado el proyecto? Apóyalo con una estrella:
+            <span data-i18n="star_cta">Si el clip te gusto, dejale una estrella:</span>
           </span>
           <a href="https://github.com/luisrodriguez-rgb/GITHUB_SNAKE.EXE" target="_blank" rel="noopener noreferrer" class="btn btn-cyber-primary tool-btn" style="padding: 0.4rem 0.85rem; font-size: 0.78rem; white-space: nowrap;">
             Star en GitHub ★
@@ -496,9 +493,9 @@
         </div>
 
         <div class="info-alert-box" style="margin-top: 1rem;">
-          <strong>¿Para que sirve el Script Git (.sh)?</strong>
-          <p>
-            Al descargar el script <code>.sh</code>, puedes ejecutarlo en una carpeta vacia de tu computadora para crear esos commits con fechas reales y subirlos a tu cuenta de GitHub, dejando esa palabra pintada en tu perfil real.
+          <strong data-i18n="warning_title">El script reescribe el historial</strong>
+          <p data-i18n="warning_body">
+            El .sh crea commits vacios con GIT_AUTHOR_DATE y GIT_COMMITTER_DATE para pintar el grafico. No lo uses en un repositorio con historial que quieras conservar.
           </p>
         </div>
 
@@ -585,6 +582,8 @@
   </div>
 
   <!-- Scripts -->
+  <script src="js/gif.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/analytics.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/recorder.js"></script>

@@ -16,7 +16,7 @@ Copia y pega este contenido en el archivo `README.md` de tu repositorio especial
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/luisrodriguez-rgb/luisrodriguez-rgb/output/github-contribution-grid-snake-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/luisrodriguez-rgb/luisrodriguez-rgb/output/github-contribution-grid-snake.svg">
-    <img alt="Snake Contribution Animation" src="https://raw.githubusercontent.com/luisrodriguez-rgb/luisrodriguez-rgb/output/github-contribution-grid-snake.svg" width="100%">
+    <img alt="snake eating @luisrodriguez-rgb contributions by GITHUB_SNAKE.EXE" src="https://raw.githubusercontent.com/luisrodriguez-rgb/luisrodriguez-rgb/output/github-contribution-grid-snake.svg" width="100%">
   </picture>
 </p>
 

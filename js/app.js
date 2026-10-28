@@ -5,6 +5,11 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (window.SnakeI18n) {
+    window.SnakeI18n.initLang();
+    window.SnakeI18n.apply(document);
+  }
+
   // Elementos del DOM
   const canvas = document.getElementById('snakeCanvas');
   const matrixCanvas = document.getElementById('matrixCanvas');
@@ -51,6 +56,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const templateBtn = document.getElementById('templateBtn');
   const recordBtn = document.getElementById('recordBtn');
   const recordBtnText = document.getElementById('recordBtnText');
+  const clipBtn = document.getElementById('clipBtn');
+  const clipLabel = clipBtn ? clipBtn.querySelector('span') : null;
   const exportSvgBtn = document.getElementById('exportSvgBtn');
   const exportYamlBtn = document.getElementById('exportYamlBtn');
   const achievementsBtn = document.getElementById('achievementsBtn');
@@ -147,28 +154,95 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isPaintMode = false;
   let isMouseDown = false;
   let currentUsername = 'torvalds';
+  let gridSimulated = false;
+
+  const t = (key, vars) => (window.SnakeI18n ? window.SnakeI18n.t(key, vars) : key);
+
+  function projectBase() {
+    if (!location.hostname.endsWith('github.io')) return '';
+    const repo = location.pathname.split('/').filter(Boolean)[0];
+    return repo ? `/${repo}` : '';
+  }
+
+  function readSharedUser() {
+    const query = new URLSearchParams(location.search).get('user');
+    if (query) return query;
+    const parts = location.pathname.split('/').filter(Boolean);
+    const segs = location.hostname.endsWith('github.io') ? parts.slice(1) : parts;
+    const candidate = segs[0];
+    if (!candidate || candidate.includes('.')) return null;
+    if (!/^[a-z0-9][a-z0-9-]{0,38}$/i.test(candidate)) return null;
+    return candidate;
+  }
+
+  function sharePageUrl(username) {
+    const url = new URL(`${location.origin}${projectBase()}/`);
+    url.searchParams.set('user', username);
+    if (window.SnakeI18n && window.SnakeI18n.getLang() === 'en') {
+      url.searchParams.set('lang', 'en');
+    }
+    return url.toString();
+  }
+
+  function setMeta(attr, key, content) {
+    const el = document.querySelector(`meta[${attr}="${key}"]`);
+    if (el) el.setAttribute('content', content);
+  }
+
+  function syncShareUrl(username) {
+    const next = sharePageUrl(username);
+    if (location.href !== next) history.replaceState({ user: username }, '', next);
+    const title = t('og_title', { user: username });
+    const description = t('share_text', { user: username, score: snake ? snake.score : 0 });
+    document.title = title;
+    setMeta('property', 'og:title', title);
+    setMeta('property', 'og:description', description);
+    setMeta('property', 'og:url', next);
+    setMeta('name', 'twitter:title', title);
+    setMeta('name', 'twitter:description', description);
+    setMeta('name', 'description', description);
+    const image = `${location.origin}${projectBase()}/og/${encodeURIComponent(username)}.png`;
+    setMeta('property', 'og:image', image);
+    setMeta('name', 'twitter:image', image);
+  }
 
   function formatSpeedLabel(speed) {
-    if (speed <= 3) return `${speed} t/s (Relajado)`;
-    if (speed <= 6) return `${speed} t/s (Optimo)`;
-    return `${speed} t/s (Rapido)`;
+    if (speed <= 3) return t('speed_slow', { speed });
+    if (speed <= 6) return t('speed_mid', { speed });
+    return t('speed_fast', { speed });
+  }
+
+  function refreshChrome() {
+    if (modeBtn) modeBtn.textContent = isManualMode ? t('mode_manual') : t('mode_ai');
+    if (duelBtn) duelBtn.textContent = isDuelMode ? t('duel_on') : t('duel_off');
+    if (paintBtn) paintBtn.textContent = isPaintMode ? t('paint_on') : t('paint_off');
+    if (audioBtn) audioBtn.textContent = sound.isMuted ? t('audio_off') : t('audio_on');
+    if (templateBtn) templateBtn.textContent = t('templates_btn');
+    if (playIcon) playIcon.textContent = isRunning ? t('pause') : t('resume');
+    if (speedValue) speedValue.textContent = formatSpeedLabel(ticksPerSecond);
+    if (clipLabel && !(clipBtn && clipBtn.disabled)) clipLabel.textContent = t('clip_cta');
+    if (recordBtnText && !recorder.isRecording) recordBtnText.textContent = t('record_btn');
+    const badge = document.getElementById('simulatedBadge');
+    if (badge) {
+      badge.hidden = !gridSimulated;
+      badge.textContent = t('simulated_badge');
+    }
+    updateAchievementsBadge();
   }
 
   function formatSpanishDate(dateStr) {
-    if (!dateStr) return 'Fecha no disponible';
-    const [year, month, day] = dateStr.split('-');
-    const months = [
-      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
-    ];
-    const monthName = months[parseInt(month, 10) - 1] || month;
-    return `el ${parseInt(day, 10)} de ${monthName} de ${year}`;
+    if (!dateStr) return t('date_unavailable');
+    const parts = dateStr.split('-').map((n) => parseInt(n, 10));
+    if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return t('date_unavailable');
+    const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    const locale = window.SnakeI18n && window.SnakeI18n.getLang() === 'en' ? 'en-US' : 'es-ES';
+    return date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   }
 
   function showAchievementToast(ach) {
     sound.playShockwave();
-    toastTitle.textContent = ach.title;
-    toastDesc.textContent = ach.desc;
+    toastTitle.textContent = t(`ach_${ach.id}_title`);
+    toastDesc.textContent = t(`ach_${ach.id}_desc`);
     achievementToast.classList.add('show');
     updateAchievementsBadge();
     setTimeout(() => {
@@ -179,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateAchievementsBadge() {
     const unlocked = achievements.getUnlockedCount();
     const total = achievements.getTotalCount();
-    achievementsLabel.textContent = `Logros: ${unlocked}/${total}`;
+    achievementsLabel.textContent = t('achievements', { unlocked, total });
   }
 
   // --- Lluvia Matrix ---
@@ -231,24 +305,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.innerHTML = `
         <div class="card-top-row">
           <div class="rank-badge">#${dev.rank}</div>
-          <button class="btn btn-cyber-secondary tool-btn load-dev-btn" data-user="${dev.username}">Cargar Perfil</button>
+          <button class="btn btn-cyber-secondary tool-btn load-dev-btn" data-user="${dev.username}">${t('load_profile')}</button>
         </div>
         <div class="dev-header-flex">
           <img src="${dev.avatar}" alt="${dev.name}" class="dev-avatar-img" onerror="this.src='https://github.com/github.png?size=100'">
           <div class="dev-main-info">
             <h4>${dev.name}</h4>
             <span>@${dev.username}</span>
-            <div class="dev-role">${dev.role}</div>
-          </div>
-        </div>
-        <div class="dev-metrics">
-          <div class="metric-item">
-            <label>Commits Anuales</label>
-            <value>${dev.commits}</value>
-          </div>
-          <div class="metric-item">
-            <label>Racha Activa</label>
-            <value>${dev.streak}</value>
+            <div class="dev-role">${dev.roleKey ? t(dev.roleKey) : dev.role}</div>
           </div>
         </div>
       `;
@@ -274,11 +338,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.className = `ach-card ${ach.unlocked ? 'unlocked' : ''}`;
       card.innerHTML = `
         <div>
-          <h4>${ach.title}</h4>
-          <p>${ach.desc}</p>
+          <h4>${t('ach_' + ach.id + '_title')}</h4>
+          <p>${t('ach_' + ach.id + '_desc')}</p>
         </div>
         <span class="ach-status-badge ${ach.unlocked ? 'unlocked' : 'locked'}">
-          ${ach.unlocked ? 'DESBLOQUEADO' : 'BLOQUEADO'}
+          ${ach.unlocked ? t('ach_unlocked') : t('ach_locked')}
         </span>
       `;
       achievementsListContainer.appendChild(card);
@@ -289,7 +353,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const username = fetcher.sanitizeUsername(rawInput);
     currentUsername = username;
     gameCompleted = false;
-    statState.textContent = 'Decodificando perfil...';
+    syncShareUrl(username);
+    statState.textContent = t('state_decoding');
 
     achievements.profilesLoaded.add(username);
     if (achievements.profilesLoaded.size >= 3) {
@@ -301,24 +366,37 @@ document.addEventListener('DOMContentLoaded', async () => {
       activeDevName.textContent = profile.name;
       activeDevUsername.textContent = `@${profile.username}`;
       activeDevLink.href = `https://github.com/${profile.username}`;
-      activeDevBio.textContent = profile.bio;
-      activeDevLocation.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${profile.location}`;
-      activeDevRepos.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Repos: ${profile.repos}`;
+      activeDevBio.textContent = profile.bio || '';
+      activeDevLocation.hidden = !profile.location;
+      if (profile.location) {
+        activeDevLocation.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${profile.location}`;
+      }
+      activeDevRepos.hidden = profile.repos == null;
+      if (profile.repos != null) {
+        activeDevRepos.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> ${t('repos')}: ${profile.repos}`;
+      }
     });
 
     try {
       grid = await fetcher.getContributions(username);
+      gridSimulated = Boolean(grid && grid.simulated);
+      refreshChrome();
       totalCommitsInitial = countRemainingCommits();
       totalPointsInitial = countTotalCommitPoints();
       snake.reset();
       if (isDuelMode && snake2) snake2.reset();
 
       lastTickTime = performance.now();
+      const simulatedBadge = document.getElementById('simulatedBadge');
+      if (simulatedBadge) {
+        simulatedBadge.hidden = !gridSimulated;
+        simulatedBadge.textContent = t('simulated_badge');
+      }
       updateHud();
-      statState.textContent = isDuelMode ? 'Duelo Activo: IA vs Jugador' : (isManualMode ? 'Modo Manual (WASD / Flechas)' : 'Cazando commits (IA)');
+      statState.textContent = isDuelMode ? t('state_duel_on') : (isManualMode ? t('state_manual') : t('state_hunting'));
     } catch (err) {
       console.error(err);
-      statState.textContent = 'Error al decodificar';
+      statState.textContent = t('state_error');
     }
   }
 
@@ -375,32 +453,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       resP2Percent.textContent = `${p2Pct}%`;
 
       if (p2Score > p1Score) {
-        winnerBadge.textContent = '¡VICTORIA DEL JUGADOR 2!';
+        winnerBadge.textContent = t('win_p2');
         winnerBadge.style.color = '#00f2fe';
         winnerBadge.style.borderColor = '#00f2fe';
-        winnerSummary.textContent = `¡Has superado a la IA con ${p2Score} puntos (${p2Eaten} commits devorados)!`;
+        winnerSummary.textContent = t('sum_p2', { score: p2Score });
       } else if (p1Score > p2Score) {
-        winnerBadge.textContent = '¡VICTORIA DE LA IA VERDE!';
+        winnerBadge.textContent = t('win_ai');
         winnerBadge.style.color = 'var(--matrix-green)';
         winnerBadge.style.borderColor = 'var(--matrix-green)';
-        winnerSummary.textContent = `La IA ha ganado el duelo con ${p1Score} puntos (${p1Eaten} commits devorados).`;
+        winnerSummary.textContent = t('sum_ai', { score: p1Score });
       } else {
-        winnerBadge.textContent = '¡EMPATE TÉCNICO!';
+        winnerBadge.textContent = t('win_draw');
         winnerBadge.style.color = '#fcee0a';
         winnerBadge.style.borderColor = '#fcee0a';
-        winnerSummary.textContent = `Ambos obtuvieron ${p1Score} puntos.`;
+        winnerSummary.textContent = t('sum_draw', { score: p1Score });
       }
     } else {
       resP2Box.style.display = 'none';
-      winnerBadge.textContent = '¡MATRIZ 100% PURIFICADA!';
+      winnerBadge.textContent = t('win_clear');
       winnerBadge.style.color = 'var(--matrix-green)';
       winnerBadge.style.borderColor = 'var(--matrix-green)';
-      winnerSummary.textContent = `Has devorado la totalidad de los commits de @${currentUsername} con un puntaje final de ${p1Score} pts.`;
+      winnerSummary.textContent = t('sum_clear', { user: currentUsername, score: p1Score });
     }
 
     achievements.unlock('clean_sweep', showAchievementToast);
     modalGameOver.classList.add('visible');
-    statState.textContent = 'Partida Completada al 100%';
+    statState.textContent = t('state_done');
   }
 
   function doLogicalTick() {
@@ -431,7 +509,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (remaining === 0 && !gameCompleted) {
       triggerGameOver();
     } else if (!isManualMode && !isDuelMode) {
-      statState.textContent = `Cazando (${remaining} restantes)`;
+      statState.textContent = t('state_hunting_left', { remaining });
     }
   }
 
@@ -450,9 +528,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     statRemaining.textContent = remaining;
 
     if (isDuelMode && snake2) {
-      labelP1.textContent = 'P1 (IA Verde)';
+      labelP1.textContent = t('p1_duel');
       statP1Score.textContent = `${snake.score} pts`;
-      labelP2.textContent = 'P2 (Jugador Cian)';
+      labelP2.textContent = t('p2_duel');
       statP2Score.textContent = `${snake2.score} pts`;
 
       singleProgressTrack.style.display = 'none';
@@ -468,9 +546,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       p2ProgressFill.textContent = `P2: ${p2Pct}% (${snake2.eatenCommits})`;
       progressPercentText.textContent = `${p1Pct}% / ${p2Pct}%`;
     } else {
-      labelP1.textContent = isManualMode ? 'Tu Puntaje (Manual)' : 'Puntaje de Caza (IA)';
+      labelP1.textContent = isManualMode ? t('p1_manual') : t('p1_ai');
       statP1Score.textContent = `${snake.score} pts`;
-      labelP2.textContent = 'Longitud de Serpiente';
+      labelP2.textContent = t('snake_len');
       statP2Score.textContent = `${snake.length} seg`;
 
       singleProgressTrack.style.display = 'block';
@@ -550,9 +628,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         manualNextDir = dir;
         if (!isManualMode) {
           isManualMode = true;
-          modeBtn.textContent = 'Control: Manual (WASD)';
+          modeBtn.textContent = t('mode_manual');
           modeBtn.classList.add('active-tool');
-          statState.textContent = 'Modo Manual (WASD / Tactil)';
+          statState.textContent = t('state_manual');
           achievements.unlock('manual_pilot', showAchievementToast);
         }
       }
@@ -633,7 +711,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (cell && grid[cell.x] && grid[cell.x][cell.y]) {
       const c = grid[cell.x][cell.y];
       const count = c.count !== undefined ? c.count : (c.level > 0 ? c.level * 3 : 0);
-      tooltipCount.textContent = count === 0 ? 'Sin contribuciones' : (count === 1 ? '1 contribucion' : `${count} contribuciones`);
+      tooltipCount.textContent = count === 0 ? t('no_commits') : (count === 1 ? t('one_commit') : t('n_commits', { count }));
       tooltipDate.textContent = formatSpanishDate(c.date);
       tooltipLevel.textContent = `Nivel de actividad: ${c.level}/4`;
 
@@ -694,11 +772,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isDuelMode && snake2) snake2.reset();
     lastTickTime = performance.now();
     presetPills.forEach(p => p.classList.remove('active'));
-    activeDevName.textContent = 'Matriz Aleatoria';
+    gridSimulated = Boolean(grid.simulated);
+    activeDevName.textContent = t('random_name');
     activeDevUsername.textContent = '@random_matrix';
-    activeDevBio.textContent = 'Simulacion generativa procedural';
+    activeDevBio.textContent = t('random_bio');
+    refreshChrome();
     updateHud();
-    statState.textContent = 'Matriz aleatoria generada';
+    statState.textContent = t('state_random');
   });
 
   presetPills.forEach(pill => {
@@ -716,14 +796,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     sound.playClick();
     isManualMode = !isManualMode;
     if (isManualMode) {
-      modeBtn.textContent = 'Control: Manual (WASD)';
+      modeBtn.textContent = t('mode_manual');
       modeBtn.classList.add('active-tool');
-      statState.textContent = 'Modo Manual (WASD / Flechas)';
+      statState.textContent = t('state_manual');
       achievements.unlock('manual_pilot', showAchievementToast);
     } else {
-      modeBtn.textContent = 'Control: IA Autonoma';
+      modeBtn.textContent = t('mode_ai');
       modeBtn.classList.remove('active-tool');
-      statState.textContent = 'Cazando commits (IA)';
+      statState.textContent = t('state_hunting');
     }
     updateHud();
   });
@@ -735,14 +815,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isDuelMode) {
       snake2 = new Snake(4, { x: 50, y: 6 });
       player2NextDir = { x: -1, y: 0 };
-      duelBtn.textContent = 'Duelo: Activo (IA vs P2)';
+      duelBtn.textContent = t('duel_on');
       duelBtn.classList.add('active-tool');
-      statState.textContent = 'Duelo en curso: Controla P2 con WASD/Flechas';
+      statState.textContent = t('state_duel');
     } else {
       snake2 = null;
-      duelBtn.textContent = 'Modo Duelo (IA vs Jugador)';
+      duelBtn.textContent = t('duel_off');
       duelBtn.classList.remove('active-tool');
-      statState.textContent = 'Modo Duelo desactivado';
+      statState.textContent = t('state_duel_off');
     }
     updateHud();
   });
@@ -751,11 +831,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     sound.playClick();
     isPaintMode = !isPaintMode;
     if (isPaintMode) {
-      paintBtn.textContent = 'Pintar: Activo';
+      paintBtn.textContent = t('paint_on');
       paintBtn.classList.add('active-tool');
       canvas.style.cursor = 'crosshair';
     } else {
-      paintBtn.textContent = 'Pintar: Inactivo';
+      paintBtn.textContent = t('paint_off');
       paintBtn.classList.remove('active-tool');
       canvas.style.cursor = 'default';
     }
@@ -777,6 +857,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       sound.playClick();
       gameCompleted = false;
       grid = artEngine.generateGridFromText(text);
+      grid.simulated = true;
+      gridSimulated = true;
       totalCommitsInitial = countRemainingCommits();
       totalPointsInitial = countTotalCommitPoints();
       snake.reset();
@@ -785,8 +867,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       modalTemplates.classList.remove('visible');
       activeDevName.textContent = `Texto: "${text.toUpperCase()}"`;
       activeDevUsername.textContent = `@commit_art`;
-      activeDevBio.textContent = `Arte en matriz personalizado`;
+      activeDevBio.textContent = t('art_bio');
       achievements.unlock('artist', showAchievementToast);
+      refreshChrome();
       updateHud();
       statState.textContent = `Palabra '${text}' renderizada en el mapa`;
     }
@@ -847,6 +930,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       URL.revokeObjectURL(url);
     });
   });
+
+  const victoryClipBtn = document.getElementById('victoryClipBtn');
+  if (victoryClipBtn) {
+    victoryClipBtn.addEventListener('click', () => {
+      sound.playClick();
+      modalGameOver.classList.remove('visible');
+      recordShareClip();
+    });
+  }
+
+  const langToggle = document.getElementById('langToggle');
+  if (langToggle && window.SnakeI18n) {
+    langToggle.addEventListener('click', () => {
+      sound.playClick();
+      window.SnakeI18n.setLang(window.SnakeI18n.getLang() === 'en' ? 'es' : 'en');
+      refreshChrome();
+      renderLeaderboard();
+      syncShareUrl(currentUsername);
+    });
+  }
 
   recordBtn.addEventListener('click', () => {
     sound.playClick();
@@ -934,8 +1037,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       sound.playClick();
       const score = snake.score;
       const user = currentUsername;
-      const text = `Acabo de devorar los commits de @${user} con ${score} puntos a 60 FPS en GITHUB_SNAKE.EXE!\nPruébalo con tu perfil de GitHub:`;
-      const url = 'https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/';
+      const text = t('share_text', { user, score });
+      const url = sharePageUrl(user);
       const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
       window.open(twitterUrl, '_blank', 'noopener,noreferrer');
       analytics.trackEvent('share_twitter', { user, score });
@@ -1013,12 +1116,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     sound.playClick();
     isRunning = !isRunning;
     if (isRunning) {
-      playIcon.textContent = 'Pausar';
+      playIcon.textContent = t('pause');
       playPauseBtn.classList.remove('btn-cyber-secondary');
       playPauseBtn.classList.add('btn-cyber-primary');
       lastTickTime = performance.now();
     } else {
-      playIcon.textContent = 'Reanudar';
+      playIcon.textContent = t('resume');
       playPauseBtn.classList.remove('btn-cyber-primary');
       playPauseBtn.classList.add('btn-cyber-secondary');
     }
@@ -1042,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isDuelMode && snake2) snake2.reset();
     lastTickTime = performance.now();
     updateHud();
-    statState.textContent = 'Protocolo reiniciado';
+    statState.textContent = t('state_reset');
   });
 
   speedSlider.addEventListener('input', (e) => {
@@ -1076,10 +1179,107 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   updateGitHubStarsBadge();
 
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function recordShareClip() {
+    if (!clipBtn || clipBtn.disabled || typeof GifEncoder === 'undefined') return;
+    if (!isRunning) {
+      isRunning = true;
+      lastTickTime = performance.now();
+      if (playIcon) playIcon.textContent = t('pause');
+    }
+    clipBtn.disabled = true;
+    const user = currentUsername;
+    try {
+      const frames = 80;
+      const bannerH = 36;
+      const dpr = window.devicePixelRatio || 1;
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const targetW = Math.max(320, Math.min(720, Math.round(cssW)));
+      const scale = targetW / cssW;
+      const targetH = Math.max(48, Math.round(cssH * scale));
+      const out = document.createElement('canvas');
+      out.width = targetW;
+      out.height = targetH + bannerH;
+      const ctx = out.getContext('2d', { willReadFrequently: true });
+      const encoder = new GifEncoder(out.width, out.height);
+
+      await new Promise((resolve) => {
+        let captured = 0;
+        const timer = setInterval(() => {
+          ctx.fillStyle = '#040806';
+          ctx.fillRect(0, 0, out.width, out.height);
+          ctx.fillStyle = '#00ff66';
+          ctx.font = '600 16px ui-monospace, monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText('@' + user, 12, 24);
+          ctx.fillStyle = '#9fb8a8';
+          ctx.textAlign = 'right';
+          ctx.font = '13px ui-monospace, monospace';
+          ctx.fillText('GITHUB_SNAKE.EXE', out.width - 12, 23);
+          ctx.drawImage(canvas, 0, bannerH, targetW, targetH);
+          encoder.addFrame(ctx.getImageData(0, 0, out.width, out.height), 10);
+          captured += 1;
+          const left = Math.max(0, 8 - Math.floor((captured - 1) / 10));
+          if (clipLabel) clipLabel.textContent = t('record_stop', { time: left });
+          if (captured >= frames) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, 100);
+      });
+
+      const bytes = encoder.encode();
+      const blob = new Blob([bytes], { type: 'image/gif' });
+      const filename = `github-snake-${user}.gif`;
+      downloadBlob(blob, filename);
+      const file = new File([blob], filename, { type: 'image/gif' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            text: t('share_text', { user, score: snake.score }),
+            url: sharePageUrl(user)
+          });
+        } catch (err) {}
+      }
+      analytics.trackEvent('record_video', { seconds: 8, user });
+      achievements.unlock('cinematographer', showAchievementToast);
+    } finally {
+      clipBtn.disabled = false;
+      if (clipLabel) clipLabel.textContent = t('clip_cta');
+    }
+  }
+
+  if (clipBtn) {
+    clipBtn.addEventListener('click', () => {
+      sound.playClick();
+      recordShareClip();
+    });
+  }
+
+  window.addEventListener('snake-lang', () => {
+    renderLeaderboard();
+    refreshChrome();
+    updateHud();
+  });
+
   // Inicialización
   updateAchievementsBadge();
   speedValue.textContent = formatSpeedLabel(ticksPerSecond);
   renderLeaderboard();
-  await loadUserGrid('torvalds');
+  const initialUser = readSharedUser() || usernameInput.value.trim() || 'torvalds';
+  usernameInput.value = initialUser;
+  await loadUserGrid(initialUser);
   animationFrameId = requestAnimationFrame(gameLoop);
 });

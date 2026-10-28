@@ -15,8 +15,7 @@ class GitHubFetcher {
         username: 'antfu',
         avatar: 'https://github.com/antfu.png?size=100',
         role: 'Vue / Vite / Nuxt Core',
-        commits: '5,840',
-        streak: '365 dias',
+        roleKey: 'role_antfu',
         location: 'Tokio, Japon'
       },
       {
@@ -25,8 +24,7 @@ class GitHubFetcher {
         username: 'sindresorhus',
         avatar: 'https://github.com/sindresorhus.png?size=100',
         role: 'Open Source Maintainer',
-        commits: '4,210',
-        streak: '320 dias',
+        roleKey: 'role_sindresorhus',
         location: 'Suecia'
       },
       {
@@ -35,8 +33,7 @@ class GitHubFetcher {
         username: 'yyx990803',
         avatar: 'https://github.com/yyx990803.png?size=100',
         role: 'Creador de Vue.js & Vite',
-        commits: '3,450',
-        streak: '280 dias',
+        roleKey: 'role_yyx990803',
         location: 'Singapur'
       },
       {
@@ -45,8 +42,7 @@ class GitHubFetcher {
         username: 'torvalds',
         avatar: 'https://github.com/torvalds.png?size=100',
         role: 'Creador de Linux & Git',
-        commits: '3,290',
-        streak: '340 dias',
+        roleKey: 'role_torvalds',
         location: 'Portland, EE.UU.'
       },
       {
@@ -55,8 +51,7 @@ class GitHubFetcher {
         username: 'midudev',
         avatar: 'https://github.com/midudev.png?size=100',
         role: 'FullStack & Open Source',
-        commits: '3,120',
-        streak: '295 dias',
+        roleKey: 'role_midudev',
         location: 'Espana'
       },
       {
@@ -65,8 +60,7 @@ class GitHubFetcher {
         username: 'gaearon',
         avatar: 'https://github.com/gaearon.png?size=100',
         role: 'Creador de Redux',
-        commits: '2,890',
-        streak: '210 dias',
+        roleKey: 'role_gaearon',
         location: 'Londres, Reino Unido'
       }
     ];
@@ -100,22 +94,22 @@ class GitHubFetcher {
           username: data.login,
           name: data.name || data.login,
           avatar: data.avatar_url || `https://github.com/${cleanUser}.png?size=100`,
-          bio: data.bio || (matched ? matched.role : 'Desarrollador de software'),
-          location: data.location || (matched ? matched.location : 'En la red'),
-          repos: data.public_repos || 0,
-          followers: data.followers || 0
+          bio: data.bio || (matched ? matched.role : ''),
+          location: data.location || '',
+          repos: typeof data.public_repos === 'number' ? data.public_repos : null,
+          known: true
         };
       }
     } catch (e) {}
 
     return {
       username: cleanUser,
-      name: matched ? matched.name : cleanUser.charAt(0).toUpperCase() + cleanUser.slice(1),
+      name: matched ? matched.name : cleanUser,
       avatar: `https://github.com/${cleanUser}.png?size=100`,
-      bio: matched ? matched.role : 'Desarrollador en GitHub',
-      location: matched ? matched.location : 'Comunidad Global',
-      repos: 42,
-      followers: 128
+      bio: matched ? matched.role : '',
+      location: '',
+      repos: null,
+      known: false
     };
   }
 
@@ -131,7 +125,9 @@ class GitHubFetcher {
     const username = this.sanitizeUsername(rawInput);
     
     if (username === 'dense_matrix') {
-      return this.generateDenseGrid();
+      const dense = this.generateDenseGrid();
+      dense.simulated = true;
+      return dense;
     }
 
     try {
@@ -146,14 +142,18 @@ class GitHubFetcher {
       if (response.ok) {
         const data = await response.json();
         if (data.contributions && data.contributions.length > 0) {
-          return this.parseApiContributions(data.contributions);
+          const grid = this.parseApiContributions(data.contributions);
+          grid.simulated = false;
+          return grid;
         }
       }
     } catch (err) {
       console.warn(`[GitHubFetcher] Usando generador simulado para '${username}':`, err.message);
     }
 
-    return this.generateRealisticMock(username);
+    const mock = this.generateRealisticMock(username);
+    mock.simulated = true;
+    return mock;
   }
 
   parseApiContributions(contributions) {
@@ -289,6 +289,7 @@ class GitHubFetcher {
         };
       }
     }
+    grid.simulated = true;
     return grid;
   }
 }

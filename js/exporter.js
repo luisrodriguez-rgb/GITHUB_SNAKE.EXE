@@ -74,8 +74,18 @@ class ExporterEngine {
     };
   }
 
+  xmlEscape(value) {
+    return String(value).replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&apos;'
+    }[ch]));
+  }
+
   /**
-   * Genera y descarga un SVG animado ultra optimizado
+   * Genera el SVG animado. Con download:false devuelve el string (CI y tests).
    */
   exportAnimatedSvg(grid, username = 'developer', options = {}) {
     if (!grid || grid.length === 0) return;
@@ -94,7 +104,9 @@ class ExporterEngine {
     const stepSize = cellSize + cellGap;
 
     const width = (cols * stepSize) + (padding * 2) - cellGap;
-    const height = (rows * stepSize) + (padding * 2) - cellGap;
+    const boardH = (rows * stepSize) + (padding * 2) - cellGap;
+    const captionH = 18;
+    const height = boardH + captionH;
 
     // 1. Clonar matriz
     const simGrid = [];
@@ -240,8 +252,15 @@ class ExporterEngine {
       snakeElements += `<g class="snk-${segIdx}"><rect x="${offset - 1}" y="${offset - 1}" width="${size + 2}" height="${size + 2}" rx="${rx}" fill="#000"/><rect x="${offset}" y="${offset}" width="${size}" height="${size}" rx="${rx}" fill="${fill}"/>${!isHead && morphMode === 'matrix_viper' ? `<rect x="${offset + (size - size * 0.4) / 2}" y="${offset + (size - size * 0.4) / 2}" width="${size * 0.4}" height="${size * 0.4}" rx="1" fill="${palette.spine}"/>` : ''}</g>`;
     }
 
-    // 6. SVG Minificado Final
-    const svgFinal = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"><defs><filter id="g" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><style>svg{background:${palette.bg};border-radius:12px;border:1px solid ${palette.border}}${cellKeyframes}${snakeKeyframes}</style><g>${gridSvg}</g><g filter="url(#g)">${snakeElements}</g></svg>`;
+    // 6. SVG Minificado Final, con marca que sobrevive fuera del alt
+    const safeUser = this.xmlEscape(username);
+    const credit = `snake eating @${safeUser} contributions by GITHUB_SNAKE.EXE`;
+    const page = `https://luisrodriguez-rgb.github.io/GITHUB_SNAKE.EXE/?user=${encodeURIComponent(username)}`;
+    const svgFinal = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"><title>${credit}</title><desc>${credit}. ${this.xmlEscape(page)}</desc><defs><filter id="g" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><style>svg{background:${palette.bg};border-radius:12px;border:1px solid ${palette.border}}${cellKeyframes}${snakeKeyframes}</style><g>${gridSvg}</g><g filter="url(#g)">${snakeElements}</g><text x="${padding}" y="${Math.round(boardH + 12)}" fill="${palette.l4}" font-family="ui-monospace,SFMono-Regular,monospace" font-size="11">snake by GITHUB_SNAKE.EXE</text></svg>`;
+
+    if (options.download === false || typeof document === 'undefined') {
+      return svgFinal;
+    }
 
     // Descarga directa
     const blob = new Blob([svgFinal], { type: 'image/svg+xml;charset=utf-8' });
@@ -256,6 +275,7 @@ class ExporterEngine {
   }
 
   generateWorkflowYaml(username = 'USUARIO') {
+    const user = String(username).replace(/[^A-Za-z0-9-]/g, '') || 'USUARIO';
     return `name: Generate Snake Animation
 
 on:
@@ -274,17 +294,17 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Generate Snake SVG
-        uses: Platane/snk/svg-only@v3
+      - name: Checkout GITHUB_SNAKE.EXE
+        uses: actions/checkout@v4
         with:
-          github_user_name: ${username}
-          outputs: |
-            dist/github-contribution-grid-snake.svg
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
-        env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          repository: luisrodriguez-rgb/GITHUB_SNAKE.EXE
+          ref: main
+          path: .snake-engine
 
-      - name: Deploy to Output Branch
+      - name: Render contribution snake SVG
+        run: node .snake-engine/scripts/generate-svg.mjs --user ${user} --out dist
+
+      - name: Deploy SVG to output branch
         uses: crazy-max/ghaction-github-pages@v3.1.0
         with:
           target_branch: output
@@ -294,10 +314,12 @@ jobs:
   }
 
   generateReadmeSnippet(username = 'USUARIO') {
+    const user = String(username).replace(/[^A-Za-z0-9-]/g, '') || 'USUARIO';
+    const alt = `snake eating @${user} contributions by GITHUB_SNAKE.EXE`;
     return `<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake.svg">
-  <img alt="Snake Contribution Grid" src="https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/${user}/${user}/output/github-contribution-grid-snake-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/${user}/${user}/output/github-contribution-grid-snake.svg">
+  <img alt="${alt}" src="https://raw.githubusercontent.com/${user}/${user}/output/github-contribution-grid-snake.svg">
 </picture>`;
   }
 }

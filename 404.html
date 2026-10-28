@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>GITHUB_SNAKE.EXE</title>
+  <script>
+    (function () {
+      var parts = location.pathname.split('/').filter(Boolean);
+      var base = '';
+      var segs = parts.slice();
+      if (location.hostname.endsWith('github.io') && segs.length) {
+        base = '/' + segs[0];
+        segs = segs.slice(1);
+      }
+      var user = segs[0] || '';
+      if (!/^[a-z0-9][a-z0-9-]{0,38}$/i.test(user)) {
+        location.replace(base + '/' || '/');
+        return;
+      }
+      location.replace(base + '/?user=' + encodeURIComponent(user.toLowerCase()));
+    })();
+  </script>
+</head>
+<body></body>
+</html>
